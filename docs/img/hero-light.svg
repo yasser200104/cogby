@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" width="960" role="img" aria-label="Cogby. It remembers, you decide. A session starts by reading your brain: the project, what is in flight, what you decided, and what waits on you.">
+<title>Cogby. It remembers, you decide. A session starts by reading your brain: the project, what is in flight, what you decided, and what waits on you.</title>
+<style>
+svg{--canvas-soft:#f7f7f5;--surface-card:#ffffff;--ink:#191634;--body:#3d3663;--muted:#5c5486;--accent:#5940a4;--hairline:rgba(55,36,118,.16);--hairline-strong:rgba(55,36,118,.28);--success:#16a34a;--warn:#b45309}
+text{font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:15px;fill:var(--body)}
+.brand{font-family:'Rubik','IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:30px;font-weight:600;fill:var(--ink);letter-spacing:-.035em}
+.hero{font-size:40px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.h{font-size:16px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.lead{font-size:17px;fill:var(--body)}
+.q{font-family:'IBM Plex Serif',Georgia,serif;font-size:17px;fill:var(--ink)}
+.b{font-size:14.5px;fill:var(--body)}
+.i{font-size:14.5px;fill:var(--ink)}
+.l{font-size:11.5px;font-weight:600;letter-spacing:.06em;fill:var(--muted)}
+.m{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--muted)}
+.mi{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink)}
+.mb{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink);font-weight:600}
+.ma{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--accent)}
+.card{fill:var(--surface-card);stroke:var(--hairline);stroke-width:1}
+.soft{fill:var(--canvas-soft)}
+.bar{fill:var(--accent)}
+.rule{stroke:var(--hairline);stroke-width:1}
+.ok{fill:var(--success)}
+.wait{fill:var(--warn)}
+</style>
+<g transform="translate(26 34) scale(0.3436880370125578)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(0)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g>
+<text x="64" y="45" class="brand">Cogby</text>
+<text x="0" y="124" class="hero">It remembers, you decide.</text>
+<text x="0" y="164" class="lead">A context manager for Claude Code. What you know and</text>
+<text x="0" y="188" class="lead">what you are working on, kept in a folder you own.</text>
+<rect x="561" y="9" width="398" height="222" rx="8" class="card"/>
+<circle cx="585" cy="37" r="4" class="ok"/>
+<text x="597" y="41" class="l">A SESSION STARTS</text>
+<text x="581" y="72" class="mi">Brain: ~/brain (214 pages)</text>
+<line x1="581" y1="88" x2="939" y2="88" class="rule"/>
+<text x="581" y="112" class="mb">projects/acme</text>
+<text x="581" y="136" class="m">Now</text>
+<text x="661" y="136" class="mi">UAT starts 18 Nov</text>
+<text x="581" y="158" class="m">Decided</text>
+<text x="661" y="158" class="mi">go live in January, 6 Nov</text>
+<text x="661" y="178" class="ma">you overrode Claude</text>
+<line x1="581" y1="194" x2="939" y2="194" class="rule"/>
+<text x="581" y="216" class="m">Waiting on you: 3 to-dos, 1 decision due</text>
+</svg>

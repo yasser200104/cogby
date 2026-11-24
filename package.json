@@ -1,0 +1,9 @@
+{
+  "name": "cogby-plugin",
+  "version": "0.3.11",
+  "private": true,
+  "description": "The cogby Claude Code plugin.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.cjs\""
+  }
+}

@@ -1,0 +1,1718 @@
+<title>Cogby command center</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* The page loads nothing from the network: no font, no script, no image. The families below are used
+     when the reader has them installed, and the system's own otherwise.
+     Four tabs in one file: today, tasks and notes, projects (with a view of each project), the brain. Tokens
+     are Cogby's own (the Console's), one light look in every theme. Coloured text uses the "ink"
+     partner of a status colour: the fills are for dots and fail contrast as text. */
+  :root{
+    --primary:#372476; --ink:#191634;
+    --body:#3d3663; --muted:#5c5486; --muted-soft:#736b96;
+    --hairline:rgba(55,36,118,.16); --hairline-soft:rgba(55,36,118,.10); --hairline-strong:rgba(55,36,118,.28);
+    --canvas:#ffffff; --canvas-soft:#f7f7f5; --surface-card:#ffffff; --surface-strong:#efefed;
+    --on-primary:#ffffff; --accent:#5940a4; --seg-on:#e9e3f6;
+    --st-needs:#DC7E27; --st-running:#22A96B; --st-scheduled:#9A93BE; --st-accent:#8B3FC4; --st-todo:#A99DDC;
+    /* the Console's "ink" partners of the status colours, for text. The fills fail contrast as text. */
+    --st-needs-ink:#8A4A14; --st-running-ink:#12704A; --st-accent-ink:#5B2185; --st-scheduled-ink:#4C3A6E;
+    --success:#16a34a; --warn:#b45309; --error:#a8386e;
+    --shadow:0 4px 16px rgba(25,22,52,.06);
+    /* Square-ish on purpose (owner, 2026-11-18: "more rectangular, now everything is very circular"):
+       cards, buttons, chips, pills and panels take small corners. Dots and the round tick stay round. */
+    --r-sm:4px; --r-lg:6px; --r-xl:8px; --r-pill:6px;
+    --serif:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --brand:'Rubik',var(--sans);
+  }
+  /* One look on purpose: the page is light in every theme. Every colour is set here, none is inherited. */
+  :root{color-scheme:light}
+
+  *{box-sizing:border-box}
+  html{scroll-padding-top:60px}
+  body{margin:0;background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding-block:24px 64px;padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
+
+  .top{display:flex;align-items:center;gap:11px;margin-bottom:14px;flex-wrap:wrap}
+  .top svg.mark{width:38px;height:38px;flex:none}
+  .top b{font-family:var(--brand);font-weight:500;font-size:26px;letter-spacing:-.018em;color:var(--ink);line-height:1}
+  .top .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .asof{font-size:12.5px;color:var(--muted);border:1px solid var(--hairline);border-radius:var(--r-pill);padding:4px 11px;background:var(--surface-card);white-space:nowrap}
+  /* The answers a file opened from disk cannot send, as text to paste, when the clipboard is closed. */
+  #copybox{flex:1 1 100%;min-height:90px;font-family:var(--mono);font-size:12px}
+
+  /* tabs, after the Console's .project-sections (underline, ink when on). Stays in reach while scrolling. */
+  .tabsbar{position:sticky;top:0;z-index:5;background:var(--canvas);border-bottom:1px solid var(--hairline);margin-bottom:30px}
+  .tabs{display:flex;gap:24px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:2px 0 0;border-bottom:2px solid transparent;font-weight:600;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
+  .tabs a:hover{color:var(--ink)}
+  .tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .count{font-size:11px;font-weight:600;min-width:20px;text-align:center;padding:1px 6px;border-radius:var(--r-pill);background:var(--surface-strong);color:var(--muted);font-variant-numeric:tabular-nums}
+  .count.hot{background:color-mix(in srgb, var(--st-needs) 20%, transparent);color:var(--st-needs-ink)}
+
+  h1{font-family:var(--serif);font-weight:400;font-size:38px;letter-spacing:-.4px;line-height:1.15;color:var(--ink);margin:0;text-wrap:balance}
+  h1:focus{outline:none}
+  .lede{margin:8px 0 30px;color:var(--muted);font-size:15px}
+  .lede a{color:inherit}
+
+  .kicker{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.96px;color:var(--muted);margin:0}
+  .sectionhead{display:flex;align-items:baseline;gap:11px;margin:0 2px 10px;flex-wrap:wrap}
+  .sectionhead .more{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none}
+  .sectionhead .btn{margin-left:auto;align-self:center}
+  .soft{color:var(--muted);font-size:12px}
+  section{margin-bottom:30px;min-width:0}
+
+  .card{background:var(--surface-card);border:1px solid var(--hairline);border-radius:var(--r-xl);overflow:hidden}
+  .row{padding:13px 18px;border-top:1px solid var(--hairline-soft)}
+  .row:first-child{border-top:0}
+  .row.chosen{background:var(--canvas-soft)}
+  .line{display:flex;align-items:center;gap:12px}
+  .main{flex:1 1 auto;min-width:0}
+  .t{color:var(--ink);font-weight:500;font-size:14.5px;overflow-wrap:anywhere}
+  .m{font-size:12px;color:var(--muted-soft);margin-top:1px;overflow-wrap:anywhere}
+  .m a,.plink{color:var(--accent);font-weight:600;text-decoration:none}
+  .m a:hover,.plink:hover{text-decoration:underline}
+  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .ntag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;border:1px solid currentColor;border-radius:4px;padding:1px 5px;flex:none;white-space:nowrap;color:var(--muted)}
+  .tag-err{color:var(--error)} .tag-needs{color:var(--st-needs-ink)} .tag-warn{color:var(--warn)} .tag-ok{color:var(--st-running-ink)} .tag-new{color:var(--st-accent-ink);border-style:dashed}
+  /* Fix on a timeline line: there when the line is pointed at or reached by keyboard, always on a touch screen. */
+  .tl .fix{opacity:0}
+  .tl:hover .fix,.tl .fix:focus-visible,.tl .fix.has,.tl .fix[aria-expanded="true"]{opacity:1}
+  @media (hover:none){ .tl .fix{opacity:1} }
+  .when{flex:none;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;width:92px}
+  .acts{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+  .failed{color:var(--error);font-size:12px}
+
+  button,input,select,textarea{font-family:var(--sans)}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;color:var(--ink);background:var(--canvas-soft);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:6px 13px;min-height:34px;cursor:pointer;white-space:nowrap;text-decoration:none}
+  .btn.accent{background:var(--primary);color:var(--on-primary);border-color:transparent}
+  .btn.quiet{background:none;border-color:transparent;color:var(--muted);padding:6px 8px}
+  .btn.small{min-height:28px;padding:3px 11px;font-size:12.5px;border-radius:var(--r-pill)}
+  .btn[aria-pressed="true"]{background:var(--seg-on);border-color:var(--hairline-strong);color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .bubble{width:34px;height:34px;padding:0;justify-content:center;border-radius:var(--r-lg)}
+  .bubble svg{width:15px;height:15px}
+  .bubble.has{background:var(--seg-on);border-color:var(--hairline-strong)}
+  :where(button, a, textarea, input, select):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .chip{display:inline-flex;align-items:center;font-size:12.5px;color:var(--body);background:var(--canvas);border:1px solid var(--hairline-soft);border-radius:var(--r-pill);padding:4px 12px;min-height:30px;text-decoration:none;cursor:pointer;white-space:nowrap}
+  .chip[aria-pressed="true"]{background:var(--seg-on);border-color:var(--hairline-strong);color:var(--ink);font-weight:600}
+  /* fingers get 44px targets; a mouse keeps the Console's density. */
+  @media (pointer:coarse){ .btn,.btn.small{min-height:44px} .bubble{width:44px;height:44px} .chip{min-height:40px;padding-inline:14px} }
+
+  .ask{margin:10px 0 0 20px;display:grid;gap:8px}
+  .options{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip.sug::after{content:"suggested";margin-left:7px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+  .clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+  .note{margin:10px 0 0 20px}
+  .noteacts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  textarea,.field{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--canvas-soft);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:9px 12px;min-width:0}
+  textarea{min-height:62px;resize:vertical}
+  .field{min-height:40px;width:auto}
+  ::placeholder{color:var(--muted-soft);opacity:1}
+
+  .empty{background:var(--canvas-soft);border:1.5px dashed var(--hairline-strong);border-radius:var(--r-xl);padding:20px 24px;color:var(--muted);font-size:14px}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 2px 12px}
+  /* The projects, as the old Console listed them: a search, chips by status, then one row per project with
+     its status, its open to-dos and when it last moved; a sub-project sits under the project it is part of. */
+  .psearch{width:100%;margin:0 0 12px}
+  .plist{padding:4px 8px;container-type:inline-size}
+  .pnode + .pnode > .prow{border-top:1px solid var(--hairline-soft)}
+  .prow{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 8px 6px 4px;border-radius:var(--r-sm);color:inherit;text-decoration:none}
+  .prow:hover{background:var(--canvas-soft)}
+  .pnode.sub .prow{padding-left:26px}
+  .phead{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+  .pname{font:500 14px/1.35 var(--sans);color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pnode.sub .pname{font-weight:400;font-size:13.5px}
+  .psubs{flex:none;font:400 11.5px/1 var(--mono);color:var(--muted-soft);white-space:nowrap}
+  .pstat{flex:none;width:104px;display:flex}
+  .pmeta{flex:none;display:inline-flex;align-items:center;gap:14px;font:400 12px/1 var(--mono);color:var(--muted-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .popen{color:var(--muted);width:54px;text-align:right}
+  .pwhen{width:62px;text-align:right}
+  @container (max-width:470px){ .prow{gap:8px;padding:6px 4px} .pnode.sub .prow{padding-left:18px} .pstat{width:auto} .popen,.psubs{display:none} .pwhen{width:auto} }
+  /* A status, as the Console drew it: a small pill in capitals, in the status's colour. */
+  .spill{--st-c:var(--st-accent);--st-ink:var(--st-accent-ink);display:inline-flex;align-items:center;gap:6px;font:500 9.5px/1.6 var(--mono);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;
+    color:var(--st-ink);background:color-mix(in srgb, var(--st-c) 12%, transparent);border:1px solid color-mix(in srgb, var(--st-c) 40%, transparent);border-radius:var(--r-pill);padding:1px 9px}
+  .spill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--st-c)}
+  .spill.planning{--st-c:var(--st-scheduled);--st-ink:var(--st-scheduled-ink)}
+  .spill.on-hold{--st-c:var(--st-needs);--st-ink:var(--st-needs-ink)}
+  .spill.done{--st-c:var(--st-running);--st-ink:var(--st-running-ink)}
+  .spill.other{--st-c:var(--muted-soft);--st-ink:var(--muted);border-style:dashed}
+  .cdot{flex:none;width:7px;height:7px;border-radius:50%;margin-right:6px}
+  /* A project's page: the Console's header (status, open tasks, when it moved) and its tabs. */
+  .crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .crumb a{color:var(--muted);font-weight:600;text-decoration:none}
+  .crumb a:hover{color:var(--ink)}
+  .pfacts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .opentag{font:500 9.5px/1.6 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:var(--surface-strong);border-radius:var(--r-pill);padding:1px 9px;white-space:nowrap}
+  .ptruth{margin:12px 0 0;max-width:72ch;color:var(--body)}
+  .ptabs{display:flex;gap:22px;border-bottom:1px solid var(--hairline);margin:22px 0;overflow-x:auto;scrollbar-width:none}
+  .ptabs::-webkit-scrollbar{display:none}
+  .ptabs button{flex:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 0;min-height:40px;font:600 13.5px var(--sans);color:var(--muted);cursor:pointer}
+  .ptabs button:hover{color:var(--ink)}
+  .ptabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .narrow{max-width:760px}
+  .docrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+  .docpath{flex:1 1 220px;min-width:0;font-family:var(--mono);font-size:12.5px;color:var(--ink);overflow-wrap:anywhere}
+  .docmeta{flex:none;font:400 12px var(--mono);color:var(--muted-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+  /* The Tasks view, as the old Console drew it: a switch (All, Mine, Cogby's) and + New task, then lanes
+     headed by a state pill, thin rows with a round tick, the words, and the due date at the right. */
+  .tbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 4px}
+  .tbar .chip{margin-left:auto}
+  .seg{display:inline-flex;background:var(--surface-strong);border-radius:var(--r-lg);padding:3px}
+  .seg button{border:0;background:transparent;cursor:pointer;font:600 13px var(--sans);color:var(--muted);padding:7px 15px;min-height:34px;border-radius:var(--r-sm)}
+  .seg button[aria-pressed="true"]{background:var(--surface-card);color:var(--ink);box-shadow:var(--shadow)}
+  .tghead{display:flex;align-items:center;gap:8px;margin:20px 4px 4px;color:var(--muted);font:600 10.5px/1.4 var(--sans);letter-spacing:.9px;text-transform:uppercase}
+  .tgcount{color:var(--muted-soft);font-weight:500}
+  .statepill{--sp:var(--st-todo);--sp-ink:var(--st-scheduled-ink);display:inline-flex;align-items:center;gap:7px;flex:none;padding:5px 11px;color:var(--sp);
+    border-radius:var(--r-pill);border:1px solid color-mix(in srgb, var(--sp) 44%, transparent);background:color-mix(in srgb, var(--sp) 14%, transparent)}
+  .statepill svg{width:13px;height:13px;flex:none}
+  .statepill .splbl{font:500 9px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sp-ink);white-space:nowrap}
+  .statepill.sp-running,.statepill.sp-done{--sp:var(--st-running);--sp-ink:var(--st-running-ink)}
+  .trow{position:relative;display:flex;align-items:center;gap:12px;padding:11px 8px;border-top:1px solid var(--hairline-soft);border-radius:var(--r-sm)}
+  .trow:hover{background:var(--canvas-soft)}
+  .tcheck{position:relative;z-index:1;flex:none;width:18px;height:18px;padding:0;border-radius:50%;border:1.5px solid var(--hairline-strong);background:var(--surface-card);cursor:pointer;display:grid;place-items:center}
+  .tcheck::before{content:"";position:absolute;inset:-13px}
+  .tcheck::after{content:"";width:4px;height:8px;border:solid transparent;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+  .tcheck:hover{border-color:var(--success)}
+  .tcheck:hover::after{border-color:color-mix(in srgb, var(--success) 55%, transparent)}
+  .tcheck.done{background:var(--success);border-color:var(--success)}
+  .tcheck.done::after{border-color:var(--on-primary)}
+  .tname{flex:1;min-width:0;margin:0;padding:0;border:0;background:none;font:inherit;font-size:14.5px;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .tname::after{content:"";position:absolute;inset:0}
+  .tdone .tname{color:var(--muted-soft);text-decoration:line-through}
+  .trow .ntag,.tpull,.tdue,.tdueadd,.tat,.tduein{position:relative;z-index:1}
+  .tdue,.tdueadd,.tat{flex:none;min-width:48px;margin:0;padding:0;border:0;background:none;font:inherit;font-size:12.5px;text-align:right;color:var(--muted-soft);font-variant-numeric:tabular-nums;cursor:pointer}
+  .tdue.over{color:var(--warn)}
+  .tat{cursor:default}
+  .tdueadd,.tpull{font-size:12px;color:transparent}
+  .trow:hover .tdueadd,.trow:focus-within .tdueadd,.trow:hover .tpull,.trow:focus-within .tpull{color:var(--muted-soft)}
+  @media (pointer:coarse){ .tdueadd,.tpull{color:var(--muted-soft)} }
+  .tpull{flex:none;margin:0;padding:0 2px;border:0;background:none;font-family:inherit;cursor:pointer}
+  .tduein{flex:none;font:inherit;font-size:12px;color:var(--ink);background:var(--surface-card);border:1px solid var(--hairline-strong);border-radius:var(--r-sm);padding:2px 6px}
+  .tplanned{position:relative;display:flex;align-items:center;gap:11px;padding:12px 8px;border-top:1px solid var(--hairline-soft);border-radius:var(--r-sm)}
+  .tplanned:hover{background:var(--canvas-soft)}
+  .tfold{flex:1;min-width:0;display:flex;align-items:center;gap:11px;margin:0;padding:0;border:0;background:none;font:600 14.5px var(--sans);color:var(--ink);text-align:left;cursor:pointer}
+  .tfold::after{content:"";position:absolute;inset:0}
+  .tfold .car{flex:none;width:10px;font-size:10px;color:var(--muted-soft);transition:transform .12s}
+  .tfold[aria-expanded="true"] .car{transform:rotate(90deg)}
+  .tfold .slug{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tpcount{flex:none;font:400 11.5px var(--mono);color:var(--muted-soft)}
+  .topen{position:relative;z-index:1;flex:none;min-width:48px;text-align:right;font-size:12px;color:var(--muted-soft);text-decoration:none}
+  .topen:hover{color:var(--ink)}
+  .tkids{padding-left:24px;margin-left:14px;border-left:1px solid var(--hairline-soft)}
+  .tempty{margin-top:20px}
+  .tempty b{color:var(--ink)}
+  /* Today's tasks, as the Console's Home had them. */
+  .tcard{padding:2px 10px}
+  .tcard > .trow:first-child{border-top:0}
+  .tadd{padding:7px 8px;border-top:1px solid var(--hairline-soft)}
+  /* The New task window, after the Console's. */
+  .newtask{width:min(620px, calc(100vw - 32px))}
+  .nthead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .nthead h2{font-family:var(--serif);font-weight:400;font-size:24px;letter-spacing:-.2px;color:var(--ink);margin:0 auto 0 0}
+  .newtask form{display:grid;gap:12px;margin-top:14px}
+  .newtask textarea,.newtask .field{width:100%}
+  .ntwhat{min-height:96px;font-size:15px}
+  .ntmore{justify-self:start;margin:0;padding:0;border:0;background:none;font:600 13px var(--sans);color:var(--muted);cursor:pointer}
+  .ntrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ntlbl{display:grid;gap:5px;font-size:12.5px;color:var(--muted)}
+  .ntfoot{display:flex;justify-content:flex-end;gap:8px}
+  @media (max-width:560px){ .ntrow{grid-template-columns:1fr} }
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:11px 18px;border-bottom:1px solid var(--hairline-soft)}
+  td{padding:11px 18px;border-top:1px solid var(--hairline-soft);vertical-align:top}
+  tbody tr:first-child td{border-top:0}
+  td.path,.path{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all}
+  td b{color:var(--ink);font-weight:600}
+  td .ntag{margin-left:8px;vertical-align:1px}
+  /* A mounted folder that is not there any more stands out. */
+  tr.miss{background:color-mix(in srgb, var(--error) 7%, transparent)}
+  tr.miss td.files{color:var(--error);font-weight:600}
+  .srcnote{margin:10px 2px 0}
+
+  code{font-family:var(--mono);font-size:12px;background:var(--surface-strong);border-radius:4px;padding:1px 5px}
+
+  /* two columns on a wide screen; on a phone the columns dissolve and sections follow .o1 … .o6. */
+  .cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:0 28px;align-items:start}
+  .col{min-width:0}
+  @media (max-width:900px){
+    .cols{grid-template-columns:minmax(0,1fr)} .col{display:contents}
+    .o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}.o7{order:7}.o8{order:8}
+  }
+
+  /* The owner's own to-dos and notes: the Console's round tick, its group heads, its note cards and its
+     add field, a plain line at the top of the list that grows a project and a day once you are in it. */
+  .check{flex:none;width:44px;height:44px;margin:-11px -8px -11px -12px;display:grid;place-items:center;background:none;border:0;border-radius:50%;cursor:pointer}
+  .check i{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--hairline-strong);display:grid;place-items:center;transition:border-color .12s,background .12s}
+  .check:hover i{border-color:var(--success)}
+  .check[aria-checked="true"] i{background:var(--success);border-color:var(--success)}
+  .check[aria-checked="true"] i::after{content:"";width:5px;height:9px;border:solid var(--on-primary);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+  .isdone .t{text-decoration:line-through;color:var(--muted-soft);font-weight:400}
+  .late{color:var(--error);font-weight:600}
+  .grouphead{display:flex;align-items:center;gap:8px;padding:12px 18px 4px;color:var(--muted);font:600 10.5px/1.4 var(--sans);letter-spacing:.9px;text-transform:uppercase;border-top:1px solid var(--hairline-soft)}
+  .grouphead span{color:var(--muted-soft);font-weight:500}
+  .grouphead + .row{border-top:0}
+  .card > .grouphead:first-child{border-top:0}
+  .compose{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 14px 7px 18px}
+  .compose:focus-within{background:var(--canvas-soft)}
+  .cmark{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px dashed var(--hairline-strong)}
+  .bare{flex:1 1 150px;min-width:0;border:0;background:transparent;font:inherit;font-size:14.5px;color:var(--ink);padding:8px 0}
+  .bare:focus-visible{outline:none}
+  .cmore{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1 1 100%;padding:0 0 4px 30px}
+  .cacts{display:flex;gap:4px;flex:none;margin-left:auto}
+  .addform{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px}
+  .addform .grow{flex:1 1 200px}
+  .notehead{font:600 10.5px/1.4 var(--sans);letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin:18px 4px 8px}
+  .notehead:first-child{margin-top:6px}
+  .notehead span{color:var(--muted-soft);font-weight:500;margin-left:6px}
+  .notestack{display:grid;gap:10px}
+  .notecard{background:var(--surface-card);border:1px solid var(--hairline);border-radius:var(--r-xl);padding:14px 17px}
+  .noteline{font-size:15px;line-height:1.55;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
+  .notemeta{margin-top:10px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px;color:var(--muted-soft)}
+  /* A note opens its panel, as in the Console: its words are a button that covers the card or the row, and
+     what else is on it (the project, its buttons) sits above that button. A long note shows its first lines. */
+  .notecard,.noterow{position:relative}
+  .notecard:hover{border-color:var(--hairline-strong)}
+  .noterow:hover{background:var(--canvas-soft)}
+  .noteopen{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;width:100%;margin:0;padding:0;border:0;background:none;text-align:left;cursor:pointer}
+  /* No weight of its own: the note's own type (.noteline, .t) wins wherever it is written. */
+  :where(.noteopen){font:inherit;color:inherit}
+  .noterow .noteopen{-webkit-line-clamp:2}
+  .noteopen::after{content:"";position:absolute;inset:0}
+  .notemeta a,.notemeta button,.notemeta .ntag,.noterow .m a,.noterow .ntag{position:relative;z-index:1}
+  .notemore{color:var(--accent);font-weight:600}
+  /* A note's panel. */
+  .ntext{font-family:var(--serif);font-weight:400;font-size:21px;line-height:1.4;letter-spacing:-.1px;color:var(--ink);margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .nbody{margin:0;font-size:14.5px;line-height:1.6;color:var(--body);white-space:pre-wrap;overflow-wrap:anywhere}
+  /* A to-do opens its panel the same way: its words are the button; the tick, the project and Remove sit above it. */
+  .row.todo{position:relative}
+  .row.todo:hover{background:var(--canvas-soft)}
+  .todo .noteopen{-webkit-line-clamp:2}
+  .todo .check,.todo .m a,.todo .btn,.todo .ntag{position:relative;z-index:1}
+  /* A to-do's panel, after the Console's: its words as a heading you can change, then one line per field. */
+  .ttitle{display:block;width:calc(100% + 7px);min-height:0;margin:2px 0 0 -7px;padding:4px 6px;font-family:var(--serif);font-weight:400;font-size:21px;line-height:1.35;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:var(--r-sm);resize:none;field-sizing:content}
+  .ttitle:hover{border-color:var(--hairline)}
+  .ttitle:focus{border-color:var(--hairline-strong);background:var(--canvas-soft);outline:none}
+  .tgrid{display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px 14px;align-items:center;margin-top:16px}
+  .tgrid > .lbl{font-size:13px;color:var(--muted)}
+  .tgrid .field{width:100%}
+  .tgrid .tstate{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--ink)}
+  .tbody{min-height:96px}
+  .tfoot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px}
+
+  /* a project's view and Brain. */
+  .backlink{display:inline-flex;align-items:center;gap:7px;min-height:36px;font-weight:600;font-size:13.5px;color:var(--muted);text-decoration:none;margin-bottom:10px}
+  .backlink:hover{color:var(--ink)}
+  .projtop{margin-bottom:30px}
+  .headacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+  .stopcard{padding:18px 20px;background:var(--canvas-soft)}
+  .stopcard p{font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--ink);margin:6px 0 6px}
+  .pair{display:grid;grid-template-columns:1fr 1fr}
+  .pair > div{padding:16px 18px;min-width:0}
+  .pair > div + div{border-left:1px solid var(--hairline-soft)}
+  .pair p{margin:6px 0 0;font-size:14px;overflow-wrap:anywhere}
+
+  /* A meeting as a row that opens its card. */
+  .rowbtn{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--hairline-soft);font:inherit;color:inherit;cursor:pointer}
+  .rowbtn:hover{background:var(--canvas-soft)}
+  /* The day's calendar: the hours down the side, each meeting a block where it sits in the day. */
+  .day{display:grid;gap:10px}
+  .daycard{padding:14px 12px 12px 0;overflow:visible}
+  .daygrid{position:relative}
+  .hour{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--hairline-soft)}
+  .hour span{position:absolute;left:0;top:-8px;width:44px;text-align:right;font-size:11px;line-height:16px;color:var(--muted-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .event{position:absolute;display:flex;flex-direction:column;gap:1px;min-width:0;padding:4px 9px;border:0;border-left:3px solid var(--st-scheduled);border-radius:var(--r-sm);
+    background:color-mix(in srgb, var(--st-scheduled) 18%, var(--surface-card));color:var(--ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;z-index:1}
+  .event.known{border-left-color:var(--st-running);background:color-mix(in srgb, var(--st-running) 14%, var(--surface-card))}
+  .event:hover{box-shadow:0 0 0 1px var(--hairline-strong);z-index:3}
+  .event .et{font-size:13px;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .event .ew{font-size:11.5px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .event.short{flex-direction:row;align-items:center;gap:8px;padding-block:0}
+  .event.short .ew{flex:none}
+  .event.short.narrow .ew{display:none}
+  .event .es{position:absolute;top:3px;right:6px;font-size:8px;color:var(--st-accent-ink)}
+  .event.past{opacity:.68}
+  .now{position:absolute;left:46px;right:0;height:0;border-top:2px solid var(--error);z-index:2;pointer-events:none}
+  .now::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--error)}
+  /* A meeting's card. */
+  .meetcard{width:min(520px, calc(100vw - 32px));padding:16px 22px 22px}
+  .mhead{display:flex;align-items:center;gap:8px}
+  .mhead .x{margin-left:auto;font-size:20px;line-height:1;color:var(--muted)}
+  .meetcard .mtitle{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.2;letter-spacing:-.2px;color:var(--ink);margin:2px 0 4px;overflow-wrap:anywhere}
+  .mblock{margin-top:18px;display:grid;gap:7px}
+  .mblock p{margin:0;font-size:14px}
+  .mblock.options{display:flex}
+  .people{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  .people li{font-size:13px;color:var(--ink);background:var(--canvas-soft);border:1px solid var(--hairline-soft);border-radius:var(--r-pill);padding:3px 11px}
+  .meetcard .note{margin:0}
+  .meetcard .kicker .ntag{margin-left:6px;vertical-align:1px}
+
+  /* The small window a note is added in. */
+  .pop{border:1px solid var(--hairline-strong);border-radius:var(--r-xl);background:var(--surface-card);color:var(--body);padding:20px 22px;width:min(480px, calc(100vw - 32px));box-shadow:var(--shadow)}
+  .pop::backdrop{background:rgba(25,22,52,.35)}
+  .pop h2{margin:0 0 12px}
+  .pop .addform{padding:0}
+  .pop .addform .grow, .pop textarea{flex:1 1 100%}
+  .pop .ends{display:flex;gap:8px;justify-content:flex-end;flex:1 1 100%}
+
+
+  /* a row folds by the width of its own column, not of the window: the side column is narrow on a desktop too. */
+  section{container-type:inline-size}
+  @container (max-width:520px){
+    .line{flex-wrap:wrap}
+    .line > .main{flex-basis:calc(100% - 60px)}
+    .notif .main,.meet .main{flex-basis:100%;order:2}
+    .acts{order:3;width:100%;justify-content:flex-start}
+    .when{width:auto}
+    .ask,.note{margin-left:0}
+    .tl .line{gap:6px} .tl .line > .main{flex-basis:100%}
+  }
+  [hidden]{display:none !important}
+  @media (max-width:560px){
+    h1{font-size:30px}
+    .tabs{gap:13px} .tabs a{font-size:13px;gap:5px} .tabs .count:not(.hot){display:none}
+    .top .right{order:3;width:100%;margin-left:0}
+    .pair{grid-template-columns:1fr} .pair > div + div{border-left:0;border-top:1px solid var(--hairline-soft)}
+    /* The sources table becomes one block per source: no sideways scroll inside a card. */
+    table,tbody,tr,td{display:block} thead{display:none}
+    tr{padding:12px 18px;border-top:1px solid var(--hairline-soft)} tbody tr:first-child{border-top:0}
+    td{padding:1px 0;border:0} td[data-l]::before{content:attr(data-l) ": ";color:var(--muted-soft);font-size:12px}
+  }
+  @media (prefers-reduced-motion: no-preference){ .btn,.chip{transition:background-color .12s,border-color .12s,box-shadow .12s} }
+</style>
+<div class="wrap">
+  <div class="top">
+    <!-- The Cogby mark, from the Console's favicon without its ink tile: the crown and the full face sit on
+         the page itself. The face is a deeper lavender than the favicon's so that it holds on the white page
+         canvas (3.5:1) and its dark eyes hold on it (4.8:1). The colours are literals on purpose: the mark
+         has its own colours. -->
+    <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Cogby">
+      <g transform="translate(16 16) scale(0.2115)">
+        <g fill="#9670E0">
+          <rect x="-11" y="-59" width="22" height="26" rx="9"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/>
+          <rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/>
+          <circle cx="0" cy="0" r="41"/>
+        </g>
+        <rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/>
+        <rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/>
+        <circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/>
+        <circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/>
+        <path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <b>cogby</b>
+    <div class="right">
+      <button class="btn small" id="copy" type="button" hidden>Copy my answers</button>
+      <span class="asof" id="outbox" hidden></span>
+      <span class="asof" id="asof"></span>
+    </div>
+    <textarea id="copybox" hidden readonly aria-label="Your answers, to paste to Claude"></textarea>
+  </div>
+
+  <div class="tabsbar"><nav class="tabs" id="tabs" aria-label="Sections"></nav></div>
+  <main id="view"></main>
+</div>
+
+<script type="application/json" id="cogby-data">__COGBY_DATA__</script>
+<script>
+(function () {
+  'use strict';
+  var data = {};
+  try { data = JSON.parse(document.getElementById('cogby-data').textContent) || {}; } catch (e) { data = {}; }
+  var notes = data.notifications || { waiting: [], acted: [], count: 0, oldest_days: null };
+  var meetings = data.meetings || null;            // null: no calendar was read for this page
+  var projects = data.projects || [];
+  var sources = data.sources || [];
+  var recent = data.recent || [];
+  var routines = data.routines || [];              // the owner's routines that are due today or late
+  var baseTodos = data.todos || [];
+  var baseNotes = data.notes || [];
+  var KEY = 'cogby-center:' + (data.generated_at || '');
+  // The page's own store, on the published page only (set at the bottom), and what Copy said last.
+  var db = null;
+  var said = '';
+
+  // What the person chose on this page. With the store, each choice and each saved comment leaves at
+  // once, as a send of its own; on a file opened from disk they stay in this browser until copied.
+  // `sent` is what left this browser already and waits for a session to apply it.
+  var pending = { actions: {}, comments: {}, sent: {}, sentComments: {} };
+  try { var kept = JSON.parse(localStorage.getItem(KEY) || 'null'); if (kept && kept.actions && kept.comments) pending = kept; } catch (e) { /* no storage here */ }
+  if (!pending.sent) pending.sent = {};
+  if (!pending.sentComments || typeof pending.sentComments !== 'object') pending.sentComments = {};
+  // Only what the person pressed leaves the page: Cogby's suggested answer is shown, never chosen for them.
+  Object.keys(pending.actions).forEach(function (k) { var a = pending.actions[k]; if (a.suggested) delete pending.actions[k]; else { delete a.sending; delete a.failed; } });
+  Object.keys(pending.comments).forEach(function (k) { delete pending.comments[k].sending; delete pending.comments[k].failed; });
+  // What the person did to their own lists on this page: saved at once, applied to the brain by a session.
+  if (!Array.isArray(pending.changes)) pending.changes = [];
+  pending.changes.forEach(function (c) { delete c.sending; });
+  var keep = function () { try { localStorage.setItem(KEY, JSON.stringify(pending)); } catch (e) { /* fine */ } };
+  var openNote = {};
+  // What is typed in an add field, kept while the page redraws around it.
+  var drafts = {};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  var put = function (parent) { for (var i = 1; i < arguments.length; i++) if (arguments[i]) parent.appendChild(arguments[i]); return parent; };
+  var link = function (href, cls, text) { var a = el('a', cls, text); a.href = href; return a; };
+  var plural = function (n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); };
+  var days = function (n) { return n === 0 ? 'today' : n === 1 ? '1 day' : n + ' days'; };
+  var niceDay = function (day) {
+    var d = new Date(String(day).slice(0, 10) + 'T00:00:00Z');
+    return isNaN(d) ? String(day || '') : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  };
+  var sep = function () { return document.createTextNode(' · '); };
+  var pad2 = function (n) { return (n < 10 ? '0' : '') + n; };
+  var localDay = function (d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+  var today = localDay(new Date());
+  var yesterday = (function () { var d = new Date(); d.setDate(d.getDate() - 1); return localDay(d); })();
+
+  var made = data.generated_at ? new Date(data.generated_at) : null;
+  if (made && isNaN(made)) made = null;
+  var when = made ? made.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  // The page is a snapshot: how old it is counts from the reader's clock, not from when it was made.
+  var age = made ? Math.max(0, Math.floor((Date.now() - made.getTime()) / 86400000)) : 0;
+
+  // Every project has a view inside this page (#/project/<name>). A project can also have a dashboard
+  // page of its own, made when the person asks for one; on that page (`data.only`) this file shows that
+  // one project and nothing else.
+  var address = function (p) { return '#/project/' + encodeURIComponent(p.name || p.slug); };
+  // A to-do or a note names its project by the folder name in lower case: `key`.
+  projects.forEach(function (p) { p.key = String(p.name || '').toLowerCase(); });
+  var byName = function (name) { var key = String(name || '').toLowerCase(); return projects.filter(function (p) { return (p.key || p.slug) === key; })[0] || null; };
+  var only = data.only ? byName(data.only) : null;
+  var outside = function (a) { a.target = '_blank'; a.rel = 'noopener noreferrer'; return a; };
+  // A project's name opens its view in this page; on a project's own dashboard page it is plain text.
+  var plink = function (p) { return only ? el('span', null, p.title) : link(address(p), 'plink', p.title); };
+  // A notification is about a project when its context is the project's slug, its folder or its folder's name.
+  var isAbout = function (context, p) {
+    var key = String(context || '').trim().toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '');
+    if (!key) return false;
+    var folder = String(p.slug).replace(/\/card$/i, '');
+    return [p.slug, folder, p.name].some(function (name) { return key === String(name || '').toLowerCase(); });
+  };
+  var projectOf = function (context) { return projects.filter(function (p) { return isAbout(context, p); })[0] || null; };
+
+  function head(kicker, soft) {
+    var h = el('div', 'sectionhead'); h.appendChild(el('h2', 'kicker', kicker)); if (soft) h.appendChild(el('span', 'soft', soft)); return h;
+  }
+  function section(order, kicker, soft) { var s = el('section', order ? 'o' + order : ''); s.appendChild(head(kicker, soft)); return s; }
+  var BUBBLE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/></svg>';
+  var dot = function (color) { var d = el('span', 'dot'); d.style.background = color; return d; };
+  var tag = function (text, cls) { return el('span', 'ntag' + (cls ? ' ' + cls : ''), text); };
+
+  // ---- what leaves the page ----
+  // One send per choice or per comment, in the shape a session reads (the command-center skill, Step 2).
+  function post(actions, comments, done, failed) {
+    var doc = { sent_at: new Date().toISOString(), read: false, page_generated_at: data.generated_at || '', actions: actions, comments: comments };
+    var ok = function () { done(); keep(); render(); };
+    var bad = function (e) { failed((e && e.code) || 'error'); keep(); render(); };
+    try { db.collection('sends').add(doc).then(ok, bad); } catch (e) { bad(e); }
+  }
+  // Sends what the person pressed and has not sent yet. Without the store nothing leaves: Copy carries it.
+  function sendOut() {
+    if (!db) return;
+    Object.keys(pending.actions).forEach(function (k) {
+      var a = pending.actions[k];
+      if (a.sending || a.failed) return;
+      a.sending = true;
+      var one = { kind: a.kind, id: a.id }; if (a.option) one.option = a.option;
+      post([one], [], function () {
+        if (pending.actions[k] === a) delete pending.actions[k];
+        pending.sent[k] = { kind: a.kind, option: a.option || '', label: a.label };
+      }, function (code) { a.sending = false; a.failed = code; });
+    });
+    Object.keys(pending.comments).forEach(function (k) {
+      var c = pending.comments[k];
+      if (!c.ready || c.sending || c.failed) return;
+      c.sending = true;
+      var one = { kind: c.kind, id: c.id, text: c.text };
+      if (c.extra) Object.keys(c.extra).forEach(function (f) { one[f] = c.extra[f]; });
+      post([], [one], function () {
+        if (pending.comments[k] === c) { delete pending.comments[k]; openNote[k] = false; }
+        pending.sentComments[k] = true;
+      }, function (code) { c.sending = false; c.failed = code; });
+    });
+  }
+
+  // A comment bubble on a row: the words leave with the row's id. With the store, Save sends them at once.
+  // `how.fix`: a "Fix" button instead of the bubble, for a line Cogby wrote that the owner wants changed.
+  // `how.extra`: fields that leave with the comment, so that a session can find what it is about.
+  function commentable(kind, id, label, how) {
+    how = how || {};
+    var key = kind + ':' + (how.key || id);
+    var c = pending.comments[key];
+    var bubble = el('button', how.fix ? 'btn quiet small fix' : 'btn bubble'); bubble.type = 'button';
+    if (how.fix) bubble.textContent = 'Fix'; else bubble.innerHTML = BUBBLE;
+    bubble.setAttribute('aria-label', (how.fix ? 'Fix: ' : 'Comment on ') + label); bubble.dataset.fk = 'c:' + key;
+    var box = el('div', 'note');
+    var area = el('textarea'); area.placeholder = how.placeholder || (how.fix ? 'What should it say?' : 'Your words on this, for Cogby');
+    area.setAttribute('aria-label', (how.fix ? 'Fix: ' : 'Comment on ') + label); area.dataset.fk = 'ct:' + key;
+    area.value = (c && c.text) || '';
+    box.appendChild(area);
+    var save = null;
+    if (db) {
+      save = el('button', 'btn small', c && c.sending ? 'Saving' : 'Save'); save.type = 'button'; save.dataset.fk = 'cs:' + key;
+      save.disabled = !area.value.trim() || !!(c && c.sending);
+      save.addEventListener('click', function () {
+        var now = pending.comments[key]; if (!now || now.sending) return;
+        now.ready = true; delete now.failed; said = ''; sendOut(); render();
+      });
+      box.appendChild(put(el('div', 'noteacts'), save, c && c.failed ? el('span', 'failed', 'Not sent (' + c.failed + '). Press Save again, or copy it from the top of the page.') : null));
+    }
+    box.hidden = !(openNote[key] || area.value);
+    var mark = function () { bubble.classList.toggle('has', !!area.value.trim()); bubble.setAttribute('aria-expanded', String(!box.hidden)); };
+    area.addEventListener('input', function () {
+      var words = area.value.trim();
+      if (words) pending.comments[key] = { kind: kind, id: id, label: label, text: words.slice(0, 1000), extra: how.extra || null }; else delete pending.comments[key];
+      if (save) save.disabled = !words;
+      said = ''; keep(); mark(); header();
+    });
+    bubble.addEventListener('click', function () { box.hidden = !box.hidden; openNote[key] = !box.hidden; mark(); if (!box.hidden) area.focus(); });
+    mark();
+    return { bubble: bubble, box: box, tag: pending.sentComments[key] ? sentMark() : null };
+  }
+  // What left the page and waits for Cogby: one short word, the when in its tooltip.
+  var LATER = 'Cogby applies it the next time it refreshes this page: when you ask for it, or when a session wraps up.';
+  function sentMark() { var t = tag('sent', 'tag-new'); t.title = LATER; return t; }
+
+  // One choice per row. With the store it leaves at once; on a file, pressing it again takes it back.
+  function choice(id, title, label, kind, cls, option) {
+    var b = el('button', cls, label); b.type = 'button';
+    var a = pending.actions[id]; var s = pending.sent[id];
+    var same = function (x) { return !!x && x.kind === kind && (x.option || '') === (option || ''); };
+    b.setAttribute('aria-pressed', String(same(a) || (!a && same(s)))); b.dataset.fk = kind + ':' + id + ':' + (option || '');
+    b.addEventListener('click', function () {
+      if (same(a) && a.sending) return;
+      if (!a && same(s)) return;                                  // sent already: a session applies it
+      if (same(a) && !a.failed) delete pending.actions[id];       // not sent yet: taken back
+      else { pending.actions[id] = { kind: kind, id: id, label: title }; if (option) pending.actions[id].option = option; }
+      said = ''; sendOut(); render();
+    });
+    return b;
+  }
+  // Where a choice is: on its way, refused by the store, or sent and waiting for a session to apply it.
+  function sentTag(id) {
+    var a = pending.actions[id];
+    if (a && a.failed) return tag('not sent · press it again', 'tag-err');
+    if (a && a.sending) return tag('sending', 'tag-new');
+    var s = pending.sent[id]; if (!s || a) return null;
+    return sentMark();
+  }
+
+  function notifRow(n, here) {
+    var row = el('div', 'row notif' + (pending.actions[n.id] || pending.sent[n.id] ? ' chosen' : ''));
+    var line = el('div', 'line');
+    line.appendChild(dot(n.priority === 'high' ? 'var(--error)' : n.options.length ? 'var(--st-accent)' : 'var(--st-needs)'));
+    if (n.priority === 'high') line.appendChild(tag('high', 'tag-err'));
+    var main = el('div', 'main');
+    main.appendChild(el('div', 't', n.title));
+    // Under the title: its project and what it says, in two lines at most.
+    var meta = el('div', 'm clamp');
+    var p = here ? null : projectOf(n.context);
+    if (p) put(meta, plink(p), n.body ? sep() : null);
+    if (n.body) meta.appendChild(document.createTextNode(n.body));
+    // A tap opens the rest of a long one.
+    if (meta.childNodes.length) { meta.addEventListener('click', function (e) { if (e.target === meta) meta.classList.toggle('clamp'); }); main.appendChild(meta); }
+    line.appendChild(main);
+    var c = commentable('notification', n.id, n.title);
+    line.appendChild(put(el('div', 'acts'), sentTag(n.id), c.tag, c.bubble, choice(n.id, n.title, 'Later', 'later', 'btn quiet'), choice(n.id, n.title, 'Clear', 'dismiss', 'btn quiet')));
+    row.appendChild(line);
+    if (n.options.length) {
+      // A question arrives with its answers and the one Cogby suggests. Nothing is chosen until the person presses one.
+      // The answer Cogby suggests carries a small mark; what happens with no answer is in the tooltip.
+      var ask = el('div', 'ask'); var opts = el('div', 'options');
+      n.options.forEach(function (option) {
+        var b = choice(n.id, n.title, option, 'answer', 'chip', option);
+        if (option === n.recommend) { b.classList.add('sug'); b.title = 'Cogby suggests this'; }
+        opts.appendChild(b);
+      });
+      if (n.if_ignored) opts.title = 'With no answer: ' + n.if_ignored;
+      ask.appendChild(opts);
+      row.appendChild(ask);
+    }
+    row.appendChild(c.box);
+    return row;
+  }
+
+  // A routine that is due: read only, said here so that "Needs you" is the one list of what waits.
+  // What Cogby wrote and the owner has not confirmed is not shown anywhere (owner, 2026-11-18): nobody
+  // confirms lines one by one. Each line has a Fix instead, for the owner who sees something wrong.
+  function routineRow(r) {
+    var meta = el('div', 'm', r.rhythm ? r.rhythm + ' · ' : '');
+    meta.appendChild(r.state === 'overdue' ? el('span', 'late', plural(r.days_overdue || 1, 'day') + ' late') : document.createTextNode('due today'));
+    return put(el('div', 'row'), put(el('div', 'line'), dot('var(--st-scheduled)'), put(el('div', 'main'), el('div', 't', r.title), meta), tag('routine')));
+  }
+  var needsCount = function () { return (notes.count || 0) + routines.length; };
+
+  // ---- meetings: the day as a calendar, and a card for each meeting ----
+  // A meeting with something sent from the page for it (Prepare me, notes) carries a mark until a session applies it.
+  var meetSent = function (m) { return !!(pending.sent['meeting:' + m.id] || pending.sentComments['meeting:' + m.id]); };
+  // A meeting as one row, on a project's view and for a meeting whose time could not be read. It opens the card.
+  function meetingRow(m) {
+    var b = el('button', 'row meet rowbtn'); b.type = 'button'; b.dataset.fk = 'meet:' + m.id;
+    put(b, put(el('div', 'line'), dot(m.project ? 'var(--st-running)' : 'var(--st-scheduled)'), el('span', 'when', m.time || ''),
+      put(el('div', 'main'), el('div', 't', m.title)), meetSent(m) ? sentMark() : null));
+    b.addEventListener('click', function () { showMeeting(m); });
+    return b;
+  }
+  var HOUR = 56;                                    // the height of one hour on the day's calendar, in px
+  var GUTTER = 50;                                  // the hours' column
+  var hourName = function (h) { return new Date(2000, 0, 1, h % 24).toLocaleTimeString(undefined, { hour: 'numeric' }); };
+  // Meetings that overlap sit side by side: each gets a lane, and every meeting of a cluster knows how many lanes it has.
+  function lanes(list) {
+    var group = []; var reach = -1;
+    var close = function () { var ends = []; group.forEach(function (it) { var i = 0; while (i < ends.length && ends[i] > it.start) i++; it.lane = i; ends[i] = it.end; }); group.forEach(function (it) { it.lanes = ends.length; }); group = []; };
+    list.forEach(function (it) { if (group.length && it.start >= reach) close(); group.push(it); reach = Math.max(reach, it.end); });
+    close();
+  }
+  // The day, hour by hour: each meeting is a block where it sits in the day, the ones already over are
+  // faded, and a line marks now when the page is today's.
+  function dayCalendar(list) {
+    var out = el('div', 'day');
+    var timed = list.filter(function (m) { return m.start != null; }).map(function (m) { return { m: m, start: m.start, end: Math.max(m.end != null ? m.end : m.start + 30, m.start + 15) }; })
+      .sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+    var loose = list.filter(function (m) { return m.start == null; });
+    if (loose.length) out.appendChild(card(loose.map(meetingRow)));
+    if (!timed.length) return out;
+    lanes(timed);
+    var from = Math.min(8, Math.floor(timed[0].start / 60));
+    var to = Math.min(24, Math.max(18, Math.ceil(timed.reduce(function (n, it) { return Math.max(n, it.end); }, 0) / 60)));
+    var grid = el('div', 'daygrid'); grid.style.height = (to - from) * HOUR + 'px';
+    var y = function (minutes) { return (minutes - from * 60) / 60 * HOUR; };
+    for (var h = from; h <= to; h++) { var mark = el('div', 'hour'); mark.style.top = y(h * 60) + 'px'; mark.appendChild(el('span', null, hourName(h))); grid.appendChild(mark); }
+    var clock = new Date(); var now = clock.getHours() * 60 + clock.getMinutes();
+    var isToday = !!made && localDay(made) === today;
+    timed.forEach(function (it) {
+      var tall = (it.end - it.start) / 60 * HOUR;
+      var b = el('button', 'event' + (it.m.project ? ' known' : '') + (tall < 40 ? ' short' : '') + (it.lanes > 1 ? ' narrow' : '') + (isToday && it.end <= now ? ' past' : ''));
+      b.type = 'button'; b.dataset.fk = 'meet:' + it.m.id;
+      b.style.top = (y(it.start) + 1) + 'px'; b.style.height = Math.max(20, tall - 3) + 'px';
+      b.style.left = 'calc(' + GUTTER + 'px + (100% - ' + GUTTER + 'px) * ' + (it.lane / it.lanes) + ')';
+      b.style.width = 'calc((100% - ' + GUTTER + 'px) / ' + it.lanes + ' - 3px)';
+      put(b, el('span', 'et', it.m.title), it.m.time ? el('span', 'ew', it.m.time) : null);
+      if (meetSent(it.m)) b.appendChild(el('span', 'es', '●'));
+      b.setAttribute('aria-label', (it.m.time ? it.m.time + ', ' : '') + it.m.title);
+      b.addEventListener('click', function () { showMeeting(it.m); });
+      grid.appendChild(b);
+    });
+    if (isToday && now >= from * 60 && now <= to * 60) { var line = el('div', 'now'); line.style.top = y(now) + 'px'; grid.appendChild(line); }
+    out.appendChild(put(el('div', 'card daycard'), grid));
+    return out;
+  }
+
+  // One meeting, as a card over the page: when, who, the project it matched and where that stands,
+  // Join and Prepare me, and the owner's own notes for it, which leave like a comment and a session
+  // writes on the project (or as a note when no project matched).
+  var openMeeting = null; var meetBox = null;
+  function showMeeting(m) { openMeeting = m.id; drawMeeting(); }
+  // Closing gives the focus back to the meeting it was opened from.
+  function closeMeeting() {
+    var d = meetBox; var was = openMeeting; meetBox = null; openMeeting = null;
+    if (!d) return;
+    gone(d);
+    var from = was ? $('view').querySelector('[data-fk="meet:' + was.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (from) from.focus({ preventScroll: true });
+  }
+  function drawMeeting() {
+    var m = openMeeting ? (meetings || []).filter(function (x) { return x.id === openMeeting; })[0] : null;
+    if (!m) { closeMeeting(); return; }
+    var fresh = !meetBox;
+    if (fresh) {
+      meetBox = el('dialog', 'pop meetcard');
+      var mine = meetBox;
+      meetBox.addEventListener('close', function () { if (meetBox === mine) closeMeeting(); });
+      // A click on the dim page around the card closes it; a click on the card's own edge does not.
+      meetBox.addEventListener('click', function (e) {
+        if (e.target !== mine) return;
+        var r = mine.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeMeeting();
+      });
+      document.body.appendChild(meetBox);
+    }
+    var active = document.activeElement; var fk = active && meetBox.contains(active) && active.dataset ? active.dataset.fk : '';
+    meetBox.textContent = ''; meetBox.setAttribute('aria-label', m.title);
+    var id = 'meeting:' + m.id;
+    var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.dataset.fk = 'meet:x';
+    x.addEventListener('click', closeMeeting);
+    put(meetBox, put(el('div', 'mhead'), el('span', 'kicker', m.time || 'No set time'), x), el('h2', 'mtitle', m.title));
+    var p = m.project_name ? byName(m.project_name) : null;
+    if (p || m.project) meetBox.appendChild(put(el('div', 'm'), p ? plink(p) : document.createTextNode(m.project)));
+    var people = String(m.people || '').split(/\s*[,;]\s*/).filter(Boolean);
+    if (people.length) {
+      var who = el('ul', 'people'); people.forEach(function (name) { who.appendChild(el('li', null, name)); });
+      meetBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Who · ' + people.length), who));
+    }
+    if (m.last) meetBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Last on this project'), el('p', null, m.last)));
+    meetBox.appendChild(put(el('div', 'options mblock'), m.url ? outside(link(m.url, 'btn accent', 'Join')) : null, choice(id, m.title, 'Prepare me', 'prepare', 'btn'), sentTag(id)));
+    openNote['meeting:' + m.id] = true;
+    var c = commentable('meeting', m.id, m.title, { placeholder: 'Your notes for this meeting' });
+    c.box.hidden = false;
+    meetBox.appendChild(put(el('div', 'mblock'), put(el('span', 'kicker', 'Your notes '), c.tag), c.box));
+    if (fresh) { if (typeof meetBox.showModal === 'function') meetBox.showModal(); else meetBox.setAttribute('open', ''); }
+    var back = fk ? meetBox.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (back) back.focus({ preventScroll: true }); else if (fresh) x.focus();
+  }
+
+  var waitsTag = function (p) { return p.waiting ? tag(plural(p.waiting, 'waits for you', 'wait for you'), 'tag-needs') : null; };
+  var card = function (rows, cls) { var c = el('div', 'card' + (cls ? ' ' + cls : '')); rows.forEach(function (r) { c.appendChild(r); }); return c; };
+  var title = function (text) { var h = el('h1', null, text); h.tabIndex = -1; return h; };
+  // A timeline, by day: what was written and, on the Brain tab, on which page. Each line has a Fix: what
+  // the owner types leaves with the page and the line, and a session records it as their correction.
+  var dayName = function (day) { return day === today ? 'Today' : day === yesterday ? 'Yesterday' : niceDay(day); };
+  function timelineRow(entry, withPage, slug) {
+    var main = el('div', 'main'); var t = el('div', 't', entry.summary); t.style.fontWeight = '400'; main.appendChild(t);
+    if (withPage) {
+      var m = /^projects\/([^/]+)/i.exec(entry.slug || ''); var p = m ? byName(m[1]) : null;
+      main.appendChild(put(el('div', 'm'), p ? plink(p) : el('span', null, entry.title || entry.slug || '')));
+    }
+    var page = entry.slug || slug || '';
+    var day = String(entry.date || '').slice(0, 10);
+    var c = page ? commentable('line', page, entry.summary, { fix: true, key: page + '|' + day + '|' + String(entry.summary).slice(0, 80), extra: { date: day, line: String(entry.summary).slice(0, 300) } }) : null;
+    return put(el('div', 'row tl'), put(el('div', 'line'), main, c ? put(el('div', 'acts'), c.tag, c.bubble) : null), c ? c.box : null);
+  }
+  function timelineRows(entries, withPage, slug) {
+    var out = []; var last = null;
+    var dayOf = function (entry) { return String(entry.date || '').slice(0, 10); };
+    entries.forEach(function (entry) {
+      var day = dayOf(entry);
+      if (day !== last) {
+        var size = entries.filter(function (other) { return dayOf(other) === day; }).length;
+        out.push(put(el('div', 'grouphead', dayName(day) + ' '), el('span', null, String(size))));
+        last = day;
+      }
+      out.push(timelineRow(entry, withPage, slug));
+    });
+    return out;
+  }
+
+  // ---- the owner's own lists: to-dos and notes ----
+  // A tick, a new to-do or a new note is kept here at once and written to the page's store when there
+  // is one. A session applies it to the brain later; until then the row says so.
+  var newKey = function () { return 'page-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 46656).toString(36); };
+  var removed = function (kind, id) { return pending.changes.some(function (c) { return c.kind === kind && (c.id || c.client_id) === id; }); };
+  // Remove takes a to-do or a note off the lists. In the brain it is kept, marked dropped or dismissed.
+  // One made on this page and not saved yet is simply taken back.
+  function removeButton(kind, item) {
+    var b = el('button', 'btn quiet', 'Remove'); b.type = 'button'; b.setAttribute('aria-label', 'Remove: ' + item.text); b.dataset.fk = 'rm:' + item.id;
+    b.addEventListener('click', function () {
+      var mine = pending.changes.filter(function (c) { return c.client_id === item.id && (c.kind === 'todo-add' || c.kind === 'note-add'); })[0];
+      if (mine && !mine.saved && !mine.sending) {
+        pending.changes = pending.changes.filter(function (c) { return c !== mine && (c.id || c.client_id) !== item.id; });
+        said = ''; render(); return;
+      }
+      var c = { kind: kind }; c[item.fresh ? 'client_id' : 'id'] = item.id; change(c);
+    });
+    return b;
+  }
+  function todoList() {
+    var list = baseTodos.map(function (t) { return { id: t.id, text: t.text, body: t.body || '', due: t.due || '', project: t.project || '', done: !!t.done, done_at: t.done_at || '', added: t.added || '', source: t.source || '', by: t.by || '' }; });
+    pending.changes.forEach(function (c) {
+      if (c.kind === 'todo-add') list.push({ id: c.client_id, text: c.text, body: c.body || '', due: c.due || '', project: c.project || '', done: false, added: today, source: 'this page', fresh: true, changed: true });
+      else if (c.kind === 'todo-done' || c.kind === 'todo-reopen') {
+        var key = c.id || c.client_id;
+        list.forEach(function (t) { if (t.id === key) { t.done = c.kind === 'todo-done'; t.changed = true; } });
+      } else if (c.kind === 'todo-edit') {
+        // An edit made in a to-do's panel: "none" takes a date, a project or the details off.
+        var which = c.id || c.client_id;
+        list.forEach(function (t) {
+          if (t.id !== which) return;
+          if (c.text) t.text = c.text;
+          ['due', 'project', 'body'].forEach(function (k) { if (c[k]) t[k] = c[k] === 'none' ? '' : c[k]; });
+          t.changed = true;
+        });
+      }
+    });
+    return list.filter(function (t) { return !removed('todo-drop', t.id); });
+  }
+  function noteList() {
+    var added = pending.changes.filter(function (c) { return c.kind === 'note-add'; }).map(function (c) { return { id: c.client_id, text: c.text, body: c.body || '', date: today, project: c.project || '', fresh: true }; });
+    // Newest first, so that the groups by day hold together; notes of one day keep their order.
+    var dated = baseNotes.map(function (n, i) { return { n: n, i: i }; }).sort(function (a, b) { var x = String(a.n.date || ''); var y = String(b.n.date || ''); return x < y ? 1 : x > y ? -1 : a.i - b.i; }).map(function (o) { return o.n; });
+    return added.reverse().concat(dated).filter(function (n) { return !removed('note-dismiss', n.id); });
+  }
+  var openTodos = function () { return todoList().filter(function (t) { return !t.done; }); };
+  var dueTodos = function () { return openTodos().filter(function (t) { return t.due && t.due <= today; }); };
+  var unsaved = function () { return pending.changes.filter(function (c) { return !c.saved; }); };
+  var notYet = function () { return db ? sentMark() : tag('only in this browser', 'tag-new'); };
+  function change(fields) {
+    fields.at = new Date().toISOString(); fields.saved = false;
+    pending.changes.push(fields); said = ''; flush(); render();
+  }
+  // The one write a change makes: a document in the page's own store, where there is one.
+  function flush() {
+    if (!db) return;
+    unsaved().forEach(function (c) {
+      if (c.sending) return;
+      c.sending = true;
+      var doc = { at: c.at, read: false, page_generated_at: data.generated_at || '', kind: c.kind };
+      ['id', 'client_id', 'text', 'due', 'project', 'body'].forEach(function (k) { if (c[k]) doc[k] = c[k]; });
+      db.collection('changes').add(doc).then(function () { c.saved = true; c.sending = false; keep(); header(); }, function () { c.sending = false; header(); });
+    });
+  }
+
+  function dueText(t) {
+    if (t.done) return { text: 'done today' };
+    if (!t.due) return null;
+    var late = Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(t.due + 'T00:00:00Z')) / 86400000);
+    return late > 0 ? { text: plural(late, 'day') + ' late', late: true } : late === 0 ? { text: 'due today' } : { text: 'due ' + niceDay(t.due) };
+  }
+  // Ticks a to-do, or opens it again. Taking back a tick that has not left this browser removes it;
+  // anything else is a new change.
+  function tick(t) {
+    var last = null;
+    pending.changes.forEach(function (c) { if ((c.kind === 'todo-done' || c.kind === 'todo-reopen') && (c.id || c.client_id) === t.id) last = c; });
+    if (last && !last.saved && !last.sending) { pending.changes.splice(pending.changes.indexOf(last), 1); said = ''; render(); return; }
+    var c = { kind: t.done ? 'todo-reopen' : 'todo-done' }; c[t.fresh ? 'client_id' : 'id'] = t.id; change(c);
+  }
+  function todoRow(t, here) {
+    var check = el('button', 'check'); check.type = 'button'; check.setAttribute('role', 'checkbox'); check.setAttribute('aria-checked', String(!!t.done));
+    check.setAttribute('aria-label', t.text); check.dataset.fk = 'tick:' + t.id; check.appendChild(el('i'));
+    check.addEventListener('click', function () { tick(t); });
+    // Its words open the to-do's panel.
+    var open = el('button', 'noteopen t', t.text); open.type = 'button'; open.dataset.fk = 'task:' + t.id; open.setAttribute('aria-haspopup', 'dialog');
+    open.addEventListener('click', function () { showTask(t.id); });
+    var main = el('div', 'main'); main.appendChild(open);
+    var p = !here && t.project ? byName(t.project) : null; var due = dueText(t);
+    var meta = el('div', 'm');
+    if (p) meta.appendChild(plink(p)); else if (t.project && !here) meta.appendChild(document.createTextNode(t.project));
+    if (due) { if (meta.childNodes.length) meta.appendChild(sep()); meta.appendChild(el('span', due.late ? 'late' : null, due.text)); }
+    if (t.body) { if (meta.childNodes.length) meta.appendChild(sep()); meta.appendChild(el('span', 'notemore', 'More inside')); }
+    if (meta.childNodes.length) main.appendChild(meta);
+    return put(el('div', 'row todo' + (t.done ? ' isdone' : '')), put(el('div', 'line'), check, main, t.changed ? notYet() : null, removeButton('todo-drop', t)));
+  }
+  function todoGroups(list, here) {
+    var g = { late: [], today: [], soon: [], none: [], done: [] };
+    list.forEach(function (t) { (t.done ? g.done : !t.due ? g.none : t.due < today ? g.late : t.due === today ? g.today : g.soon).push(t); });
+    g.soon.sort(function (a, b) { return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
+    var out = [];
+    [['late', 'Overdue'], ['today', 'Today'], ['soon', 'Upcoming'], ['none', 'No date'], ['done', 'Done today']].forEach(function (k) {
+      if (!g[k[0]].length) return;
+      out.push(put(el('div', 'grouphead', k[1] + ' '), el('span', null, String(g[k[0]].length))));
+      g[k[0]].forEach(function (t) { out.push(todoRow(t, here)); });
+    });
+    if (!out.length) out.push(put(el('div', 'row'), el('div', 'm', 'No to-dos here.')));
+    return out;
+  }
+  function projectSelect() {
+    var s = el('select', 'field'); s.setAttribute('aria-label', 'Project');
+    var none = el('option', null, 'No project'); none.value = ''; s.appendChild(none);
+    projects.forEach(function (p) { var o = el('option', null, p.title); o.value = p.key; s.appendChild(o); });
+    return s;
+  }
+  // New to-do, after the Console's add field: one plain line at the top of the list; once you are in it,
+  // a project and a day when it has them. On a project's view the project is set. Enter adds it.
+  function todoCompose(p) {
+    var key = 'todo:' + (p ? p.key : '');
+    var d = drafts[key] || (drafts[key] = { text: '', due: '', project: '' });
+    var f = el('form', 'compose');
+    var text = el('input', 'bare'); text.placeholder = 'Add a to-do…'; text.setAttribute('aria-label', 'New to-do'); text.required = true; text.maxLength = 200; text.dataset.fk = 'form:todo'; text.value = d.text;
+    var add = el('button', 'btn', 'Add'); add.type = 'submit'; add.dataset.fk = 'form:todo';
+    var sel = p ? null : projectSelect();
+    if (sel) { sel.value = d.project; sel.addEventListener('change', function () { d.project = sel.value; }); }
+    var due = el('input', 'field'); due.type = 'date'; due.setAttribute('aria-label', 'Due date'); due.value = d.due;
+    due.addEventListener('change', function () { d.due = due.value; });
+    var more = put(el('div', 'cmore'), sel, due); more.hidden = !(d.text || d.open);
+    text.addEventListener('focus', function () { d.open = true; more.hidden = false; });
+    text.addEventListener('input', function () { d.text = text.value; });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); var words = text.value.trim(); if (!words) return;
+      var made = { kind: 'todo-add', client_id: newKey(), text: words.slice(0, 200), due: due.value || '', project: p ? p.key : sel.value };
+      drafts[key] = { text: '', due: '', project: '', open: true }; change(made);
+    });
+    return put(f, el('span', 'cmark'), text, add, more);
+  }
+  // Opens a form in a small window over the page. Cancel, Escape and a sent form all close it.
+  function popup(heading, form, submit) {
+    var d = el('dialog', 'pop'); d.setAttribute('aria-label', heading);
+    var cancel = el('button', 'btn quiet', 'Cancel'); cancel.type = 'button';
+    cancel.addEventListener('click', function () { gone(d); });
+    form.appendChild(put(el('div', 'ends'), cancel, submit));
+    put(d, el('h2', 'kicker', heading), form);
+    d.addEventListener('close', function () { gone(d); });
+    document.body.appendChild(d);
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+    var first = form.querySelector('input, textarea'); if (first) first.focus();
+  }
+  // Closed and taken off the page at once: the close event alone comes too late for the next render.
+  var gone = function (d) { if (d.open && d.close) d.close(); if (d.parentNode) d.parentNode.removeChild(d); };
+  var shut = function (form) { var d = form.parentNode; if (d && d.tagName === 'DIALOG') gone(d); };
+  // A note made into a to-do on this page says so, and is not made into a second one.
+  var madeTodo = function (n) { return pending.changes.some(function (c) { return c.kind === 'todo-add' && c.from_note === n.id; }); };
+  function makeTodoButton(n, cls, fk) {
+    var done = madeTodo(n);
+    var b = el('button', cls, done ? 'Made a to-do' : 'Make it a to-do'); b.type = 'button'; b.dataset.fk = fk; b.disabled = done;
+    b.addEventListener('click', function () {
+      if (madeTodo(n)) return;
+      change({ kind: 'todo-add', client_id: newKey(), text: n.text.slice(0, 200), due: '', project: n.project || '', from_note: n.id });
+    });
+    return b;
+  }
+  // The words of a note, as the button that opens it.
+  function noteOpener(n, cls) {
+    var b = el('button', 'noteopen ' + cls, n.text); b.type = 'button'; b.dataset.fk = 'note:' + n.id;
+    b.setAttribute('aria-haspopup', 'dialog');
+    b.addEventListener('click', function () { showNote(n.id); });
+    return b;
+  }
+  function noteCard(n, here) {
+    var meta = el('div', 'notemeta'); meta.appendChild(el('span', null, n.date === today ? 'today' : niceDay(n.date)));
+    var p = !here && n.project ? byName(n.project) : null; if (p) meta.appendChild(plink(p));
+    if (n.body) meta.appendChild(el('span', 'notemore', 'More inside'));
+    if (n.fresh) meta.appendChild(notYet());
+    var b = makeTodoButton(n, 'btn quiet', 'mk:' + n.id); b.style.marginLeft = 'auto';
+    return put(el('div', 'notecard'), noteOpener(n, 'noteline'), put(meta, b, removeButton('note-dismiss', n)));
+  }
+  // A note as one row of a list, for Today.
+  function noteRow(n) {
+    var meta = el('div', 'm', n.date === today ? 'today' : niceDay(n.date));
+    var p = n.project ? byName(n.project) : null; if (p) put(meta, sep(), plink(p));
+    var t = noteOpener(n, 't'); t.style.fontWeight = '400';
+    return put(el('div', 'row noterow'), put(el('div', 'line'), dot('var(--st-todo)'), put(el('div', 'main'), t, meta), n.fresh ? notYet() : null));
+  }
+
+  // One note, opened over the page as in the Console: all of its words, when it was kept, its project, the
+  // longer text kept with it, and what can be done with it. Escape, × or a click beside it closes it, and
+  // the focus goes back to the note it was opened from.
+  var shownNote = null; var noteBox = null;
+  function showNote(id) { shownNote = id; drawNote(); }
+  function closeNote() {
+    var d = noteBox; var was = shownNote; noteBox = null; shownNote = null;
+    if (!d) return;
+    gone(d);
+    var from = was ? $('view').querySelector('[data-fk="note:' + was.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (from) from.focus({ preventScroll: true });
+  }
+  function drawNote() {
+    // Removed from this page, or gone from the lists: the panel closes.
+    var n = shownNote ? noteList().filter(function (x) { return x.id === shownNote; })[0] : null;
+    if (!n) { closeNote(); return; }
+    var fresh = !noteBox;
+    if (fresh) {
+      noteBox = el('dialog', 'pop meetcard');
+      var mine = noteBox;
+      noteBox.addEventListener('close', function () { if (noteBox === mine) closeNote(); });
+      noteBox.addEventListener('click', function (e) {
+        if (e.target !== mine) return;
+        var r = mine.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeNote();
+      });
+      document.body.appendChild(noteBox);
+    }
+    var active = document.activeElement; var fk = active && noteBox.contains(active) && active.dataset ? active.dataset.fk : '';
+    noteBox.textContent = ''; noteBox.setAttribute('aria-label', 'Note: ' + n.text.slice(0, 80));
+    var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.dataset.fk = 'np:x';
+    x.addEventListener('click', closeNote);
+    put(noteBox, put(el('div', 'mhead'), el('span', 'kicker', 'Note · ' + (n.date === today ? 'today' : niceDay(n.date))), n.fresh ? notYet() : null, x), el('h2', 'ntext', n.text));
+    var p = n.project ? byName(n.project) : null;
+    if (p || n.project) noteBox.appendChild(put(el('div', 'm'), p ? plink(p) : document.createTextNode(n.project)));
+    if (n.body) noteBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'More'), el('p', 'nbody', n.body)));
+    var rm = removeButton('note-dismiss', n); rm.dataset.fk = 'np:rm:' + n.id;
+    noteBox.appendChild(put(el('div', 'options mblock'), makeTodoButton(n, 'btn accent', 'np:mk:' + n.id), rm));
+    if (fresh) { if (typeof noteBox.showModal === 'function') noteBox.showModal(); else noteBox.setAttribute('open', ''); }
+    var back = fk ? noteBox.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (back && !back.disabled) back.focus({ preventScroll: true }); else if (fresh || (back && back.disabled)) x.focus();
+  }
+
+  // A dialog over the page that a click beside it closes; a click on its own edge does not.
+  function overlay(onClose) {
+    var d = el('dialog', 'pop meetcard');
+    d.addEventListener('close', function () { onClose(d); });
+    d.addEventListener('click', function (e) {
+      if (e.target !== d) return;
+      var r = d.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) onClose(d);
+    });
+    document.body.appendChild(d);
+    return d;
+  }
+
+  // One to-do, opened over the page as in the Console: its words, whether it is done, its date, its
+  // project and its details, each changed in place, and Remove. Save sends one change with only what
+  // differs, and a session writes it into the brain with `cogby todo edit`.
+  var shownTask = null; var taskBox = null; var taskDraft = null;
+  function showTask(id) { shownTask = id; taskDraft = null; drawTask(); }
+  function closeTask() {
+    var d = taskBox; var was = shownTask; taskBox = null; shownTask = null; taskDraft = null;
+    if (!d) return;
+    gone(d);
+    var from = was ? $('view').querySelector('[data-fk="task:' + was.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (from) from.focus({ preventScroll: true });
+  }
+  function drawTask() {
+    // Removed from this page, or gone from the lists: the panel closes.
+    var t = shownTask ? todoList().filter(function (x) { return x.id === shownTask; })[0] : null;
+    if (!t) { closeTask(); return; }
+    var fresh = !taskBox;
+    if (fresh) taskBox = overlay(function (d) { if (taskBox === d) closeTask(); });
+    var active = document.activeElement; var fk = active && taskBox.contains(active) && active.dataset ? active.dataset.fk : '';
+    // What is typed stays while the page redraws around it.
+    var d = taskDraft || (taskDraft = { text: t.text, due: t.due, project: t.project, body: t.body });
+    taskBox.textContent = ''; taskBox.setAttribute('aria-label', 'To-do: ' + t.text.slice(0, 80));
+    var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.dataset.fk = 'tp:x';
+    x.addEventListener('click', closeTask);
+    var save = el('button', 'btn accent', 'Save'); save.type = 'button'; save.dataset.fk = 'tp:save';
+    var differs = function () {
+      return d.text.trim() !== t.text || (d.due || '') !== (t.due || '') || (d.project || '') !== (t.project || '') || d.body.trim() !== String(t.body || '').trim();
+    };
+    var update = function () { save.disabled = !differs() || !d.text.trim(); };
+
+    // Its words: one line, so Enter does not start a second one.
+    var words = el('textarea', 'ttitle'); words.rows = 2; words.maxLength = 200; words.value = d.text; words.dataset.fk = 'tp:text';
+    words.setAttribute('aria-label', 'What to do');
+    words.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+    words.addEventListener('input', function () { d.text = words.value.replace(/\s*\n\s*/g, ' '); update(); });
+    var from = [t.added ? 'Added ' + (t.added === today ? 'today' : niceDay(t.added)) : '', t.source ? 'from ' + t.source : ''].filter(Boolean).join(' · ');
+    put(taskBox, put(el('div', 'mhead'), el('span', 'kicker', t.done ? 'To-do · done' : 'To-do'), t.changed ? notYet() : null, x), words, from ? el('div', 'm', from) : null);
+
+    var grid = el('div', 'tgrid');
+    var state = el('button', 'btn small', t.done ? 'Open it again' : 'Mark done'); state.type = 'button'; state.dataset.fk = 'tp:tick';
+    state.addEventListener('click', function () { tick(t); });
+    var due = dueText(t);
+    put(grid, el('span', 'lbl', 'Status'), put(el('div', 'tstate'), el('span', due && due.late ? 'late' : null, t.done ? 'Done today' : due && due.late ? due.text : 'Open'), state));
+    var day = el('input', 'field'); day.type = 'date'; day.value = d.due; day.dataset.fk = 'tp:due'; day.setAttribute('aria-label', 'Due date');
+    day.addEventListener('change', function () { d.due = day.value; update(); });
+    put(grid, el('span', 'lbl', 'Due'), day);
+    var where = projectSelect(); where.dataset.fk = 'tp:project';
+    // A project the snapshot does not list is kept as it is.
+    if (d.project && !byName(d.project)) { var o = el('option', null, d.project); o.value = d.project; where.appendChild(o); }
+    where.value = d.project || '';
+    where.addEventListener('change', function () { d.project = where.value; update(); });
+    put(grid, el('span', 'lbl', 'Project'), where);
+    taskBox.appendChild(grid);
+
+    var body = el('textarea', 'tbody'); body.maxLength = 4000; body.value = d.body; body.dataset.fk = 'tp:body';
+    body.placeholder = 'What it is for, what done looks like, links'; body.setAttribute('aria-label', 'Details');
+    body.addEventListener('input', function () { d.body = body.value; update(); });
+    taskBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Details'), body));
+
+    save.addEventListener('click', function () {
+      var text = d.text.trim(); if (!text || !differs()) return;
+      var detail = d.body.trim();
+      // Made on this page and not sent yet: the new to-do itself takes the change.
+      var add = t.fresh ? pending.changes.filter(function (c) { return c.kind === 'todo-add' && c.client_id === t.id && !c.saved && !c.sending; })[0] : null;
+      if (add) {
+        add.text = text.slice(0, 200); add.due = d.due || ''; add.project = d.project || ''; add.body = detail.slice(0, 4000);
+        taskDraft = null; said = ''; keep(); render(); return;
+      }
+      var c = { kind: 'todo-edit' }; c[t.fresh ? 'client_id' : 'id'] = t.id;
+      if (text !== t.text) c.text = text.slice(0, 200);
+      if ((d.due || '') !== (t.due || '')) c.due = d.due || 'none';
+      if ((d.project || '') !== (t.project || '')) c.project = d.project || 'none';
+      if (detail !== String(t.body || '').trim()) c.body = detail.slice(0, 4000) || 'none';
+      taskDraft = null; change(c);
+    });
+    var rm = removeButton('todo-drop', t); rm.dataset.fk = 'tp:rm:' + t.id;
+    taskBox.appendChild(put(el('div', 'tfoot'), save, rm));
+    update();
+    if (fresh) { if (typeof taskBox.showModal === 'function') taskBox.showModal(); else taskBox.setAttribute('open', ''); }
+    var back = fk ? taskBox.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (back && !back.disabled) back.focus({ preventScroll: true }); else if (fresh || (back && back.disabled)) x.focus();
+  }
+  function notePopup() {
+    var f = el('form', 'addform');
+    var area = el('textarea'); area.placeholder = 'A quick note to keep'; area.setAttribute('aria-label', 'New note'); area.required = true; area.maxLength = 400;
+    var sel = projectSelect(); sel.className = 'field grow';
+    var save = el('button', 'btn', 'Save note'); save.type = 'submit';
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); var words = area.value.trim(); if (!words) return;
+      var made = { kind: 'note-add', client_id: newKey(), text: words.slice(0, 400), project: sel.value };
+      shut(f); change(made);
+    });
+    popup('New note', put(f, area, sel), save);
+  }
+  // Notes are grouped the way the Console grouped them: today, yesterday, this week, then by month.
+  function noteGroup(day) {
+    var at = String(day || '').slice(0, 10);
+    var gap = Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(at + 'T00:00:00Z')) / 86400000);
+    if (isNaN(gap)) return 'Undated';
+    if (gap <= 0) return 'Today';
+    if (gap === 1) return 'Yesterday';
+    if (gap < 7) return 'This week';
+    var d = new Date(at + 'T00:00:00Z');
+    return d.getUTCFullYear() === new Date().getFullYear()
+      ? d.toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' })
+      : d.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+  var noteQuery = '';
+
+  // ---- the Tasks view, as the old Console had it (owner, 2026-11-18: "I need the same here") ----
+  // Lanes headed by a state pill: To do (what is due within a week, or has no project), Planned (the rest,
+  // folded by project), then what was done today. All, Mine and Cogby's switch the list; a to-do is
+  // Cogby's when it says so (`by`), and none does until Cogby runs to-dos of its own.
+  var NOW_DAYS = 7;
+  var lane = 'all'; var plannedOpen = {}; var dueEditing = '';
+  var isCogby = function (t) { return t.by === 'cogby'; };
+  var COG = '<svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(16 16) scale(0.2115)" fill="currentColor">' +
+    [0, 45, 90, 135, 180, 225, 270, 315].map(function (r) { return '<rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(' + r + ')"/>'; }).join('') + '<circle r="41"/></g></svg>';
+  var DISC = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M 7 12.3 l 3.4 3.4 L 17 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function groupHead(label, count, state, after) {
+    var h = el('div', 'tghead');
+    if (state) { var pill = el('span', 'statepill sp-' + state); pill.innerHTML = state === 'done' ? DISC : COG; pill.appendChild(el('span', 'splbl', label)); h.appendChild(pill); }
+    else h.appendChild(el('span', null, label));
+    if (after) h.appendChild(el('span', null, after));
+    return put(h, el('span', 'tgcount', String(count)));
+  }
+  var gapDays = function (day) { return Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000); };
+  // The due date as the Console wrote it: "today", "Nov 19", in orange when it is today or past; on Home
+  // a past date reads "overdue".
+  function dueMeta(t, home) {
+    if (!t.due) return null;
+    var gap = gapDays(t.due);
+    if (isNaN(gap)) return { label: t.due, over: false };
+    if (gap === 0) return { label: 'today', over: true };
+    if (gap < 0 && home) return { label: 'overdue', over: true };
+    return { label: new Date(t.due + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }), over: gap < 0 };
+  }
+  // A new date for a to-do, from its row. One made on this page and not sent yet takes it itself.
+  function setDue(t, value) {
+    var add = t.fresh ? pending.changes.filter(function (c) { return c.kind === 'todo-add' && c.client_id === t.id && !c.saved && !c.sending; })[0] : null;
+    if (add) { add.due = value || ''; said = ''; keep(); render(); return; }
+    if ((value || '') === (t.due || '')) { render(); return; }
+    var c = { kind: 'todo-edit', due: value || 'none' }; c[t.fresh ? 'client_id' : 'id'] = t.id; change(c);
+  }
+  // One task as the Console's row: the round tick, its words (which open it), and at the right its due date,
+  // which a click lets you change ("+ due" when it has none), or the time it was done.
+  function taskLine(t, how) {
+    how = how || {};
+    var row = el('div', 'trow' + (t.done ? ' tdone' : ''));
+    var check = el('button', 'tcheck' + (t.done ? ' done' : '')); check.type = 'button'; check.setAttribute('role', 'checkbox'); check.setAttribute('aria-checked', String(!!t.done));
+    check.setAttribute('aria-label', (t.done ? 'Open again: ' : 'Mark done: ') + t.text); check.dataset.fk = 'tick:' + t.id;
+    check.addEventListener('click', function () { tick(t); });
+    var name = el('button', 'tname', t.text); name.type = 'button'; name.title = t.text; name.dataset.fk = 'task:' + t.id; name.setAttribute('aria-haspopup', 'dialog');
+    name.addEventListener('click', function () { showTask(t.id); });
+    var mark = null;
+    if (isCogby(t)) { mark = el('span', 'lane-mark'); mark.innerHTML = COG; mark.title = 'Cogby\'s task'; mark.style.cssText = 'flex:none;width:14px;height:14px;color:var(--accent)'; }
+    put(row, check, mark, name, t.changed ? notYet() : null);
+    if (how.pull && !t.done) {
+      var pull = el('button', 'tpull', '↑ Now'); pull.type = 'button'; pull.title = 'Pull into Now: gives it today\'s date'; pull.dataset.fk = 'pull:' + t.id;
+      pull.addEventListener('click', function () { setDue(t, today); });
+      row.appendChild(pull);
+    }
+    if (how.at) return put(row, el('span', 'tat', t.done_at || 'done'));
+    if (dueEditing === t.id) {
+      var input = el('input', 'tduein'); input.type = 'date'; input.value = t.due || ''; input.dataset.fk = 'duein:' + t.id; input.setAttribute('aria-label', 'Due date for ' + t.text);
+      input.addEventListener('change', function () { dueEditing = ''; setDue(t, input.value); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); dueEditing = ''; render(); } });
+      input.addEventListener('blur', function () { if (dueEditing === t.id) { dueEditing = ''; render(); } });
+      return put(row, input);
+    }
+    var dm = dueMeta(t, how.home);
+    var due = el('button', dm ? 'tdue' + (dm.over ? ' over' : '') : 'tdueadd', dm ? dm.label : '＋ due'); due.type = 'button'; due.title = 'Set due date'; due.dataset.fk = 'due:' + t.id;
+    due.addEventListener('click', function () {
+      dueEditing = t.id; render();
+      var i = $('view').querySelector('[data-fk="duein:' + t.id.replace(/["\\]/g, '\\$&') + '"]');
+      if (i) { i.focus(); try { i.showPicker(); } catch (e) { /* not every browser opens it */ } }
+    });
+    return put(row, due);
+  }
+  // The board itself.
+  function tasksBoard() {
+    var box = el('div', 'tboard');
+    var seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Whose tasks');
+    [['all', 'All'], ['mine', 'Mine'], ['cogby', 'Cogby\'s']].forEach(function (o) {
+      var b = el('button', null, o[1]); b.type = 'button'; b.dataset.fk = 'lane:' + o[0]; b.setAttribute('aria-pressed', String(lane === o[0]));
+      b.addEventListener('click', function () { lane = o[0]; render(); }); seg.appendChild(b);
+    });
+    var add = el('button', 'chip', '+ New task'); add.type = 'button'; add.dataset.fk = 'open:newtask'; add.setAttribute('aria-haspopup', 'dialog');
+    add.addEventListener('click', function () { newTask('todo'); });
+    box.appendChild(put(el('div', 'tbar'), seg, add));
+    var all = todoList().filter(function (t) { return lane === 'all' || (lane === 'cogby' ? isCogby(t) : !isCogby(t)); });
+    var later = function (t) { return !!t.project && (!t.due || gapDays(t.due) > NOW_DAYS); };
+    var open = all.filter(function (t) { return !t.done; });
+    var now = open.filter(function (t) { return !later(t); });
+    var planned = open.filter(later);
+    var done = all.filter(function (t) { return t.done; });
+    if (now.length) { box.appendChild(groupHead('To do', now.length, 'todo')); now.forEach(function (t) { box.appendChild(taskLine(t)); }); }
+    if (planned.length) {
+      box.appendChild(groupHead('Planned', planned.length));
+      var by = {};
+      planned.forEach(function (t) { (by[t.project] = by[t.project] || []).push(t); });
+      Object.keys(by).sort(function (a, b) { return by[b].length - by[a].length || a.localeCompare(b); }).forEach(function (slug) {
+        var items = by[slug]; var unfolded = !!plannedOpen[slug];
+        var fold = el('button', 'tfold'); fold.type = 'button'; fold.dataset.fk = 'fold:' + slug; fold.setAttribute('aria-expanded', String(unfolded));
+        fold.title = unfolded ? 'Fold' : 'Show the ' + items.length + ' planned';
+        put(fold, el('span', 'car', '▸'), el('span', 'slug', slug));
+        fold.addEventListener('click', function () { plannedOpen[slug] = !plannedOpen[slug]; render(); });
+        var p = byName(slug);
+        box.appendChild(put(el('div', 'tplanned'), fold, el('span', 'tpcount', items.length + ' open'), p && !only ? link(address(p), 'topen', 'open →') : null));
+        if (unfolded) { var kids = el('div', 'tkids'); items.forEach(function (t) { kids.appendChild(taskLine(t, { pull: true })); }); box.appendChild(kids); }
+      });
+    }
+    if (done.length) { box.appendChild(groupHead('Done', done.length, 'done', 'today')); done.forEach(function (t) { box.appendChild(taskLine(t, { at: true })); }); }
+    if (!all.length) box.appendChild(put(el('div', 'empty tempty'), el('b', null, 'You\'re clear. '), document.createTextNode(lane === 'cogby' ? 'Cogby runs no tasks of its own yet.' : 'Nothing on this list. Use + New task to add one.')));
+    return box;
+  }
+
+  // The New task window, after the Console's: a To-do / Note switch, what needs doing, the details when you
+  // want them, a due date and a project. Ctrl+Enter adds it, as in the Console.
+  function newTask(mode) {
+    var d = el('dialog', 'pop newtask'); d.setAttribute('aria-label', 'New task');
+    var typed = { what: '', more: '', due: '', project: '', open: false };
+    var keepTyped = function () {};
+    var closed = false;
+    var close = function () {
+      if (closed) return; closed = true; gone(d);
+      var b = $('view').querySelector('[data-fk="open:newtask"]'); if (b) b.focus({ preventScroll: true });
+    };
+    var draw = function () {
+      d.textContent = '';
+      var todo = mode === 'todo';
+      var seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Kind');
+      [['todo', 'To-do'], ['note', 'Note']].forEach(function (o) {
+        var b = el('button', null, o[1]); b.type = 'button'; b.setAttribute('aria-pressed', String(mode === o[0]));
+        b.addEventListener('click', function () { keepTyped(); mode = o[0]; draw(); }); seg.appendChild(b);
+      });
+      var x = el('button', 'btn quiet', 'Close'); x.type = 'button'; x.addEventListener('click', close);
+      put(d, put(el('div', 'nthead'), el('h2', null, todo ? 'New task' : 'New note'), seg, x),
+        el('p', 'soft', todo ? 'Start with what needs doing. Add details when you need them.' : 'Something to keep. Add more when you need it.'));
+      var f = el('form');
+      var what = el('textarea', 'ntwhat'); what.placeholder = todo ? 'What needs doing?' : 'What do you want to keep?'; what.maxLength = todo ? 200 : 400; what.value = typed.what; what.setAttribute('aria-label', what.placeholder);
+      var toggle = el('button', 'ntmore', (typed.open ? '▾' : '▸') + ' Details'); toggle.type = 'button'; toggle.setAttribute('aria-expanded', String(typed.open));
+      toggle.addEventListener('click', function () { keepTyped(); typed.open = !typed.open; draw(); });
+      var more = el('textarea'); more.placeholder = todo ? 'What should the outcome be?' : 'Anything longer'; more.maxLength = 4000; more.value = typed.more; more.setAttribute('aria-label', 'Details'); more.hidden = !typed.open;
+      var due = el('input', 'field'); due.type = 'date'; due.value = typed.due;
+      var proj = projectSelect(); proj.value = typed.project;
+      var row = el('div', 'ntrow');
+      if (todo) row.appendChild(put(el('label', 'ntlbl'), document.createTextNode('Due date (optional)'), due));
+      row.appendChild(put(el('label', 'ntlbl'), document.createTextNode('Project (optional)'), proj));
+      var go = el('button', 'btn accent', todo ? 'Add task' : 'Save note'); go.type = 'submit';
+      keepTyped = function () { typed.what = what.value; typed.more = more.value; typed.due = due.value; typed.project = proj.value; };
+      f.addEventListener('submit', function (e) {
+        e.preventDefault(); keepTyped();
+        var words = typed.what.trim().replace(/\s*\n\s*/g, ' '); if (!words) { what.focus(); return; }
+        var body = typed.more.trim().slice(0, 4000);
+        var c = todo ? { kind: 'todo-add', client_id: newKey(), text: words.slice(0, 200), due: typed.due || '', project: typed.project || '', body: body }
+          : { kind: 'note-add', client_id: newKey(), text: words.slice(0, 400), project: typed.project || '', body: body };
+        closed = true; gone(d); change(c);
+      });
+      f.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); go.click(); } });
+      d.appendChild(put(f, what, toggle, more, row, put(el('div', 'ntfoot'), go)));
+      what.focus();
+    };
+    d.addEventListener('close', close);
+    d.addEventListener('click', function (e) {
+      if (e.target !== d) return;
+      var r = d.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+    });
+    document.body.appendChild(d);
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+    draw();
+  }
+
+  // Today's tasks, as the Console's Home had them: what is due today or late, what was done today, and a
+  // field that adds a task for today.
+  function todayTasks() {
+    var mine = todoList().filter(function (t) { return t.done || (t.due && t.due <= today); });
+    var open = mine.filter(function (t) { return !t.done; });
+    var box = section(2, 'Today\'s tasks', open.length ? open.length + ' yours' : '');
+    box.firstChild.appendChild(link('#/todos', 'more', 'Open board →'));
+    var rows = open.map(function (t) { return taskLine(t, { home: true }); })
+      .concat(mine.filter(function (t) { return t.done; }).map(function (t) { return taskLine(t, { at: true }); }));
+    if (!rows.length) rows.push(put(el('div', 'trow'), el('span', 'm', 'Nothing due today.')));
+    var f = el('form', 'compose tadd');
+    var words = el('input', 'bare'); words.placeholder = 'Add a task for today…'; words.setAttribute('aria-label', 'New task for today'); words.maxLength = 200; words.dataset.fk = 'form:today';
+    words.value = drafts.today || '';
+    words.addEventListener('input', function () { drafts.today = words.value; });
+    var add = el('button', 'btn', 'Add'); add.type = 'submit'; add.dataset.fk = 'form:today';
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); var text = words.value.trim(); if (!text) return;
+      drafts.today = ''; change({ kind: 'todo-add', client_id: newKey(), text: text.slice(0, 200), due: today, project: '' });
+    });
+    rows.push(put(f, el('span', 'cmark'), words, add));
+    return put(box, card(rows, 'tcard'));
+  }
+
+  // ---- the views: four tabs, and the view of one project ----
+  var views = {};
+
+  // To-dos and notes are one tab: the to-dos on the left, the notes beside them.
+  views.todos = function (view) {
+    var top = title('Tasks & notes'); top.style.marginBottom = '24px';
+    view.appendChild(top);
+    var left = el('div', 'col'); var right = el('div', 'col');
+    // The tasks, as the old Console's Tasks view showed them.
+    left.appendChild(put(el('section', 'o1'), tasksBoard()));
+
+    // What Cogby recorded as promised to others, under the to-dos, only when there is something.
+    var owed = [];
+    projects.forEach(function (p) { (p.commitments || []).forEach(function (fact) { owed.push({ p: p, fact: fact }); }); });
+    if (owed.length) {
+      left.appendChild(put(section(3, 'Promised to others · ' + owed.length), card(owed.map(function (o) {
+        var meta = put(el('div', 'm'), plink(o.p));
+        return put(el('div', 'row'), put(el('div', 'line'), dot('var(--st-needs)'), put(el('div', 'main'), el('div', 't', o.fact.claim), meta)));
+      }))));
+    }
+
+    var notesBox = section(2, 'Notes · ' + noteList().length);
+    var add = el('button', 'btn small', 'Add a note'); add.type = 'button'; add.dataset.fk = 'open:note'; add.addEventListener('click', notePopup);
+    notesBox.firstChild.appendChild(add);
+    var search = el('input', 'field'); search.type = 'search'; search.placeholder = 'Search these notes'; search.setAttribute('aria-label', 'Search notes'); search.value = noteQuery; search.dataset.fk = 'notes:search';
+    search.style.width = '100%';
+    var stack = el('div');
+    var fill = function () {
+      stack.textContent = ''; var q = noteQuery.toLowerCase();
+      var list = noteList().filter(function (n) { return !q || n.text.toLowerCase().indexOf(q) >= 0; });
+      if (!list.length) { var none = el('div', 'empty', q ? 'No note matches.' : 'No notes yet.'); none.style.marginTop = '10px'; stack.appendChild(none); return; }
+      var last = null; var group = null;
+      list.forEach(function (n) {
+        var g = noteGroup(n.date);
+        if (g !== last) {
+          var size = list.filter(function (other) { return noteGroup(other.date) === g; }).length;
+          stack.appendChild(put(el('div', 'notehead', g), el('span', null, String(size))));
+          group = stack.appendChild(el('div', 'notestack')); last = g;
+        }
+        group.appendChild(noteCard(n, false));
+      });
+    };
+    search.addEventListener('input', function () { noteQuery = search.value; fill(); });
+    fill();
+    right.appendChild(put(notesBox, search, stack));
+
+    view.appendChild(put(el('div', 'cols'), left, right));
+  };
+  // The old address of the notes tab shows the same view.
+  views.notes = views.todos;
+
+  views.today = function (view) {
+    var hour = new Date().getHours();
+    view.appendChild(title((hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening') + (data.owner ? ', ' + data.owner : '') + '.'));
+    var total = needsCount();
+    var oldest = routines.reduce(function (n, r) { return Math.max(n, r.days_overdue || 0); }, notes.oldest_days || 0);
+    var parts = [];
+    if (total) parts.push(plural(total, 'thing needs you', 'things need you') + (oldest ? ', the oldest for ' + days(oldest) : ''));
+    else parts.push('Nothing needs you');
+    if (meetings && age === 0) parts.push(meetings.length ? plural(meetings.length, 'meeting') + ' today' : 'no meetings today');
+    var due = dueTodos();
+    var lede = el('p', 'lede', parts.join(' · '));
+    if (due.length) put(lede, sep(), link('#/todos', null, plural(due.length, 'to-do') + ' due'));
+    lede.appendChild(document.createTextNode('.'));
+    view.appendChild(lede);
+
+    var left = el('div', 'col'); var right = el('div', 'col');
+    // 1. What waits for you: what Cogby left you, the routines that are due, and what it wrote that you
+    // have not confirmed.
+    var needs = section(1, 'Needs you · ' + total);
+    var rows = notes.waiting.map(function (n) { return notifRow(n); }).concat(routines.map(routineRow));
+    needs.appendChild(rows.length ? card(rows) : el('div', 'empty', 'Nothing is waiting for you.'));
+    left.appendChild(needs);
+
+    // 2. Just below: today's tasks (owner, 2026-11-18: "show notification, below it tasks for today").
+    left.appendChild(todayTasks());
+
+    // 2. Done without you: what, why, and the way back.
+    if (notes.acted.length) {
+      var done = section(4, 'Done without you · ' + notes.acted.length);
+      done.appendChild(card(notes.acted.map(function (n) {
+        var main = el('div', 'main');
+        var what = el('div', 't', n.title); if (n.reason) what.title = 'Because ' + n.reason;
+        main.appendChild(what);
+        if (n.undo) main.appendChild(el('div', 'm', 'To undo: ' + n.undo));
+        return put(el('div', 'row'), put(el('div', 'line'), dot('var(--st-running)'), main));
+      })));
+      left.appendChild(done);
+    }
+
+    // 3. The day's meetings, where they were, only when a calendar was read for this page. With no
+    // calendar, the one column keeps a readable width.
+    put(right, meetingSection(3, meetings, false));
+    view.appendChild(meetings ? put(el('div', 'cols'), left, right) : put(el('div', 'narrow'), left));
+  };
+  // On Today, the day's calendar; on a project's view, its meetings as rows.
+  function meetingSection(order, list, here) {
+    if (!list) return null;
+    var box = section(order, here ? 'Meetings' : age === 0 ? 'Your day' : niceDay(data.generated_at));
+    box.appendChild(!list.length ? el('div', 'empty', 'No meetings today.') : here ? card(list.map(meetingRow)) : dayCalendar(list));
+    return box;
+  }
+
+  // ---- projects, as the old Console showed them (owner, 2026-11-18: "the same one we had before") ----
+  // The Console's four statuses. A card with no status is active; a word the Console did not know shows as written.
+  var STATUSES = [['planning', 'Planning', '--st-scheduled'], ['active', 'Active', '--st-accent'], ['on-hold', 'On hold', '--st-needs'], ['done', 'Done', '--st-running']];
+  var statusOf = function (p) {
+    var id = String(p.status || '').toLowerCase() || 'active';
+    var known = STATUSES.filter(function (s) { return s[0] === id; })[0];
+    return { id: id, label: known ? known[1] : id.replace(/[-_]/g, ' '), known: !!known };
+  };
+  var pill = function (p) { var s = statusOf(p); return el('span', 'spill ' + (s.known ? s.id : 'other'), s.label); };
+  // A project whose card has no title of its own shows its folder name as words: "hiring-autumn-2026" reads "Hiring autumn 2026".
+  var named = function (p) { var t = String(p.title || p.name || ''); return /^[a-z0-9]+(-[a-z0-9]+)+$/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1).replace(/-/g, ' ') : t; };
+  var byWords = function (a, b) { return named(a).localeCompare(named(b)); };
+  var openCount = function (p) { return openTodos().filter(function (t) { return t.project === p.key; }).length; };
+  var moved = function (day) {
+    if (!day) return '';
+    if (day === today) return 'today';
+    if (day === yesterday) return 'yesterday';
+    var d = new Date(String(day).slice(0, 10) + 'T00:00:00Z');
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  };
+  // A sub-project is one whose card names another project of this brain as its `parent`. Two cards that
+  // name each other are both shown at the top.
+  var parentOf = function (p) { var up = p.parent ? byName(p.parent) : null; return up && up !== p && up.parent !== p.key ? up : null; };
+  var childrenOf = function (p) { return projects.filter(function (c) { return parentOf(c) === p; }); };
+  // The template's own hint on a new card is not something anyone wrote.
+  var summaryOf = function (p) { var t = String(p.truth || ''); return /^One-line statement of what this project is/i.test(t) ? '' : t; };
+  var pq = ''; var pf = '__open'; var ptabs = {};
+
+  // One project as one row: its name (and how many sub-projects it has), its status, how many to-dos are
+  // open and when it last moved. A count shows when something in it waits for the owner.
+  function projectLine(p, sub) {
+    var row = link(address(p), 'prow'); row.dataset.fk = 'proj:' + p.slug;
+    var head = put(el('span', 'phead'), el('span', 'pname', named(p)));
+    var kids = childrenOf(p).length;
+    if (kids && !sub) head.appendChild(el('span', 'psubs', plural(kids, 'sub-project')));
+    if (p.waiting) { var n = el('span', 'count hot', String(p.waiting)); n.title = plural(p.waiting, 'thing waits', 'things wait') + ' for you'; head.appendChild(n); }
+    var open = openCount(p);
+    put(row, head, put(el('span', 'pstat'), pill(p)), put(el('span', 'pmeta'), el('span', 'popen', open ? open + ' open' : ''), el('span', 'pwhen', moved(p.updated))));
+    return put(el('div', 'pnode' + (sub ? ' sub' : '')), row);
+  }
+
+  views.projects = function (view) {
+    var top = title('Projects'); top.style.marginBottom = '24px';
+    view.appendChild(top);
+    if (!projects.length) { view.appendChild(el('div', 'empty', 'No projects yet.')); return; }
+    var match = function (p, f) { var s = statusOf(p).id; return f === '__all' || (f === '__open' ? s !== 'done' : s === f); };
+    var search = el('input', 'field psearch'); search.type = 'search'; search.placeholder = 'Search projects'; search.setAttribute('aria-label', 'Search projects');
+    search.value = pq; search.dataset.fk = 'proj:search';
+    var bar = el('div', 'filters');
+    [['__open', 'Anything not done'], ['__all', 'All']].concat(STATUSES).forEach(function (f) {
+      var b = el('button', 'chip'); b.type = 'button'; b.dataset.fk = 'pf:' + f[0]; b.setAttribute('aria-pressed', String(pf === f[0]));
+      if (f[2]) { var d = el('span', 'cdot'); d.style.background = 'var(' + f[2] + ')'; b.appendChild(d); }
+      b.appendChild(document.createTextNode(f[1] + ' ' + projects.filter(function (p) { return match(p, f[0]); }).length));
+      b.addEventListener('click', function () { pf = f[0]; render(); });
+      bar.appendChild(b);
+    });
+    var list = el('div', 'card plist');
+    var fill = function () {
+      list.textContent = ''; var q = pq.trim().toLowerCase();
+      var hit = function (p) { return match(p, pf) && (!q || named(p).toLowerCase().indexOf(q) >= 0 || String(p.name || '').indexOf(q) >= 0); };
+      var shown = 0;
+      // A to Z; a sub-project under its project, shown with it when either matches.
+      projects.filter(function (p) { return !parentOf(p); }).sort(byWords).forEach(function (p) {
+        var kids = childrenOf(p).sort(byWords).filter(hit);
+        if (!hit(p) && !kids.length) return;
+        list.appendChild(projectLine(p, false)); shown++;
+        kids.forEach(function (c) { list.appendChild(projectLine(c, true)); shown++; });
+      });
+      if (!shown) list.appendChild(put(el('div', 'row'), el('div', 'm', q ? 'No project matches.' : 'No project has this status.')));
+    };
+    search.addEventListener('input', function () { pq = search.value; fill(); });
+    fill();
+    put(view, search, bar, list);
+  };
+
+  // One project, inside this page, with the old Console's header and tabs: Tasks, Sub-projects, Documents
+  // (the files in its folder) and Project context. It is also the whole of a project's own dashboard page.
+  var bytes = function (n) { return n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; };
+  views.project = function (view, name) {
+    var p = byName(name);
+    if (!p) {
+      if (!only) view.appendChild(link('#/projects', 'backlink', '← Projects'));
+      view.appendChild(title('No such project')); view.appendChild(el('p', 'lede', 'This snapshot has no project at that address.')); return;
+    }
+    var up = parentOf(p);
+    if (!only) view.appendChild(put(el('div', 'crumb'), link('#/projects', null, '← Projects'), up ? el('span', null, '›') : null, up ? link(address(up), null, named(up)) : null, el('span', null, '›'), el('span', null, named(p))));
+    var top = el('div', 'projtop');
+    top.appendChild(title(named(p)));
+    var open = openCount(p);
+    top.appendChild(put(el('div', 'pfacts'), pill(p), el('span', 'opentag', plural(open, 'open task')), p.updated ? el('span', null, 'last moved ' + moved(p.updated)) : null, waitsTag(p)));
+    if (summaryOf(p)) top.appendChild(el('p', 'ptruth', summaryOf(p)));
+    if (p.dashboard && !only) top.appendChild(put(el('div', 'headacts'), outside(link(p.dashboard, 'btn', 'Open dashboard ↗'))));
+    view.appendChild(top);
+
+    var kids = childrenOf(p).sort(byWords);
+    var files = p.files || { count: 0, items: [] };
+    var tab = ptabs[p.key] || 'tasks';
+    var bar = el('div', 'ptabs'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', named(p));
+    [['tasks', 'Tasks'], ['subs', 'Sub-projects' + (kids.length ? ' · ' + kids.length : '')], ['docs', 'Documents' + (files.count ? ' · ' + files.count : '')], ['context', 'Project context']].forEach(function (t) {
+      var b = el('button', null, t[1]); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(tab === t[0])); b.dataset.fk = 'ptab:' + t[0];
+      b.addEventListener('click', function () { ptabs[p.key] = t[0]; render(); });
+      bar.appendChild(b);
+    });
+    view.appendChild(bar);
+
+    if (tab === 'tasks') {
+      var box = el('div', 'narrow');
+      var waits = notes.waiting.filter(function (n) { return isAbout(n.context, p); });
+      if (waits.length) box.appendChild(put(section(3, 'Needs you here · ' + waits.length), card(waits.map(function (n) { return notifRow(n, true); }))));
+      var mineTodos = todoList().filter(function (t) { return t.project === p.key; });
+      box.appendChild(put(section(5, 'To-dos · ' + mineTodos.filter(function (t) { return !t.done; }).length), card([todoCompose(p)].concat(todoGroups(mineTodos, true)))));
+      var meets = (meetings || []).filter(function (m) { return m.project_name && m.project_name === p.name; });
+      if (meets.length) box.appendChild(meetingSection(4, meets, true));
+      view.appendChild(box);
+      return;
+    }
+    if (tab === 'subs') {
+      view.appendChild(put(el('div', 'narrow'), kids.length ? put(el('div', 'card plist'), kids.map(function (c) { return projectLine(c, false); }).reduce(function (f, n) { f.appendChild(n); return f; }, document.createDocumentFragment()))
+        : el('div', 'empty', 'No sub-projects. A project shows here when its card names this one as its parent.')));
+      return;
+    }
+    if (tab === 'docs') {
+      var docs = el('div', 'narrow');
+      if (!files.count) docs.appendChild(el('div', 'empty', 'No files in this project\'s folder besides its card.'));
+      else {
+        var more = files.count > files.items.length ? ', the newest ' + files.items.length + ' shown' : '';
+        docs.appendChild(put(section(0, plural(files.count, 'file') + more), card(files.items.map(function (f) {
+          return put(el('div', 'row docrow'), el('span', 'docpath', f.path), el('span', 'docmeta', bytes(f.size || 0) + ' · ' + moved(f.modified)));
+        }))));
+        docs.appendChild(el('p', 'soft srcnote', 'In the project\'s folder in your brain. Ask Claude to open or use one.'));
+      }
+      view.appendChild(docs);
+      return;
+    }
+
+    var left = el('div', 'col'); var right = el('div', 'col');
+    var spot = p.parking_spot && p.parking_spot[0];
+    var stopped = el('div', 'card stopcard');
+    if (spot) put(stopped, el('p', null, spot.summary), el('div', 'm', niceDay(spot.date) + (spot.source ? ' · ' + spot.source : '')));
+    else stopped.appendChild(el('div', 'm', 'Nothing written yet.'));
+    left.appendChild(put(section(1, 'Where you stopped'), stopped));
+
+    var half = function (label, text, none) { return put(el('div'), el('span', 'kicker', label), text ? el('p', null, text) : put(el('p'), el('span', 'soft', none))); };
+    left.appendChild(put(section(2, 'Now and next'), put(el('div', 'card pair'), half('Now', p.now, 'Nothing in flight.'), half('Next', p.next, 'Nothing written.'))));
+
+    // Project context: where work stopped, Now and Next from the card, the timeline, what it owes, its notes.
+    var lines = p.timeline || [];
+    left.appendChild(put(section(7, 'Timeline'),
+      lines.length ? card(timelineRows(lines, false, p.slug)) : el('div', 'empty', 'Nothing written yet.')));
+
+    var owed = p.commitments || [];
+    right.appendChild(put(section(6, 'Promised · ' + owed.length),
+      owed.length ? card(owed.map(function (fact) { return put(el('div', 'row'), el('div', 't', fact.claim), fact.source ? el('div', 'm', 'from ' + fact.source) : null); })) : el('div', 'empty', 'Nothing promised.')));
+    var about = noteList().filter(function (n) { return n.project === p.key; });
+    if (about.length) { var stack = el('div', 'notestack'); about.forEach(function (n) { stack.appendChild(noteCard(n, true)); }); right.appendChild(put(section(8, 'Notes about it'), stack)); }
+    view.appendChild(put(el('div', 'cols'), left, right));
+  };
+
+  views.brain = function (view) {
+    var top = title('Your brain'); top.style.marginBottom = '24px';
+    view.appendChild(top);
+
+    // The owner's own folders first, a missing one at the top; the brain itself and its day log last.
+    var builtIn = function (s) { return s.builtin || s.id === 'brain' || s.id === 'log'; };
+    var mine = sources.filter(function (s) { return !builtIn(s); }).sort(function (a, b) { return (b.missing ? 1 : 0) - (a.missing ? 1 : 0) || (String(a.name || a.id) < String(b.name || b.id) ? -1 : 1); });
+    var ordered = mine.concat(sources.filter(builtIn));
+    var missing = sources.filter(function (s) { return s.missing; }).length;
+    var src = section(0, 'Sources · ' + sources.length, missing ? missing + ' missing' : '');
+    if (!sources.length) src.appendChild(el('div', 'empty', 'No folder is mounted.'));
+    else {
+      var table = el('table'); var tr = el('tr');
+      // A published page carries no folder paths: the column is there only when a path is.
+      var paths = sources.some(function (s) { return s.path; });
+      ['Name'].concat(paths ? ['Folder'] : [], ['Access', 'Files', 'Last read']).forEach(function (h) { tr.appendChild(el('th', null, h)); });
+      table.appendChild(put(el('thead'), tr));
+      var body = el('tbody');
+      var cell = function (label, text, cls) { var td = el('td', cls, text); td.dataset.l = label; return td; };
+      ordered.forEach(function (s) {
+        var label = s.id === 'brain' ? 'This brain' : s.id === 'log' ? 'Day log' : (s.name || s.id);
+        var name = put(el('td'), el('b', null, label), builtIn(s) ? tag('built in') : null, s.missing ? tag('missing', 'tag-err') : null);
+        body.appendChild(put(el('tr', s.missing ? 'miss' : null), name, paths ? el('td', 'path', s.path) : null, cell('Access', s.mode === 'write' ? 'read and write' : 'read only'),
+          cell('Files', s.missing ? 'folder missing' : String(s.files), 'files'), cell('Last read', s.last_sync ? String(s.last_sync).slice(0, 16).replace('T', ' ') : 'never')));
+      });
+      src.appendChild(put(el('div', 'card'), put(table, body)));
+      if (!mine.length) src.appendChild(el('p', 'soft srcnote', 'No folder of yours is mounted. Ask Cogby to add one as a source, and it is read with the brain.'));
+      else if (missing) src.appendChild(el('p', 'soft srcnote', 'A missing folder was moved or renamed. Ask Cogby to mount it again or to remove it.'));
+    }
+    view.appendChild(src);
+
+    view.appendChild(put(section(0, 'Latest in your brain'),
+      recent.length ? card(timelineRows(recent, true)) : el('div', 'empty', 'Nothing written yet.')));
+  };
+
+  // ---- tabs, header, what has not left the page ----
+  function route() {
+    if (only) return { name: 'project', arg: only.name };
+    var parts = location.hash.replace(/^#\/?/, '').split('/');
+    var name = views[parts[0]] ? parts[0] : 'today'; var arg = '';
+    try { arg = decodeURIComponent(parts.slice(1).join('/')); } catch (e) { arg = ''; }
+    return { name: name, arg: arg };
+  }
+  function chrome(r) {
+    var tabs = $('tabs'); tabs.textContent = ''; tabs.parentNode.hidden = !!only;
+    var missing = sources.filter(function (s) { return s.missing; }).length;
+    [['today', 'Today', needsCount(), true], ['todos', 'Tasks & notes', dueTodos().length, true], ['projects', 'Projects', projects.length, false], ['brain', 'Brain', missing, true]].forEach(function (t) {
+      var a = link('#/' + t[0], null, t[1]);
+      if (r.name === t[0] || (t[0] === 'projects' && r.name === 'project') || (t[0] === 'todos' && r.name === 'notes')) a.setAttribute('aria-current', 'page');
+      if (t[2]) a.appendChild(el('span', 'count' + (t[3] ? ' hot' : ''), String(t[2])));
+      tabs.appendChild(a);
+    });
+    $('asof').textContent = when ? 'As of ' + when : 'Snapshot';
+  }
+  // What cannot leave on its own: everything chosen on a file opened from disk, and what the store refused.
+  function loose() {
+    var n = unsaved().filter(function (c) { return !c.sending; }).length;
+    Object.keys(pending.actions).forEach(function (k) { if (!db || pending.actions[k].failed) n++; });
+    Object.keys(pending.comments).forEach(function (k) { if (!db || pending.comments[k].failed) n++; });
+    return n;
+  }
+  // The header says what left the page and is not in the brain yet, and offers Copy only while something
+  // cannot leave on its own.
+  function header() {
+    var out = Object.keys(pending.sent).length + Object.keys(pending.sentComments).length + pending.changes.length;
+    $('outbox').hidden = !out; $('outbox').textContent = out + ' sent'; $('outbox').title = LATER;
+    var copy = $('copy'); var n = loose();
+    copy.hidden = !n && !said; copy.textContent = said || 'Copy my answers';
+    copy.title = n ? plural(n, 'thing') + ' to paste to Claude: this page cannot send ' + (n === 1 ? 'it' : 'them') + ' on its own' : '';
+  }
+  function render(moved) {
+    var r = route(); var view = $('view');
+    var active = document.activeElement; var fk = active && active.dataset ? active.dataset.fk : '';
+    view.textContent = '';
+    views[r.name](view, r.arg);
+    chrome(r); header(); keep(); drawMeeting(); drawNote(); drawTask();
+    var p = r.name === 'project' ? byName(r.arg) : null;
+    document.title = only ? only.title + ' dashboard' : (p ? p.title + ' · ' : '') + 'Cogby command center';
+    if (moved) { window.scrollTo(0, 0); var h = view.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
+    else if (fk) { var all = view.querySelectorAll('[data-fk]'); for (var i = 0; i < all.length; i++) if (all[i].dataset.fk === fk) { all[i].focus({ preventScroll: true }); break; } }
+  }
+
+  // What Copy carries: what was chosen and not sent, the comments, and the changes to the lists not saved.
+  function asText() {
+    var lines = ['From my Cogby command center (the page made ' + (when || 'earlier') + '). Apply these:'];
+    Object.keys(pending.actions).forEach(function (k) {
+      var a = pending.actions[k];
+      lines.push('- ' + (a.kind === 'answer' ? 'answer "' + a.option + '" on' : a.kind === 'dismiss' ? 'clear' : a.kind === 'later' ? 'put off' : 'prepare me for') + ' ' + a.id + ' (' + a.label + ')');
+    });
+    Object.keys(pending.comments).forEach(function (k) {
+      var c = pending.comments[k];
+      if (c.kind === 'line') lines.push('- fix the line of ' + ((c.extra && c.extra.date) || '') + ' on ' + c.id + ' ("' + c.label + '"): ' + c.text);
+      else lines.push('- my comment on ' + c.kind + ' ' + c.id + ' (' + c.label + '): ' + c.text);
+    });
+    unsaved().forEach(function (c) {
+      if (c.kind === 'todo-add') lines.push('- add to-do: ' + c.text + (c.project ? ' (project ' + c.project + ')' : '') + (c.due ? ' (due ' + c.due + ')' : '') + (c.body ? ' (details: ' + c.body + ')' : ''));
+      else if (c.kind === 'todo-edit') lines.push('- edit to-do ' + (c.id || c.client_id) + ':' + [c.text ? ' text "' + c.text + '"' : '', c.due ? ' due ' + c.due : '', c.project ? ' project ' + c.project : '', c.body ? ' details "' + c.body + '"' : ''].filter(Boolean).join(';'));
+      else if (c.kind === 'note-add') lines.push('- note' + (c.project ? ' on ' + c.project : '') + ': ' + c.text + (c.body ? ' (more: ' + c.body + ')' : ''));
+      else if (c.id && c.kind === 'note-dismiss') lines.push('- remove note ' + c.id);
+      else if (c.id) lines.push('- ' + (c.kind === 'todo-done' ? 'tick' : c.kind === 'todo-drop' ? 'remove' : 'reopen') + ' to-do ' + c.id);
+    });
+    return lines.join('\n');
+  }
+  $('copy').addEventListener('click', function () {
+    var text = asText(); var box = $('copybox');
+    var shown = function () { box.hidden = false; box.value = text; box.focus(); box.select(); };
+    try { navigator.clipboard.writeText(text).then(function () { said = 'Copied. Paste it to Claude.'; box.hidden = true; header(); }, shown); } catch (e) { shown(); }
+  });
+
+  window.addEventListener('hashchange', function () {
+    said = ''; openMeeting = null; shownNote = null; shownTask = null; taskDraft = null;
+    if (meetBox) { var d = meetBox; meetBox = null; gone(d); }
+    if (noteBox) { var n = noteBox; noteBox = null; gone(n); }
+    if (taskBox) { var k = taskBox; taskBox = null; gone(k); }
+    render(true);
+  });
+  render();
+  // The store is there only on the published page; a file opened from disk keeps Copy alone.
+  if (window.claude && typeof window.claude.use === 'function') {
+    Promise.resolve().then(function () { return window.claude.use('db'); }).then(function (store) { db = store || null; flush(); sendOut(); render(); }, function () { db = null; render(); });
+  }
+})();
+</script>

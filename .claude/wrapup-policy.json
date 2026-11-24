@@ -1,0 +1,17 @@
+{
+  "_comment": "Passed with --settings to the headless SessionEnd wrap-up child by .claude/hooks/session-wrapup.cjs. That child runs with --permission-mode auto and a prompt telling it to commit, so this PreToolUse hook is its gate: it refuses whole-tree staging, discarding uncommitted work, force-shaped pushes, and writes to .claude/skills/** or SOUL.md and USER.md.",
+  "_grant_comment": "wrapup-guard.cjs emits permissionDecision allow once its checks clear, which makes it the sole gate for this child: a bare exit 0 is read by the CLI as no opinion, and a --print child has nobody to ask, so it would refuse everything. The deny list in the guard is therefore load-bearing. A payload the guard cannot classify stays silent and so fails closed.",
+  "_merge_comment": "One --settings flag merges with the settings of the folder the child starts in. A second --settings would replace the first, so anything else this child needs has to be added to this file.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/wrapup-guard.cjs"
+          }
+        ]
+      }
+    ]
+  }
+}

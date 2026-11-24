@@ -1,0 +1,4 @@
+# Keep LF everywhere: the starter brain's hook forwarders are checked by sha256 (core/lib/starter-brain.cjs),
+# so a CRLF checkout would make every new brain fail that check.
+* text=auto eol=lf
+*.cmd text eol=crlf

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 270" width="960" role="img" aria-label="The same request twice. Without a context system Claude asks you to explain the project again. With Cogby it answers from your files and names what it read.">
+<title>The same request twice. Without a context system Claude asks you to explain the project again. With Cogby it answers from your files and names what it read.</title>
+<style>
+svg{--canvas-soft:#0D0B24;--surface-card:#161134;--ink:#EDEAFF;--body:#C2BBEE;--muted:#A9A2DC;--accent:#9C8BF0;--hairline:rgba(180,165,255,.16);--hairline-strong:rgba(180,165,255,.32);--success:#4ADE80;--warn:#FBBF24}
+text{font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:15px;fill:var(--body)}
+.brand{font-family:'Rubik','IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:30px;font-weight:600;fill:var(--ink);letter-spacing:-.035em}
+.hero{font-size:40px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.h{font-size:16px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.lead{font-size:17px;fill:var(--body)}
+.q{font-family:'IBM Plex Serif',Georgia,serif;font-size:17px;fill:var(--ink)}
+.b{font-size:14.5px;fill:var(--body)}
+.i{font-size:14.5px;fill:var(--ink)}
+.l{font-size:11.5px;font-weight:600;letter-spacing:.06em;fill:var(--muted)}
+.m{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--muted)}
+.mi{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink)}
+.mb{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink);font-weight:600}
+.ma{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--accent)}
+.card{fill:var(--surface-card);stroke:var(--hairline);stroke-width:1}
+.soft{fill:var(--canvas-soft)}
+.bar{fill:var(--accent)}
+.rule{stroke:var(--hairline);stroke-width:1}
+.ok{fill:var(--success)}
+.wait{fill:var(--warn)}
+</style>
+<rect x="1" y="1" width="466" height="268" rx="8" class="card"/>
+<circle cx="25" cy="29" r="4" class="wait"/>
+<text x="37" y="33" class="l">WITHOUT A CONTEXT SYSTEM</text>
+<text x="21" y="68" class="l">YOU</text>
+<text x="21" y="90" class="i">Draft this week's update for Acme.</text>
+<text x="21" y="124" class="l">CLAUDE</text>
+<text x="21" y="146" class="b">Sure. Which client is this, what was agreed with</text>
+<text x="21" y="167" class="b">them, and where does the project stand today?</text>
+
+<rect x="21" y="212" width="426" height="40" class="soft"/><rect x="21" y="212" width="3" height="40" class="bar"/><text x="37" y="237" class="b">You explain it again. Every session starts from zero.</text>
+<rect x="493" y="1" width="466" height="268" rx="8" class="card"/>
+<circle cx="517" cy="29" r="4" class="ok"/>
+<text x="529" y="33" class="l">WITH COGBY</text>
+<text x="513" y="68" class="l">YOU</text>
+<text x="513" y="90" class="i">Draft this week's update for Acme.</text>
+<text x="513" y="124" class="l">CLAUDE</text>
+<text x="513" y="146" class="b">Done. UAT starts 18 Nov. I kept the January go-live</text>
+<text x="513" y="167" class="b">you decided on 6 Nov.</text>
+<text x="513" y="194" class="m">read projects/acme/card: 2 facts, 1 decision</text>
+<rect x="513" y="212" width="426" height="40" class="soft"/><rect x="513" y="212" width="3" height="40" class="bar"/><text x="529" y="237" class="b">It starts from your files. You only correct.</text>
+</svg>

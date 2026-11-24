@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Before and after: what the format changes</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --card:#fff; --ink:#16202c; --muted:#5d6775; --line:#e3e7ed;
+    --accent:#1f4e79; --before:#b0483a; --beforebg:#fdeeec; --after:#2c7a52; --afterbg:#e9f5ee;
+    --c1:#1f4e79; --c2:#2c7a52; --c3:#b9770e; --c4:#5b4bd6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.65 "Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px 72px}
+  header.top{background:linear-gradient(135deg,#1f4e79,#14304a);color:#fff;padding:34px 22px 30px}
+  header.top .in{max-width:1000px;margin:0 auto}
+  header.top h1{margin:0 0 6px;font-size:27px;letter-spacing:-.2px}
+  header.top p{margin:0;color:#c6d6e6;max-width:70ch}
+  h2{margin:52px 0 2px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+  .h2b{font-size:21px;font-weight:650;margin-bottom:16px;letter-spacing:-.2px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:26px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--accent);
+       border-radius:9px;padding:14px 16px}
+  .kpi .l{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+  .kpi .n{font-size:26px;font-weight:700;margin:4px 0 5px;letter-spacing:-.5px}
+  .kpi .d{font-size:13px;color:var(--muted);line-height:1.5}
+  .pane{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-top:14px}
+  .pane.b{border-left:4px solid var(--before)}
+  .pane.a{border-left:4px solid var(--after)}
+  .tag{display:inline-block;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+       padding:3px 9px;border-radius:20px;font-weight:650;margin-bottom:10px}
+  .tag.b{background:var(--beforebg);color:var(--before)}
+  .tag.a{background:var(--afterbg);color:var(--after)}
+  .def{background:#f2f6fb;border:1px solid #d8e4f0;border-radius:8px;padding:11px 14px;margin:14px 0;font-size:14px}
+  .def b{color:var(--accent)}
+  .cap{font-size:13px;color:var(--muted);margin:6px 0 0}
+  .scroll{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f3f7;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  .row{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .id{font:12px ui-monospace,Consolas,monospace;background:#eef2f7;border-radius:4px;padding:2px 6px;color:var(--accent)}
+  .opt{display:inline-block;border:1px solid var(--line);border-radius:7px;padding:7px 13px;margin:6px 8px 0 0;
+       font-size:14px;background:#fbfcfd}
+  .note{font-size:13px;color:var(--muted);margin-top:8px}
+  svg{max-width:100%;height:auto;display:block;margin:14px 0 0}
+  .count{font:12px ui-monospace,Consolas,monospace;color:var(--muted);float:right}
+  @media(max-width:620px){.count{float:none;display:block;margin-top:6px}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="in">
+  <h1>Before and after: what the format changes</h1>
+  <p>One real backlog row, written twice. Same facts, same numbers, same caveats. Read this once
+  per session before building a page: the dose is the part no rule can teach.</p>
+</div></header>
+
+<div class="wrap">
+
+  <div class="cards">
+    <div class="kpi"><div class="l">Before</div><div class="n">237</div>
+      <div class="d">words, one block of prose, six undefined terms.</div></div>
+    <div class="kpi"><div class="l">After</div><div class="n">139</div>
+      <div class="d">words, and every fact from the left still present.</div></div>
+    <div class="kpi"><div class="l">Facts lost</div><div class="n">Zero</div>
+      <div class="d">Nothing was summarized away. The detail changed carrier.</div></div>
+    <div class="kpi"><div class="l">Time to a verdict</div><div class="n">Seconds</div>
+      <div class="d">The cards and the diagram answer before the text is read.</div></div>
+  </div>
+
+  <h2>The row</h2>
+  <div class="h2b">SEC-9: pin outbound traffic through an egress proxy</div>
+
+  <div class="pane b">
+    <span class="tag b">Before, the ordinary way</span>
+    <span class="count">237 words</span>
+    <p>SEC-9 is step 2 of the security architecture and covers egress pinning for provider spawns.
+    Today every headless provider turn runs inside an OS namespace built by the sandbox module,
+    which empties the signing key directory, removes the dotenv file from the filesystem view and
+    exposes only the secrets that the lane's reach grants, while the harness trees are mounted
+    read-only and ungranted token caches do not exist at all. That containment is real but it is
+    filesystem and environment scoped only: the network namespace is unrestricted, so a boxed turn
+    can still open a socket to any host on the internet, which means that an injected instruction
+    in content the model reads could still exfiltrate whatever that turn legitimately holds in
+    memory, since the floor rules operate on tool patterns rather than on destinations. The
+    proposed work introduces a local proxy that terminates all outbound HTTP from inside the
+    namespace and refuses any host not present in an allowlist derived from the same reach grammar
+    the permission policy already uses, which would close the gap. It is estimated at roughly two
+    weeks of work, it has a hard dependency on the sandbox backend being installed since a turn
+    that runs unboxed has no namespace to attach the proxy to, and containment is currently
+    optional by default on installs with no backend, so on those boxes this buys nothing until the
+    containment policy is moved to required.</p>
+  </div>
+
+  <div class="pane a">
+    <span class="tag a">After, at format</span>
+    <span class="count">139 words</span>
+
+    <div class="def"><b>Egress</b> (outbound traffic): every connection a job opens to the outside
+    while it runs. <b>Pinning</b> it means naming the hosts it may reach, and refusing the rest.</div>
+
+    <svg viewBox="0 0 880 208" role="img" aria-label="The sandbox blocks files, secrets and keys, and leaves the network open. The proxy closes it.">
+      <rect x="18" y="44" width="300" height="146" rx="10" fill="#fff" stroke="var(--c1)" stroke-width="2"/>
+      <text x="168" y="34" text-anchor="middle" font-size="13" fill="var(--c1)" font-weight="700">TODAY, INSIDE THE BOX</text>
+      <rect x="40" y="66" width="120" height="30" rx="6" fill="var(--c2)"/>
+      <text x="100" y="86" text-anchor="middle" font-size="12" fill="#fff">keys: empty</text>
+      <rect x="176" y="66" width="120" height="30" rx="6" fill="var(--c2)"/>
+      <text x="236" y="86" text-anchor="middle" font-size="12" fill="#fff">.env: absent</text>
+      <rect x="40" y="106" width="120" height="30" rx="6" fill="var(--c2)"/>
+      <text x="100" y="126" text-anchor="middle" font-size="12" fill="#fff">code: read only</text>
+      <rect x="176" y="106" width="120" height="30" rx="6" fill="var(--c3)"/>
+      <text x="236" y="126" text-anchor="middle" font-size="12" fill="#fff">network: open</text>
+      <text x="168" y="166" text-anchor="middle" font-size="12" fill="var(--muted)">three walls of four</text>
+      <path d="M296 121 h96" stroke="var(--c3)" stroke-width="3" fill="none" stroke-dasharray="7 5"/>
+      <path d="M392 121 l-11 -6 v12 z" fill="var(--c3)"/>
+      <text x="344" y="112" text-anchor="middle" font-size="12" fill="var(--c3)">any host</text>
+      <rect x="404" y="44" width="176" height="146" rx="10" fill="#fdf6e8" stroke="var(--c3)" stroke-width="2"/>
+      <text x="492" y="34" text-anchor="middle" font-size="13" fill="var(--c3)" font-weight="700">THE GAP</text>
+      <text x="492" y="110" text-anchor="middle" font-size="13" fill="var(--ink)">a read web page</text>
+      <text x="492" y="130" text-anchor="middle" font-size="13" fill="var(--ink)">can still call out</text>
+      <rect x="622" y="44" width="240" height="146" rx="10" fill="#fff" stroke="var(--c4)" stroke-width="2"/>
+      <text x="742" y="34" text-anchor="middle" font-size="13" fill="var(--c4)" font-weight="700">SEC-9</text>
+      <rect x="644" y="76" width="196" height="34" rx="6" fill="var(--c4)"/>
+      <text x="742" y="98" text-anchor="middle" font-size="12" fill="#fff">proxy: allowlist only</text>
+      <text x="742" y="134" text-anchor="middle" font-size="12" fill="var(--muted)">same reach list as the</text>
+      <text x="742" y="151" text-anchor="middle" font-size="12" fill="var(--muted)">permission policy</text>
+      <path d="M580 121 h34" stroke="var(--c4)" stroke-width="3" fill="none"/>
+      <path d="M614 121 l-11 -6 v12 z" fill="var(--c4)"/>
+    </svg>
+    <p class="cap">The box already closes three walls. SEC-9 closes the fourth, and reuses a list
+    that exists.</p>
+
+    <div class="scroll"><table>
+      <tr><th>Question</th><th>Answer</th></tr>
+      <tr><td>What it buys</td><td>An injected instruction can no longer send anything out.</td></tr>
+      <tr><td>Cost</td><td>About 2 weeks.</td></tr>
+      <tr><td>Blocked by</td><td>The sandbox backend. No box, nothing to attach the proxy to.</td></tr>
+      <tr><td>Worth it on a box with no backend</td><td>No, until containment is set to required.</td></tr>
+    </table></div>
+
+    <div class="row"><span class="id">SEC-9</span>
+      <span>Pin egress to the reach allowlist</span></div>
+    <span class="opt">Keep</span><span class="opt">Cut</span><span class="opt">Later</span>
+    <p class="note">On a real page these are live controls and each click saves as it happens.
+    Here they are a still image of one.</p>
+  </div>
+
+  <h2>What actually happened</h2>
+  <div class="h2b">The detail did not shrink, it changed carrier</div>
+
+  <div class="scroll"><table>
+    <tr><th>The fact, in the before</th><th>Where it went</th></tr>
+    <tr><td>"egress", "reach", "namespace" used with no definition</td><td>One definition box, at first use. The two terms that never come back were dropped.</td></tr>
+    <tr><td>Keys emptied, dotenv absent, trees read only, network open</td><td>Four labelled boxes in the diagram. Three green, one amber, readable in one glance.</td></tr>
+    <tr><td>"An injected instruction could exfiltrate what the turn holds"</td><td>The amber panel, in six words.</td></tr>
+    <tr><td>Two weeks, depends on the backend, buys nothing while optional</td><td>Four table rows, each a question he was going to ask anyway.</td></tr>
+    <tr><td>"Estimated at roughly"</td><td>Kept as "about 2 weeks". An estimate is never dressed as a measurement.</td></tr>
+  </table></div>
+
+  <h2>The rule</h2>
+  <div class="h2b">Few words is not less detail</div>
+
+  <div class="pane">
+    <p>The failure this example exists to prevent is the opposite of verbosity: a session reads
+    "fewest words", summarizes, and hands over a page that is poorer than the prose it replaced.
+    Nothing above was summarized. Every number, every dependency and every caveat from the left
+    survived into the right. What changed is what carries them: a diagram, a table, a definition
+    box, four cards.</p>
+    <p class="note">A page that is dense in information and poor in sentences is the target. If a
+    paragraph says what the diagram already shows, the paragraph goes, not the diagram.</p>
+  </div>
+
+</div>
+</body>
+</html>

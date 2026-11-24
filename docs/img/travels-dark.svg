@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" width="960" role="img" aria-label="The brain is a folder of markdown in its own git repository. It works from every folder, moves to every machine, and is not tied to one tool.">
+<title>The brain is a folder of markdown in its own git repository. It works from every folder, moves to every machine, and is not tied to one tool.</title>
+<style>
+svg{--canvas-soft:#0D0B24;--surface-card:#161134;--ink:#EDEAFF;--body:#C2BBEE;--muted:#A9A2DC;--accent:#9C8BF0;--hairline:rgba(180,165,255,.16);--hairline-strong:rgba(180,165,255,.32);--success:#4ADE80;--warn:#FBBF24}
+text{font-family:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:15px;fill:var(--body)}
+.brand{font-family:'Rubik','IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;font-size:30px;font-weight:600;fill:var(--ink);letter-spacing:-.035em}
+.hero{font-size:40px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.h{font-size:16px;font-weight:600;fill:var(--ink);letter-spacing:-.01em}
+.lead{font-size:17px;fill:var(--body)}
+.q{font-family:'IBM Plex Serif',Georgia,serif;font-size:17px;fill:var(--ink)}
+.b{font-size:14.5px;fill:var(--body)}
+.i{font-size:14.5px;fill:var(--ink)}
+.l{font-size:11.5px;font-weight:600;letter-spacing:.06em;fill:var(--muted)}
+.m{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--muted)}
+.mi{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink)}
+.mb{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--ink);font-weight:600}
+.ma{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12.5px;fill:var(--accent)}
+.card{fill:var(--surface-card);stroke:var(--hairline);stroke-width:1}
+.soft{fill:var(--canvas-soft)}
+.bar{fill:var(--accent)}
+.rule{stroke:var(--hairline);stroke-width:1}
+.ok{fill:var(--success)}
+.wait{fill:var(--warn)}
+</style>
+<rect x="1" y="1" width="446" height="278" rx="8" class="card"/>
+<text x="21" y="31" class="l">YOUR BRAIN</text>
+<line x1="21" y1="44" x2="427" y2="44" class="rule"/>
+<text x="21" y="72" class="mb">brain/</text>
+<text x="21" y="100" class="mi" xml:space="preserve">  projects/</text>
+<text x="150" y="100" class="b">active work, one card each</text>
+<text x="21" y="126" class="mi" xml:space="preserve">  areas/</text>
+<text x="150" y="126" class="b">standing responsibilities</text>
+<text x="21" y="152" class="mi" xml:space="preserve">  resources/</text>
+<text x="150" y="152" class="b">reference, found by search</text>
+<text x="21" y="178" class="mi" xml:space="preserve">  archive/</text>
+<text x="150" y="178" class="b">done, kept for the record</text>
+<text x="21" y="204" class="mi" xml:space="preserve">  AGENTS.md</text>
+<text x="150" y="204" class="b">the rules an agent works by</text>
+<text x="21" y="230" class="mi" xml:space="preserve">  .cogby/self/</text>
+<text x="150" y="230" class="b">who you are, how to work for you</text>
+<text x="21" y="260" class="m">markdown files, in their own git repository</text>
+<text x="500" y="40" class="h">Every folder</text>
+<text x="500" y="64" class="b">Installed once. A session in any folder knows where</text>
+<text x="500" y="85" class="b">the brain is, and what that folder is to it.</text>
+<line x1="500" y1="104" x2="959" y2="104" class="rule"/>
+<text x="500" y="134" class="h">Every machine</text>
+<text x="500" y="158" class="b">The brain is its own git repository. Push it, pull it,</text>
+<text x="500" y="179" class="b">and it is the same brain on the next computer.</text>
+<line x1="500" y1="198" x2="959" y2="198" class="rule"/>
+<text x="500" y="228" class="h">Not tied to one tool</text>
+<text x="500" y="252" class="b">Plain markdown and one command line. The plugin is</text>
+<text x="500" y="273" class="b">for Claude Code today; the files stay readable anywhere.</text>
+</svg>

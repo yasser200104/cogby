@@ -1,0 +1,15 @@
+{
+  "name": "cogby",
+  "owner": {
+    "name": "Yasser Mouhajir"
+  },
+  "metadata": {
+    "description": "The cogby plugin: a personal brain for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "cogby",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict';
+
+// `cogby`: the brain's commands as one bare command. Claude Code puts a plugin's bin/ on the PATH
+// of its shell while the plugin is enabled, so `cogby search "…"` works there from any folder.
+// It only hands the arguments to core/brain/cli.cjs.
+//
+// A plugin with a top-level bin/ cannot be installed on claude.ai or Cowork. This folder is for
+// Claude Code; remove it before shipping the plugin anywhere else.
+
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+const argv = process.argv.slice(2);
+if (argv[0] === 'help') argv[0] = '--help';
+
+require(path.join(root, 'core', 'brain', 'cli.cjs'))
+  .main(argv, { version: require(path.join(root, 'package.json')).version })
+  .then((code) => { process.exitCode = code; });
