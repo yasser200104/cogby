@@ -3,11 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 const { forRoot: R, samePath, isLaunchableBrain, engineCmd, promptRelOr } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'paths.cjs'));
-const { spawn, spawnSync } = require('../../core/lib/spawn.cjs');
+const { spawn, spawnSync, isAlive } = require('../../core/lib/spawn.cjs');
 const { projectDirs, transcriptIn } = require('../../core/lib/transcript-store.cjs');
 const wrapupScope = require('../../core/lib/wrapup-scope.cjs');
 const { flagsFrom } = require('../../core/lib/headless.cjs');
-const { rootsFrom } = require('../../core/lib/locate.cjs');
+const { rootsFrom, crossesPrivate } = require('../../core/lib/locate.cjs');
 
 const WRAPUP_DEBOUNCE_MS = 3 * 60 * 1000; // don't spawn two wrap-ups within 3 minutes
 
@@ -230,6 +230,28 @@ function repositoryState(root) {
   return { repo: true, remote: !!remotes && remotes.status === 0 && String(remotes.stdout || '').trim() !== '' };
 }
 
+// Run by plugin-hook.cjs as a detached helper (`--helper`), never inside the SessionEnd hook itself:
+// Claude Code gives that hook 1.5 seconds and then stops it wherever it is, and on Windows the git
+// it started is stopped with it. A git stopped while it holds .git/index.lock leaves the lock
+// behind, and every later save in the brain was then refused (five times on 24 and 25 Nov 2026,
+// each within seconds of the app closing a chat). The helper belongs to nobody, so nothing stops it
+// half-way; it is handed the same payload on stdin and does everything below in the same order: the
+// day-log commit, the scope, the wrap-up child. Run without `--helper` (by hand, or by the tests
+// with COGBY_SESSION_END_INLINE=1) this file still does the work in its own process.
+const HELPER = process.argv.includes('--helper');
+const HOOK_GONE_WAIT_MS = 2000;
+
+// The helper runs its git only once the hook that started it is gone: whatever stops that hook
+// together with everything below it then finds nothing of the helper left to stop.
+function awaitHookGone() {
+  const hook = process.ppid;
+  const pause = new Int32Array(new SharedArrayBuffer(4));
+  for (const until = Date.now() + HOOK_GONE_WAIT_MS; Date.now() < until;) {
+    if (!isAlive(hook)) return;
+    Atomics.wait(pause, 0, 0, 20);
+  }
+}
+
 let input = '';
 const stdinTimeout = setTimeout(() => process.exit(0), 4000);
 process.stdin.setEncoding('utf8');
@@ -237,6 +259,12 @@ process.stdin.on('data', (c) => (input += c));
 process.stdin.on('end', () => {
   clearTimeout(stdinTimeout);
   try {
+    if (HELPER) {
+      // Nothing came through: the hook was stopped before it could hand the payload over. Half of
+      // one is refused by main() itself. Either way nothing is done, as when the hook never ran.
+      if (!input.trim()) process.exit(0);
+      awaitHookGone();
+    }
     main();
   } catch {
   }
@@ -276,6 +304,9 @@ function main() {
   try { data = JSON.parse(input || '{}'); } catch { return; }
 
   const cwd = data.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  // A private brain is sealed both ways: a session that ends in another brain than the one it was
+  // opened in, with a private brain among them, saves nothing (core/lib/locate.cjs crossesPrivate).
+  if (crossesPrivate(cwd)) return;
   commitDayLog(flags, cwd);
   // Outside a brain there is nothing else to do: the automatic wrap-up is a brain session's.
   if (PLACE_OF) return;

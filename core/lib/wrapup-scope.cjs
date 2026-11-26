@@ -36,8 +36,11 @@ function git(root, args) {
   } catch { return { status: 1 }; }
 }
 
+// A look at the whole tree, at session start (the baseline) and at session end (the scope). Without
+// `--no-optional-locks` git holds its index lock for the length of the scan, and a hook stopped in
+// the middle of it left the lock behind: every later save in the brain was then refused.
 function dirtyPaths(root) {
-  const r = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  const r = git(root, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all']);
   if (!r || r.status !== 0 || r.error) return null;
   return parsePorcelainZ(r.stdout);
 }

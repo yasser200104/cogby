@@ -41,14 +41,14 @@ test('the server and each tool have a name a person can read', (t) => {
   assert.doesNotMatch(JSON.stringify(started.result) + JSON.stringify(listed.result), /"icons"|"websiteUrl"/, 'no icon and no hosted page were asked for');
 });
 
-test('the card tool names the five cards there are, and no other', (t) => {
+test('the card tool names the four cards there are, and no other', (t) => {
   const box = newBrain(t);
   const [listed] = serve(box, [{ method: 'tools/list' }]);
   const card = listed.result.tools.find((tool) => tool.name === 'card');
   const named = /Names: ([^.]+)\./.exec(card.description)[1].split(', ');
   assert.deepEqual(named.slice().sort(), require(path.join(ROOT, 'core', 'brain', 'cards.cjs')).names().slice().sort());
-  assert.equal(named.length, 5);
-  assert.doesNotMatch(card.description, /setup|check-in|meeting-brief|wrap-up-summary/);
+  assert.equal(named.length, 4);
+  assert.doesNotMatch(card.description, /setup|check-in|meeting-brief|wrap-up-summary|picture/);
 });
 
 test('tools write as an agent and refuse a fact with no source', (t) => {

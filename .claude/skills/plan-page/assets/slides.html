@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REPLACE: the subject, then the word decisions</title>
+<!-- TEMPLATE: how to use this file.
+     Copy it, fill every slot that starts with the word REPLACE and a colon, and delete each
+     TEMPLATE comment once you have filled what it describes. The checker faults any of either
+     left in the page.
+     YOU FILL: the title, the slug, the opening slide, one decision slide per row, the lane line on
+     the answers slide, the closing slide, and the LOOK style block (from the design skill).
+     YOU DO NOT CHANGE: the STRUCTURE style block, the script, the name of any data- attribute, the
+     strip in the header, the Previous and Next bar. They are the same on every page, and the
+     script reads everything it needs from the page: the slug, the ids, the options, the
+     recommendations and the costs. Nothing is typed into the script. -->
+<style>
+/* STRUCTURE. Do not change. Layout and behaviour only: no colour, no type. */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+[hidden]{display:none!important}
+.deck-top{position:sticky;top:0;z-index:5}
+.deck-top-in,.slides,.deck-nav-in{width:100%;max-width:880px;margin:0 auto;padding-left:16px;padding-right:16px}
+.deck-title{display:flex;gap:0 16px;align-items:center;flex-wrap:wrap}
+.deck-title h1{flex:1 1 0;min-width:0;margin:0}
+.strip-count{flex:none;min-height:44px;white-space:nowrap;cursor:pointer}
+.strip-items{position:relative;display:flex;gap:4px;align-items:stretch;overflow-x:auto;scrollbar-width:thin;list-style:none;margin:0;padding:4px 0}
+.strip-items li{flex:none;display:flex}
+.strip-group{align-items:center;white-space:nowrap}
+.chip{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:44px;min-width:44px;max-width:136px;text-align:left;cursor:pointer}
+.chip-id,.chip-val{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-val:empty{display:none}
+.slides{flex:1;padding-top:24px;padding-bottom:24px}
+[data-slide]+[data-slide]{margin-top:40px}
+.js [data-slide]{display:none;margin-top:0}
+.js [data-slide].is-on{display:block}
+[data-slide]:focus{outline:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+figure{margin:16px 0}
+figure svg{display:block;width:100%;max-width:100%;height:auto}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ba figcaption{grid-column:1/-1}
+.ba-panel{min-width:0}
+.ba-small{max-width:640px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 24px;margin:12px 0}
+.facts div{display:flex;gap:8px}
+.facts dt,.facts dd{margin:0}
+.options{display:grid;gap:8px;margin:16px 0}
+.opt{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;width:100%;min-height:44px;text-align:left;cursor:pointer}
+.opt-why{grid-column:1/-1}
+.note-label{display:block}
+.note{display:block;width:100%;min-height:64px;margin-top:4px;resize:vertical}
+.answers{list-style:none;margin:16px 0;padding:0}
+.answers li{display:grid;grid-template-columns:minmax(40px,auto) 1fr auto;gap:4px 12px;align-items:baseline}
+.answers .ans-group{display:block}
+.answers .ans-title,.answers .ans-pick,.answers .ans-note{grid-column:2}
+.answers .ans-go{grid-column:3;grid-row:1/span 2;align-self:center;min-height:44px;cursor:pointer}
+.scroll{overflow-x:auto}
+.deck-nav{position:sticky;bottom:0;z-index:5}
+.deck-nav-in{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.deck-nav button{min-height:44px;min-width:104px;cursor:pointer}
+.deck-nav button:disabled{cursor:default}
+@media(max-width:560px){
+  .deck-title [data-status]{order:3;flex-basis:100%}
+  .count-cost{display:none}
+  .ba{grid-template-columns:1fr}
+  .chip{max-width:108px}
+  .answers li{grid-template-columns:minmax(40px,auto) 1fr}
+  .answers .ans-go{grid-column:2;grid-row:auto;justify-self:start}
+}
+@media print{
+  .js [data-slide]{display:block;margin-top:40px}
+  .deck-top{position:static}
+  .deck-nav{display:none}
+}
+</style>
+<style>
+/* PLACEHOLDER LOOK. Replace this whole block with the look the design skill gives you: its tokens
+   on :root (light and dark when it has both), its type, its borders and corners. Keep the class
+   names, change the values. The greys below are not a palette: they only keep the template legible.
+   The checker faults a page that still carries this comment. */
+:root{--canvas:#fff;--canvas-soft:#f5f5f5;--surface-card:#fff;--surface-strong:#ebebeb;--ink:#111;--body:#333;
+  --muted:#666;--primary:#222;--on-primary:#fff;--accent:#444;--hairline:rgba(0,0,0,.14);--hairline-strong:rgba(0,0,0,.32)}
+body{background:var(--canvas);color:var(--body);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,textarea{font:inherit;color:inherit}
+.deck-top{background:var(--canvas);border-bottom:1px solid var(--hairline)}
+.deck-top-in{padding-top:8px}
+.deck-title h1{font-size:16px;font-weight:600;color:var(--ink)}
+.status{font-size:12.5px;color:var(--muted)}
+.strip-count{background:none;border:0;padding:0;font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:underline}
+.strip-group{padding:0 4px 0 8px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.chip{background:none;border:0;border-bottom:2px solid transparent;padding:4px 8px;font-size:12.5px;color:var(--muted)}
+.chip-id{font-weight:600}
+.chip.is-answered{color:var(--ink)}
+.chip.is-answered .chip-val{color:var(--primary)}
+.chip.is-current{border-bottom-color:var(--accent);color:var(--ink)}
+.eyebrow{margin:0 0 4px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.id{font:12.5px ui-monospace,Consolas,monospace;text-transform:none;letter-spacing:0;color:var(--primary)}
+h2{margin:0 0 8px;font-size:26px;line-height:1.2;font-weight:600;color:var(--ink)}
+h3{margin:24px 0 4px;font-size:16px;font-weight:600;color:var(--ink)}
+.lead,.plain{margin:0 0 16px;font-size:17px;max-width:64ch}
+.kpi{border:1px solid var(--hairline);border-radius:8px;padding:12px 16px;background:var(--surface-card)}
+.kpi p,.ba-panel p{margin:0}
+.kpi-l{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kpi-n{font-size:26px;font-weight:600;color:var(--ink)}
+.kpi-d{font-size:12.5px;color:var(--muted)}
+.ba-panel{border:1px solid var(--hairline);border-radius:8px;padding:12px;background:var(--surface-card)}
+.ba-panel .ba-label{margin-bottom:8px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.ba-cap,figcaption{font-size:12.5px;color:var(--muted)}
+.def{border-left:3px solid var(--accent);background:var(--canvas-soft);padding:8px 12px;margin:12px 0;max-width:72ch}
+.def b{color:var(--ink)}
+.facts dt{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.facts dd{color:var(--ink)}
+.opt{border:1px solid var(--hairline-strong);border-radius:6px;padding:12px 16px;background:var(--surface-card)}
+.opt-label{font-weight:600;color:var(--ink)}
+.opt-why{font-size:12.5px;color:var(--muted)}
+.rec{font-size:12.5px;border:1px solid var(--hairline);border-radius:6px;padding:0 8px;color:var(--primary)}
+.opt.is-chosen{border-color:var(--primary);background:var(--surface-strong);box-shadow:inset 3px 0 0 var(--primary)}
+.note-label{font-size:12.5px;color:var(--muted)}
+.note{border:1px solid var(--hairline-strong);border-radius:4px;padding:8px;background:var(--surface-card)}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tally{font-size:17px;color:var(--ink)}
+.answers li{padding:12px 0;border-bottom:1px solid var(--hairline)}
+.answers .ans-group{border-bottom:0;padding:16px 0 0;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.ans-title{color:var(--ink);font-weight:600}
+.ans-pick{color:var(--primary)}
+.ans-open .ans-pick{color:var(--muted)}
+.ans-note{font-size:12.5px;color:var(--muted)}
+.ans-go,.deck-nav button{background:none;border:1px solid var(--hairline-strong);border-radius:6px;padding:8px 16px;font-weight:600;color:var(--ink)}
+.primary{background:var(--primary);color:var(--on-primary);border:0;border-radius:6px;padding:8px 16px;min-height:44px;font-weight:600;cursor:pointer}
+.lane{color:var(--muted)}
+.deck-nav{background:var(--canvas);border-top:1px solid var(--hairline)}
+.deck-nav-in{padding-top:8px;padding-bottom:8px}
+.deck-nav button:disabled{color:var(--muted);border-color:var(--hairline)}
+.pos{font-size:12.5px;color:var(--muted)}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--hairline)}
+</style>
+</head>
+<body>
+
+<!-- STRUCTURE. The header stays in view on every slide: the title, where answers are saved, the
+     count, and the strip. The script fills the count and the strip from the slides: one item per
+     slide, each decision with its id and what was chosen. Fill the h1 only. -->
+<header class="deck-top">
+  <div class="deck-top-in">
+    <div class="deck-title">
+      <h1>REPLACE: the subject in a few words</h1>
+      <span class="status" data-status role="status" aria-live="polite"></span>
+      <button type="button" class="strip-count" data-count title="See all your answers"></button>
+    </div>
+    <noscript><p>This page needs scripts on: without them it cannot save an answer.</p></noscript>
+    <nav class="strip" data-strip aria-label="Your answers so far">
+      <ol class="strip-items" data-strip-items></ol>
+    </nav>
+  </div>
+</header>
+
+<main class="slides" data-slides data-slug="REPLACE: the-page-slug">
+
+  <!-- TEMPLATE: the opening slide. The situation, explained before any decision is asked.
+       A title that asserts the conclusion, two or three plain sentences, the 3 to 5 cards, and ONE
+       visual of the thing itself: the real screen as it is and as it would be, a before and after,
+       the real steps a person goes through, or real numbers as a chart. Never a map of this page's
+       own rows, never a diagram of where things were filed, never a decorative diagram or a logo.
+       Draw it in the two panels below, in inline SVG or simple HTML. When the thing has no before
+       and after (a chart, a set of steps), replace the two panels with one figure holding one SVG.
+       When the situation needs it, add a second section with data-slide="intro" after this one. -->
+  <section class="slide" data-slide="intro" data-short="Situation" tabindex="-1">
+    <p class="eyebrow">The situation</p>
+    <h2>REPLACE: a title that states the conclusion, not the topic</h2>
+    <p class="lead">REPLACE: what happens today, what is wrong with it, and what the next slides ask you to decide. Two or three plain sentences.</p>
+    <div class="cards">
+      <div class="kpi"><p class="kpi-l">REPLACE: label</p><p class="kpi-n">REPLACE: value</p><p class="kpi-d">REPLACE: two lines saying what to conclude.</p></div>
+      <div class="kpi"><p class="kpi-l">REPLACE: label</p><p class="kpi-n">REPLACE: value</p><p class="kpi-d">REPLACE: two lines saying what to conclude.</p></div>
+      <div class="kpi"><p class="kpi-l">REPLACE: label</p><p class="kpi-n">REPLACE: value</p><p class="kpi-d">REPLACE: two lines saying what to conclude.</p></div>
+    </div>
+    <figure class="ba" data-ba>
+      <div class="ba-panel" data-ba-panel="before">
+        <p class="ba-label">Today</p>
+        <svg viewBox="0 0 320 220" role="img" aria-label="REPLACE: what a person sees today, in words">
+          <text x="16" y="32">REPLACE: draw the real thing as it is today</text>
+        </svg>
+        <p class="ba-cap">REPLACE: one line: what is wrong in this picture.</p>
+      </div>
+      <div class="ba-panel" data-ba-panel="after">
+        <p class="ba-label">After</p>
+        <svg viewBox="0 0 320 220" role="img" aria-label="REPLACE: what a person would see after, in words">
+          <text x="16" y="32">REPLACE: draw the same thing as it would be</text>
+        </svg>
+        <p class="ba-cap">REPLACE: one line: what changed.</p>
+      </div>
+      <figcaption>REPLACE: one line: what to notice between the two.</figcaption>
+    </figure>
+  </section>
+
+  <!-- TEMPLATE: one decision slide. Copy this whole section once per row, in the source's order.
+       One decision per slide, never two.
+       data-id: the source's real id, and the same id in the visible span.
+       data-group: the source's own group name; rows of one group sit next to each other. Delete the
+       attribute and the group span when the source has no groups.
+       The def box: one per technical term this slide uses for the first time. Delete it when the
+       slide uses none.
+       The facts: status and cost as the source has them. Delete a line the source does not have.
+       The small figure: keep it ONLY when the choice changes something a person sees, and draw that
+       thing before and after. Delete the whole figure when the choice changes nothing visible.
+       The options: two or more buttons. data-value is the short word that goes into the answer
+       block (keep, cut, later). Every aria-pressed stays "false": nothing starts chosen.
+       A recommendation: put data-recommended on that one button and keep its Recommended tag.
+       Delete both from every other button, and from all of them when you recommend nothing here.
+       That mark is the only place a recommendation is written: the script passes it on.
+       data-cost: a bare number, what choosing this option spends, in the unit named on the answers
+       slide. Delete the attribute when the source has no costs. -->
+  <section class="slide" data-slide="decision" data-id="REPLACE: T3" data-group="REPLACE: the group" tabindex="-1">
+    <p class="eyebrow"><span class="id">REPLACE: T3</span> <span class="group">REPLACE: the group</span></p>
+    <h2>REPLACE: the title as the source states it</h2>
+    <p class="plain">REPLACE: one sentence saying what changes for the owner, in plain words.</p>
+    <div class="def"><b>REPLACE: Term</b> (REPLACE: the everyday translation): REPLACE: one line of what it means.</div>
+    <dl class="facts">
+      <div><dt>Status</dt><dd>REPLACE: where it stands</dd></div>
+      <div><dt>Cost</dt><dd>REPLACE: what it costs</dd></div>
+    </dl>
+    <figure class="ba ba-small" data-ba>
+      <div class="ba-panel" data-ba-panel="before">
+        <p class="ba-label">Today</p>
+        <svg viewBox="0 0 240 150" role="img" aria-label="REPLACE: what a person sees today, in words">
+          <text x="12" y="28">REPLACE: draw it as it is</text>
+        </svg>
+      </div>
+      <div class="ba-panel" data-ba-panel="after">
+        <p class="ba-label">If you say yes</p>
+        <svg viewBox="0 0 240 150" role="img" aria-label="REPLACE: what a person would see, in words">
+          <text x="12" y="28">REPLACE: draw it as it would be</text>
+        </svg>
+      </div>
+    </figure>
+    <div class="options" data-options role="group" aria-label="Your choice">
+      <button type="button" class="opt" data-value="REPLACE: keep" data-cost="REPLACE: a number" data-recommended aria-pressed="false">
+        <span class="opt-label">REPLACE: Keep</span><span class="rec">Recommended</span>
+        <span class="opt-why">REPLACE: one line: what this choice sets in motion, and why it is recommended.</span>
+      </button>
+      <button type="button" class="opt" data-value="REPLACE: cut" data-cost="REPLACE: a number" aria-pressed="false">
+        <span class="opt-label">REPLACE: Cut</span>
+        <span class="opt-why">REPLACE: one line: what this choice sets in motion.</span>
+      </button>
+    </div>
+    <label class="note-label">A note on this one, if you have one
+      <textarea class="note" data-note rows="2"></textarea>
+    </label>
+  </section>
+
+  <!-- TEMPLATE: the answers slide. The script fills the summary, the tally and the list. You fill
+       two things. The unit: what the option costs count (days of work, dollars a month); delete
+       the data-unit attribute when the source has no costs, and the tally stays hidden. The lane
+       line: keep the sentence that fits the lane you built and delete the other. -->
+  <section class="slide" data-slide="answers" data-short="Your answers" tabindex="-1">
+    <p class="eyebrow">Before you send</p>
+    <h2>Your answers</h2>
+    <p class="lead" data-summary></p>
+    <p class="tally" data-tally data-unit="REPLACE: days of work" hidden></p>
+    <ol class="answers" data-answers></ol>
+    <p class="lane">REPLACE: file lane: Press Copy answers, then paste the block into the chat. REPLACE: artifact lane: Your answers reach the session by themselves. Copy answers is the spare way.</p>
+    <p><button type="button" class="primary" data-copy>Copy answers</button> <span class="status" data-copied role="status" aria-live="polite"></span></p>
+  </section>
+
+  <!-- TEMPLATE: the closing slide, always last. Three parts, in this order. -->
+  <section class="slide" data-slide="reached" data-short="How this was reached" tabindex="-1">
+    <p class="eyebrow">So you can argue with it</p>
+    <h2>How this was reached</h2>
+    <h3>What was ruled out, and why</h3>
+    <p>REPLACE: the paths opened and closed.</p>
+    <h3>What nearly went the other way</h3>
+    <p>REPLACE: where a recommendation hung by little, and what tipped it.</p>
+    <h3>What I am not sure of</h3>
+    <p>REPLACE: named: sample limits, figures inferred and not measured, what was not verified.</p>
+  </section>
+
+</main>
+
+<!-- STRUCTURE. The Previous and Next bar. Do not change. -->
+<footer class="deck-nav">
+  <div class="deck-nav-in">
+    <button type="button" data-prev>Previous</button>
+    <span class="pos" data-pos aria-live="polite"></span>
+    <button type="button" data-next>Next</button>
+  </div>
+</footer>
+
+<script>
+/* decision-kit.js, as written. Do not change. */
+function DecisionKit(opts) {
+  const slug = opts.slug || "decisions";
+  const onChange = opts.onChange || function () {};
+  const onStatus = opts.onStatus || function () {};
+  const LS_KEY = "decision-kit:" + slug;
+  const DOC = "review/decisions";
+
+  // What the page recommended, by row id: { T3: "keep" }. Fixed by the page, never by a click. It
+  // travels back with the answers, so the session that reads them can tell a recommendation taken
+  // from one chosen against. A row with no entry had no recommendation.
+  const recommended = Object.assign({}, opts.recommended || {});
+  const state = { marks: {}, notes: {} };
+  let db = null;
+
+  function readLocal() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      const o = JSON.parse(raw) || {};
+      Object.assign(state.marks, o.marks || {});
+      Object.assign(state.notes, o.notes || {});
+    } catch (e) {
+    }
+  }
+
+  function writeLocal() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  let chain = Promise.resolve();
+  let dirty = false;
+
+  function persist() {
+    writeLocal();
+    if (!db) {
+      onStatus("local", "Saved in this browser: press Copy answers when done");
+      return;
+    }
+    dirty = true;
+    onStatus("pending", "Saving…");
+    chain = chain
+      .then(async () => {
+        if (!dirty) return;
+        dirty = false;
+        await db.doc(DOC).set({
+          marks: state.marks,
+          notes: state.notes,
+          recommended: recommended,
+          slug: slug,
+          updated: new Date().toISOString(),
+        });
+        if (!dirty) onStatus("ok", "Saved");
+      })
+      .catch(() => {
+        dirty = false;
+        onStatus("local", "Saved in this browser: press Copy answers when done");
+      });
+  }
+
+  function mark(id, value) {
+    if (state.marks[id] === value) delete state.marks[id];
+    else state.marks[id] = value;
+    persist();
+    onChange();
+  }
+
+  function note(id, text) {
+    const v = (text || "").trim();
+    if (state.notes[id] === v) return;
+    if (v) state.notes[id] = v;
+    else delete state.notes[id];
+    persist();
+    onChange();
+  }
+
+  function block(allIds) {
+    const ids = allIds || Object.keys(state.marks);
+    const date = new Date().toISOString().slice(0, 10);
+    const lines = ["=== COGBY ANSWERS · " + slug + " · " + date + " ==="];
+    const unanswered = [];
+    ids.forEach((id) => {
+      const m = state.marks[id];
+      const n = state.notes[id];
+      if (!m && !n) {
+        unanswered.push(id);
+        return;
+      }
+      if (m && n) lines.push(id + ": " + m + " · " + n);
+      else if (m) lines.push(id + ": " + m);
+      else lines.push(id + ": ? · " + n);
+    });
+    // Always written, "none" included: a block with no such line came from a page built before
+    // recommendations were carried, and says nothing either way.
+    const rec = Object.keys(recommended).map((id) => id + "=" + recommended[id]);
+    lines.push("recommended: " + (rec.length ? rec.join(", ") : "none"));
+    if (unanswered.length) lines.push("unanswered: " + unanswered.join(", "));
+    lines.push("=== END ===");
+    return lines.join("\n");
+  }
+
+  async function copy(allIds) {
+    const text = block(allIds);
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText =
+        "position:fixed;inset:10% 10% auto;width:80%;height:50vh;z-index:9999;padding:12px;font:13px/1.5 ui-monospace,monospace";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (e2) {}
+      if (ok) ta.remove();
+      else ta.addEventListener("blur", () => ta.remove(), { once: true });
+      return ok;
+    }
+  }
+
+  readLocal();
+  onStatus("local", "Saved in this browser");
+
+  const ready = (typeof window !== "undefined" && window.claude && window.claude.use
+    ? window.claude.use("db")
+    : Promise.resolve(null)
+  )
+    .then(async (store) => {
+      if (!store) {
+        onStatus("local", "Saved in this browser: press Copy answers when done");
+        return "local";
+      }
+      db = store;
+      try {
+        const snap = await db.doc(DOC).get();
+        if (snap.exists) {
+          const d = snap.data() || {};
+          state.marks = Object.assign({}, state.marks, d.marks || {});
+          state.notes = Object.assign({}, state.notes, d.notes || {});
+          writeLocal();
+          onChange();
+        }
+        onStatus("ok", "Saved");
+        if (Object.keys(state.marks).length || Object.keys(state.notes).length) persist();
+      } catch (e) {
+        onStatus("local", "Saved in this browser: press Copy answers when done");
+        return "local";
+      }
+      return "store";
+    })
+    .catch(() => {
+      onStatus("local", "Saved in this browser: press Copy answers when done");
+      return "local";
+    });
+
+  return {
+    ready,
+    mark,
+    note,
+    block,
+    copy,
+    answers: () => ({
+      marks: Object.assign({}, state.marks),
+      notes: Object.assign({}, state.notes),
+      recommended: Object.assign({}, recommended),
+    }),
+    markOf: (id) => state.marks[id],
+    recommendedOf: (id) => recommended[id],
+    noteOf: (id) => state.notes[id] || "",
+  };
+}
+/* end of decision-kit.js */
+
+/* SLIDES. Do not change. One slide in view; arrow keys, the two buttons and a swipe each move one
+   slide; the strip and the answers slide are redrawn from the kit on every change. */
+(function () {
+  const $ = (sel, el) => (el || document).querySelector(sel);
+  const $$ = (sel, el) => Array.from((el || document).querySelectorAll(sel));
+
+  const root = $("[data-slides]");
+  const slides = $$("[data-slide]", root);
+  const kindOf = (s) => s.getAttribute("data-slide");
+  const idOf = (s) => s.getAttribute("data-id");
+  const decisions = slides.filter((s) => kindOf(s) === "decision");
+  const ids = decisions.map(idOf);
+  const optionsOf = (s) => $$("[data-options] [data-value]", s);
+  const labelOf = (opt) => {
+    const label = $(".opt-label", opt);
+    return (label ? label.textContent : opt.textContent).trim();
+  };
+  const titleOf = (s) => {
+    const h = $("h2", s);
+    return h ? h.textContent.trim() : "";
+  };
+  const costOf = (opt) => parseFloat(opt.getAttribute("data-cost")) || 0;
+  const round = (n) => String(Math.round(n * 10) / 10);
+
+  // A recommendation is written once, on the option, and passed on from there.
+  const recommended = {};
+  decisions.forEach((s) => {
+    const rec = $("[data-options] [data-recommended]", s);
+    if (rec) recommended[idOf(s)] = rec.getAttribute("data-value");
+  });
+
+  const statusEl = $("[data-status]");
+  const kit = DecisionKit({
+    slug: root.getAttribute("data-slug"),
+    recommended: recommended,
+    onStatus: function (kind, text) {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.setAttribute("data-kind", kind);
+    },
+    onChange: function () {
+      render();
+    },
+  });
+
+  // The strip: one item per slide, built from the slides so it cannot miss one.
+  const stripEl = $("[data-strip-items]");
+  const countEl = $("[data-count]");
+  const SHORT = { intro: "Situation", answers: "Your answers", reached: "How this was reached" };
+  let lastGroup = null;
+  const chips = slides.map((s, i) => {
+    const isDecision = kindOf(s) === "decision";
+    const group = s.getAttribute("data-group");
+    if (isDecision && group && group !== lastGroup) {
+      const g = document.createElement("li");
+      g.className = "strip-group";
+      g.textContent = group;
+      stripEl.appendChild(g);
+    }
+    if (isDecision) lastGroup = group;
+    const li = document.createElement("li");
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.setAttribute("data-kind", kindOf(s));
+    const top = document.createElement("span");
+    top.className = "chip-id";
+    top.textContent = isDecision ? idOf(s) : s.getAttribute("data-short") || SHORT[kindOf(s)] || "Slide " + (i + 1);
+    const val = document.createElement("span");
+    val.className = "chip-val";
+    chip.appendChild(top);
+    chip.appendChild(val);
+    chip.addEventListener("click", function () {
+      show(i);
+    });
+    li.appendChild(chip);
+    stripEl.appendChild(li);
+    return chip;
+  });
+
+  function span(cls, text) {
+    const el = document.createElement("span");
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  }
+
+  // Everything that shows an answer is redrawn here: the options, the strip, the count, the tally
+  // and the answers slide. Called on every change, and once at load with what was saved.
+  function render() {
+    const open = [];
+    let answered = 0;
+    let spent = 0;
+    let stillOpen = 0;
+    let costed = false;
+    const list = $("[data-answers]");
+    if (list) list.textContent = "";
+    let group = null;
+
+    decisions.forEach((s) => {
+      const id = idOf(s);
+      const mark = kit.markOf(id);
+      const note = kit.noteOf(id);
+      const opts = optionsOf(s);
+      let chosen = null;
+      opts.forEach((opt) => {
+        const on = opt.getAttribute("data-value") === mark;
+        opt.setAttribute("aria-pressed", on ? "true" : "false");
+        opt.classList.toggle("is-chosen", on);
+        if (on) chosen = opt;
+        if (opt.hasAttribute("data-cost")) costed = true;
+      });
+      const picked = chosen ? labelOf(chosen) : mark || "";
+      if (mark) answered++;
+      else open.push(id);
+      if (chosen) spent += costOf(chosen);
+      else if (!mark) stillOpen += Math.max.apply(null, [0].concat(opts.map(costOf)));
+
+      const box = $("[data-note]", s);
+      if (box && document.activeElement !== box && box.value.trim() !== note) box.value = note;
+
+      const chip = chips[slides.indexOf(s)];
+      chip.classList.toggle("is-answered", !!mark);
+      $(".chip-val", chip).textContent = picked || (note ? "note only" : "open");
+
+      if (!list) return;
+      const g = s.getAttribute("data-group");
+      if (g && g !== group) {
+        const head = document.createElement("li");
+        head.className = "ans-group";
+        head.textContent = g;
+        list.appendChild(head);
+      }
+      group = g;
+      const li = document.createElement("li");
+      if (!mark) li.className = "ans-open";
+      li.appendChild(span("ans-id id", id));
+      li.appendChild(span("ans-title", titleOf(s)));
+      li.appendChild(span("ans-pick", picked || "Not answered yet"));
+      if (note) li.appendChild(span("ans-note", "Your note: " + note));
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "ans-go";
+      go.textContent = mark ? "Change" : "Answer";
+      go.addEventListener("click", function () {
+        show(slides.indexOf(s));
+      });
+      li.appendChild(go);
+      list.appendChild(li);
+    });
+
+    const tallyEl = $("[data-tally]");
+    const unit = tallyEl ? tallyEl.getAttribute("data-unit") : "";
+    const showTally = costed && !!unit;
+    if (tallyEl) {
+      tallyEl.hidden = !showTally;
+      tallyEl.textContent = showTally
+        ? "Your answers so far add up to " + round(spent) + " " + unit + "." +
+          (stillOpen ? " The rows still open could add up to " + round(stillOpen) + " more." : "")
+        : "";
+    }
+    if (countEl) {
+      countEl.textContent = "";
+      countEl.appendChild(span("count-n", answered + " of " + ids.length + " answered"));
+      if (showTally) countEl.appendChild(span("count-cost", " · " + round(spent) + " " + unit));
+    }
+    const summary = $("[data-summary]");
+    if (summary) {
+      summary.textContent = open.length
+        ? answered + " of " + ids.length + " answered. Still open: " + open.join(", ") + "."
+        : "All " + ids.length + " answered.";
+    }
+  }
+
+  // Answers are saved on the interaction itself: a click on an option, a keystroke in a note.
+  decisions.forEach((s) => {
+    const id = idOf(s);
+    optionsOf(s).forEach((opt) => {
+      opt.addEventListener("click", function () {
+        kit.mark(id, opt.getAttribute("data-value"));
+      });
+    });
+    const box = $("[data-note]", s);
+    if (box) {
+      box.addEventListener("input", function () {
+        kit.note(id, box.value);
+      });
+    }
+  });
+
+  const prev = $("[data-prev]");
+  const next = $("[data-next]");
+  const pos = $("[data-pos]");
+  let at = -1;
+
+  function show(i, keepFocus) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    if (i === at) return;
+    at = i;
+    slides.forEach((s, n) => s.classList.toggle("is-on", n === i));
+    chips.forEach((chip, n) => {
+      chip.classList.toggle("is-current", n === i);
+      if (n === i) chip.setAttribute("aria-current", "step");
+      else chip.removeAttribute("aria-current");
+    });
+    stripEl.scrollLeft = chips[i].offsetLeft - (stripEl.clientWidth - chips[i].offsetWidth) / 2;
+    if (prev) prev.disabled = i === 0;
+    if (next) next.disabled = i === slides.length - 1;
+    if (pos) pos.textContent = "Slide " + (i + 1) + " of " + slides.length;
+    window.scrollTo(0, 0);
+    if (!keepFocus) slides[i].focus({ preventScroll: true });
+    try {
+      history.replaceState(null, "", "#" + (i + 1));
+    } catch (e) {}
+  }
+
+  function move(step, keepFocus) {
+    show(at + step, keepFocus);
+  }
+
+  if (prev) prev.addEventListener("click", function () { move(-1, true); });
+  if (next) next.addEventListener("click", function () { move(1, true); });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const t = e.target;
+    // In a note box the arrows move the caret, not the slide.
+    if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      move(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      move(-1);
+    }
+  });
+
+  // A swipe: one finger, mostly sideways, at least 60 pixels. Not from a note box or a wide table.
+  let startX = null;
+  let startY = 0;
+  root.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1 || e.target.closest("textarea, input, select, .scroll")) {
+      startX = null;
+      return;
+    }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  root.addEventListener("touchend", function (e) {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    startX = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    move(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  root.addEventListener("touchcancel", function () {
+    startX = null;
+  }, { passive: true });
+
+  if (countEl) {
+    countEl.addEventListener("click", function () {
+      show(slides.findIndex((s) => kindOf(s) === "answers"));
+    });
+  }
+
+  const copyBtn = $("[data-copy]");
+  const copied = $("[data-copied]");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function () {
+      kit.copy(ids).then(function (ok) {
+        if (!copied) return;
+        copied.textContent = ok
+          ? "Copied. Paste it into the chat."
+          : "Select the text in the box, copy it, then paste it into the chat.";
+      });
+    });
+  }
+
+  // Slides are hidden only once all of the above ran: if the script fails, every slide still shows.
+  document.documentElement.classList.add("js");
+  render();
+  show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+})();
+</script>
+</body>
+</html>

@@ -240,10 +240,22 @@ function boundedWriter(cap) {
 }
 
 
+// A private brain is not copied into another one: neither the brain itself nor a folder inside it.
+function refusePrivate(dir) {
+  const brainLib = require('../brain/brain.cjs');
+  for (let at = dir, i = 0; i < 12; i++) {
+    if (brainLib.isBrain(at) && brainLib.isPrivate(at)) die(`${dir} is in the private brain at ${at}: a private brain is not imported into another one`);
+    const up = path.dirname(at);
+    if (up === at) break;
+    at = up;
+  }
+}
+
 function cmdSurvey(a) {
   const dir = val(a.dir);
   if (!dir) die('--dir <path> is required');
   const rootDir = path.resolve(dir);
+  refusePrivate(rootDir);
   let st;
   try { st = fs.statSync(rootDir); } catch { die(`folder not found: ${rootDir}`); }
   if (!st.isDirectory()) die(`not a folder: ${rootDir}`);
@@ -390,6 +402,7 @@ function cmdApply(a) {
   if (!sourceArg) die('the proposal has no `Source: <path>` line — pass --dir <path>');
   const source = path.resolve(sourceArg);
   if (!fs.existsSync(source)) die(`source folder not found: ${source}`);
+  refusePrivate(source);
 
   if (!parsed.rows.length) {
     log('Nothing ticked — nothing copied. Tick the rows you want with [x] and re-run.');

@@ -2,6 +2,267 @@
 
 What changed in each version of the Cogby plugin, newest first.
 
+## 0.4.0 (2026-11-26)
+
+Your own tools, after the owner's run of the onboarding: to-dos and meetings follow the tool you
+already use.
+
+- **To-dos in your own tool.** When your brain says where you keep your to-dos (Notion, Google Tasks,
+  Asana or another tool) and the chat can reach it, Cogby adds, reads and ticks them there, and says
+  where each one went. Its own list is used only when you have no tool, or the tool is not connected
+  in that chat. Never the same to-do in both. "Connect my to-dos" sets it up at any time.
+- **Catch up on your meetings.** "Catch me up on my meetings" goes through every meeting held since
+  the last one in your brain, reads the ones that have a transcript or notes, and shows what was
+  decided, promised and learned for one yes. A record keeps that and a link to the recording, never
+  the transcript. The tool your meetings are recorded in is tried first. "Set up my routines" now
+  offers a daily meeting catch-up; run on a schedule it writes nothing: it leaves one question.
+- **Any chat knows where to look.** What is coming is read from your calendar, what was held from
+  your brain's meeting records.
+- **My view: a project opens on where it stands.** A click on a project now opens on what needs you
+  there, Now and Next when they are written, where you stopped, the chats open on it and its open
+  tasks, with its documents, what was promised and its notes beside them. Its status is a menu on
+  that view: change it there and Cogby writes it on the project's card, keeping the old one in the
+  card's timeline (`cogby project status`).
+- **My view: an inbox you can act on.** The first tab is now Inbox: what Cogby left you, the chats
+  that wait for you and your routines' latest results, in one list. A notification shows what Cogby
+  suggests with one press to take it ("Yes, do that"), or its own answers. Later and Clear take it
+  off the page at once, with a few seconds to undo. A click still shows its full text, the project it
+  belongs to and what happens if nothing is done, and you can answer in your own words. Newest
+  first; the ones older than 14 days are folded under "Older".
+- **My view: Copy prompt.** The page cannot start Claude. One button at the top gathers everything
+  you chose and asked on the page into a single request to paste into a new chat, which handles it
+  end to end. What you press is still saved on the published page and applied the next time Claude
+  refreshes it. This replaces "Do this", the "sent" mark on every row and the one line per
+  notification.
+- **My view: Tasks, Sessions and My Cogby.** Tasks is one list, with your quick notes under it. A
+  task can be handed to Cogby, which proposes a plan and waits for your yes, or to a new chat with
+  Claude. To-dos kept in a tool of your own show among your tasks with where each lives, and open
+  there. Sessions lists your open chats with Claude, by project or by who acts next, when Claude
+  could read them for the page. My Cogby, in the corner, holds your routines (each opens on what its
+  last runs found, with a flag when it is late or not scheduled, Run it now and a line to describe a
+  new one), the skills you can ask for and your sources. The page no longer shows a timeline of the
+  last changes.
+- **A notification asks something.** Whoever leaves one gives a question with its answers, or one
+  thing to go ahead with; what needs nothing from you goes under "Done without you".
+- **Decision pages are slides.** Whatever the number of rows: the situation is explained first, with
+  a picture of the thing itself (the real screen, the before and after), then one decision per slide.
+  Move with the arrow keys, the Previous and Next buttons, or a swipe on a phone.
+- **Your answers build up in view.** A strip at the top shows every decision with what you chose and
+  how many are answered, and a last slide lists every answer and what is still open, with what they
+  add up to, before you copy or send them.
+- **Wrap-up fills in where a project stands.** When a project you worked on has nothing written under
+  Now or Next, the wrap-up proposes a line for each.
+
+Onboarding after the second outside tester, who found the screens far too slow and whose email and
+files were never looked at.
+
+- **Plain chat, one screen.** Hello, Get to know you and You're set are said in the chat, each under
+  one progress line ("Step 1 of 2 · Get to know you"). Only Check it is still a screen: the styling
+  and script the other screens needed are gone, and it is copied once instead of four times.
+- **After the owner's own run.** "Looks right, create it" never fails silently: the screen shows the
+  reply as text every time, and Cogby says under it that you can answer in the chat. Hello is no longer
+  counted as a step: two steps, Get to know you and Check it. The line saying what Cogby finds is saved
+  on your computer sits right under the question that asks to look. While Cogby looks, it says to stay
+  and that it will need you to check what it found.
+- **After the owner's live run of the release copy.** The list of steps the chat shows is six lines
+  written for you ("Introducing Cogby" to "Taking it for a first spin"), given from the first moment
+  and never Cogby's own preparation. While it looks, Cogby says that a helper is reading through your
+  work, that two things happen at once, and that you only need to answer in the chat.
+- **Four questions, asked while Cogby looks.** Your name and what you do; what matters most; what you
+  already use Claude for and what you wish it did every day; and a guess, from what you do, of what
+  you want to understand yourself and what you would rather hand over, for you to correct. The first
+  and the last are always asked; the two in between only while the look is still running. When the
+  look finishes first, Cogby asks the last one and shows what it found. What was not asked waits for
+  later chats, one per chat. A morning check-in is offered when your answer asks for one.
+- **Where your to-dos and your meetings live** is found, not asked: Cogby looks at what is connected,
+  says what it found in one line ("Notion is connected, so your to-dos can stay there") and keeps it
+  as one fact in your brain. Nothing found: it asks in a later chat, and keeps your answer the same
+  way. A tool that is not connected yet stops nothing: "connect my to-dos" or "connect my meetings"
+  picks it up later.
+- **A new hello.** "Hi, I'm Cogby. Think of me as your second brain: I keep your projects, your
+  people and your plans lined up, and nothing gets lost." Then what you get (say it once, and Cogby
+  does better after a correction) and how it works (notes in a folder on your computer, with your
+  OK). The four folders and the line on critical thinking are no longer in the hello. It has its
+  French wording too, said as written when you write in French.
+- **Check it appears sooner.** Cogby writes a short list of what it found, one line per item (its
+  name, where it came from, and whether it is a project, ongoing, done or a person), and the screen
+  draws the rows itself. An item is about 55 characters instead of about 520, so a map of 30 items is
+  about 19,000 characters to write instead of about 30,000. The picker, the pencil, the bin, the Add
+  boxes, the count and the reply the screen sends are unchanged.
+- **Your language.** Onboarding follows the language you write in, and asks only when it is unclear:
+  every step in the chat, and every label on Check it. For Arabic and other right-to-left languages
+  the screen turns around. The language is saved in your profile, so later chats use it.
+- **"What do you want to understand yourself?" is a guess you correct,** the last question of the
+  interview, about subjects ("hiring decisions") and not project names, three at most. Check it no
+  longer carries two lists for it, so the screen is lighter. Only what you say or confirm is saved,
+  on both lists of your information border; "ask me as we go" saves nothing.
+- **One real thing at the end.** Right after your brain is created, Cogby prepares your next meeting
+  when a calendar is connected, or lists what is on your plate this week. When it found too little
+  to go on, it skips this and keeps the three things to try.
+- **Credit.** The last message says, once: "Your brain is organised with PARA, a method by Tiago
+  Forte." PARA is named nowhere else.
+- **Shorter starting files, for new brains only.** The file on who Cogby is keeps who it is and its
+  voice, and no longer repeats the brain's rules. The file on who you are keeps who you are, what
+  you do, what matters most, how to answer, the hard rules and standing work; it no longer asks for
+  age, a 12-month aim, platform, disposition or how you work with AI. Brains that exist are not
+  changed.
+- **The bin stands out** on Check it: its own colour and a border, and an arrow in its place once a
+  row is removed, to bring it back.
+- **Cogby checks what is connected before it looks.** It searches the chat's tools for a calendar,
+  mail and files before deciding one is missing. For what is missing it asks which one you use, shows
+  where to connect it, and takes "skip"; You're set says what you can still connect.
+
+Pictures that explain, and a quiz you can read. After the owner's own test of both on 25 Nov 2026.
+
+- **A picture is drawn, not filled in.** The fixed picture card is gone: it could only set words in
+  boxes under Cogby's mark. Claude now draws the idea itself with the chat's own visual tool, in
+  that tool's own design, so a picture looks like part of the chat. The kind of visual is chosen
+  for the subject, from everything the tool can make, not from a fixed list. The `picture` skill
+  says only what the drawing has to show: the real things by name, what moves or changes between
+  them, and one place to look. Cogby adds nothing to how a picture looks: no mark, no frame, no
+  colour of its own. A picture is signed by one line under it, the way a session wrap ends:
+  "Cogby · from" and the page it came from, or that your brain has nothing on this yet. It is checked before it is shown ("cover the words: does it still say
+  something?"), and followed by how to read it.
+- **The full explanation, as a page.** When one picture is not enough, on your ask or on a yes to a
+  one-line offer: a private page with the whole in one drawing, each part in turn, a worked example
+  from your own work, what people get wrong, the sources, and three questions to check it landed.
+- **The quiz: what you press stays readable.** A pressed answer keeps its text as it was and gains
+  an outline, a light wash and a mark that fills with a check. Before, its text changed colour, and
+  in the chat it could no longer be read. A line at the top shows how far along you are; a revealed
+  answer says in words which was yours and which was right; the last screen lists every question
+  with how it went. "That has changed" is now "This is out of date".
+- **Cards look like the chat.** The chat's own font, thinner lines, and Cogby's mark without the
+  dark square behind it.
+- `cogby card picture` is refused, and the refusal says the skill draws it now.
+- The plugin can be uploaded to Cowork: three skill descriptions held a placeholder in angle
+  brackets, which Cowork's upload refuses. They use square brackets now.
+
+The save lock: saves are no longer refused after a chat closes. On 24 and 25 Nov 2026 the brain's
+save lock was left behind five times, each within seconds of the app closing a chat, and every save
+after it was refused until the lock was removed by hand.
+
+- **Why it happened.** When a chat closes, Cogby saves the day's log into the brain's history.
+  Claude Code gives that closing step 1.5 seconds and then stops it wherever it is; on this
+  computer the step needed 2 to 3. Stopped while git held its lock, the lock stayed.
+- **The save no longer runs in the closing step.** The step now only hands the work to a small
+  helper that belongs to nobody and returns at once (about a quarter of a second). The helper does
+  what the step did, in the same order: it saves the day's log, works out what the session
+  changed, and starts the automatic wrap-up when that is on. Nothing stops it half-way.
+- **Looking no longer locks.** Each time Cogby asks git what changed (when a chat opens, when it
+  closes, before it tidies `.gitignore`), it now asks in git's no-lock mode. Before, each look
+  held the lock for as long as it took to scan the brain.
+- **A safety net, on the owner's yes of 25 Nov.** Before a save, Cogby removes a leftover lock by
+  itself, only when the lock has not been touched for 10 minutes and no git program is running on
+  the computer. A fresh lock, a lock with a git running, or a computer whose running programs
+  cannot be listed: never touched, and the save says git refused, as before. Each removal, and each
+  old lock left alone, leaves a line in `.cogby/self/.gateway/save-lock.log`, which stays on this
+  computer.
+- The plugin also asks Claude Code for more time for the closing step (30 seconds), as an extra:
+  the step no longer needs it.
+- For whoever tests it: `COGBY_SESSION_END_INLINE=1` keeps the work in the closing step itself, so
+  a dry run (`BRAIN_WRAPUP_DRYRUN=1`) prints what it would do; and
+  `node tests/manual/lock-sweep.cjs` stops the closing step at many moments on a throwaway brain
+  and counts the locks left behind.
+
+Which Cogby is this. After the owner ran an onboarding on a computer with three copies of Cogby
+installed, and nothing said which one the chat was running.
+
+- **The version is shown.** The hello ends on a small plain line, "Cogby version 0.4.0", in English
+  and in French, and My view says "Cogby 0.4.0" in one quiet line at its foot. Both are read from the
+  plugin's own `plugin.json`, never written in by hand, and a test version such as "0.4.0-rc1" is
+  shown as it is. Each chat's session start names the version and the folder it runs from, also
+  before any brain exists, and `cogby --version` reads the same file.
+
+The Notion mirror, an extra for people who want to see their brain in Notion. Off until turned on.
+
+- `cogby mirror on --parent <notion page link>` keeps a copy of the brain under one Notion page:
+  every project and area card, every page under people, organizations and threads, the open to-dos
+  and the decisions. Each mirrored page opens by saying it is a copy; the brain stays the one home.
+  Not mirrored: `resources/`, the archive, the day log, meeting records, notes, notifications,
+  routines and `.cogby/self/`. A card with `mirror: false` stays out, and what looks like a secret
+  is blanked before it leaves.
+- `cogby mirror push` updates Notion through Notion's own command-line tool (`ntn`), with no model
+  in the loop: only pages that are new or changed are written, a run that stops halfway is picked up
+  where it stopped, and nothing is ever deleted in Notion. Without `ntn`, a session writes the pages
+  through its own Notion connection (`cogby mirror plan`, `page`, `done`).
+- To-dos come back: a to-do ticked on the mirrored To-dos page is done in the brain, and a line
+  added there is a new to-do (`cogby mirror pull`, run first by every push). Nothing else comes
+  back: any other edit made in Notion is overwritten.
+- A new skill, `notion-mirror`, sets it up after saying what leaves the computer, and updates it on
+  request. You start it by typing `/cogby:notion-mirror`: it is left out of the list of skills Claude
+  reads, so someone who does not use Notion never hears of it. While the mirror is on, each wrap-up
+  updates it too (`cogby mirror push --if-on`, silent on a brain where it is off).
+- Which Notion page is which is remembered on the machine that made the mirror, so a mirror is
+  kept from one machine. Pages only, no Notion databases yet.
+
+A private brain, for a second brain on the same computer (for example a personal one beside a work
+one).
+
+- **`cogby init --brain <folder> --private`** makes a brain private, or marks one you already have.
+  A private brain is used only from a chat or a command started in its own folder.
+- **Never the default.** It cannot be made the default brain, and a default brain that is marked
+  private stops being the default. From any other folder, Cogby never falls back to it.
+- **Closed from outside.** Naming it from another folder is refused, so a chat about work cannot
+  search it or write to it through Cogby.
+- **Closed from inside.** A chat opened in it uses no other brain: it cannot write to your main one.
+  Its turns are logged and saved in it and nowhere else: if the chat's folder moves into another
+  brain, they are not logged at all. A chat opened anywhere else never logs or saves into it.
+- **Not read by another brain.** It cannot be added as a place to search, it is passed over when a
+  folder that holds it is searched, and it cannot be imported into another brain.
+- **What this does not do.** It guards Cogby's own commands, tools and hooks. It does not stop a
+  person or an agent from opening its files directly, and a personal topic raised in a chat opened
+  in another folder is still saved to that folder's brain. Onboarding does not offer it yet.
+
+Cogby is the memory and the coach of your routines; whatever tool you use does the running. Cogby
+runs nothing itself, schedules, changes or puts back nothing without your yes, and tracks no habits.
+
+- **One page per routine, complete enough to move.** What it does (its full instructions, in plain
+  words), why you have it, how often, where it runs (which tool, your computer or the cloud, what
+  has to be open) and what each run found. Any tool can read the page and set the routine up
+  again: say "I moved to another tool, set my routines up here" and Cogby offers each one from its
+  page. What is scheduled right now is still read in the scheduler, never copied.
+- **It asks once if you have none.** "Is there something you'd like to happen without asking?" It
+  also offers, once, to record things already scheduled that it does not know, and asks once for
+  the reason of a routine that has none. One such ask a week at most, the same one never twice,
+  none under `cogby proactive quiet`.
+- **It teaches as it sets up.** One plain line each time: where this will run, what has to be
+  open, and what happens if the computer is off.
+- **It tells you when a routine is not really running, by exception only.** Each scheduled run,
+  check-in and question about routines starts with a quiet check. A scheduled task that is gone or
+  switched off gets one question, "Put it back" or "Leave it". A run that did not happen is said.
+  Cogby does not run a missed routine itself: the tool that schedules it decides (the Claude app
+  runs a missed task when it next opens).
+- **Once a week it reviews them.** In the weekly check-in: which ran, which days were missed,
+  which results you used and which nothing followed, and at most one suggestion (move its time,
+  change what it runs, or pause it).
+- **My view shows each routine with its last result and flags only a problem.** The page itself
+  comes with the My view rework, which already shows every routine, its last results and a late
+  or not-scheduled flag. This work adds what that page needs underneath: for each routine, what is
+  wrong with it and where it runs.
+- **A routine proposed from your own words.** When the same ask keeps coming back, the look-back
+  (or, without it, the weekly check-in) proposes a routine with your words as the evidence: one
+  routine proposal a week at most, built only on your yes.
+- "Prepare my team meeting on Monday morning" is an ordinary routine whose job is to prepare.
+  There is no separate kind of routine for things you do yourself, and Cogby does not ask
+  whether the event happened.
+- **A daily look-back you can turn on.** A built-in routine, off until you ask for it. Each
+  morning it reads what you asked the day before and proposes what keeps coming back: a routine
+  for a need on a rhythm, a skill for a task you explain again and again, a rule for something you
+  corrected, a topic worth understanding, or something you said that was never saved. Three
+  proposals at most, each with your own words as the evidence, and nothing is made, scheduled or
+  written before your yes. It is one of the built-in routines "set up my routines" offers.
+- For other tools: `cogby dream` also returns `days`: what the owner asked the day before, cut
+  from the day's log with no model (`--since YYYY-MM-DD` for every day from that one, seven at
+  most). `look-back` is on the list of what may run unasked: it reads and leaves proposals.
+- For other tools: `cogby routines add|edit … --where "…" --instructions "…"`, and `where`,
+  `instructions` and `gaps` on each routine. `cogby routines offered` now also refuses the same
+  offer twice.
+- For other tools: `cogby routines --json` carries, for each routine, the days missed in the last
+  seven (`week`) and what is wrong with it (`problem`). The `routines` part of `cogby view --json`
+  gains `all`: every active routine with `scheduled`, `scheduled_as`, its last five runs
+  (`history`), `week`, `problem`, `where` and `gaps`. New command `cogby routines offered "<the routine>" --source "<evidence>"`, the
+  gate an agent passes before it offers a routine.
+
 ## 0.3.11 (2026-11-22)
 
 Onboarding, very simple: hello, let me get to know you, here's your brain. After the owner's review

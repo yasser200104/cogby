@@ -119,6 +119,25 @@ test('a dismissed notification is not brought back by a later "later"', (t) => {
   assert.ok(!fs.existsSync(path.join(box.brain, '.cogby', 'write.lock')), 'the lock is given back');
 });
 
+test('a notification carries its answers and the one suggested, or one thing to go ahead with', (t) => {
+  const { box, base, run } = brain(t);
+  const n = commits(box);
+  // No answers to pick from: what Cogby suggests is a sentence, and what happens if nothing is done is kept with it.
+  const todo = run(['notify', 'add', '--title', 'Two fields have no home', '--recommend', 'Keep both as text fields.', '--if-ignored', 'They are dropped at import.']).notification;
+  assert.deepEqual([todo.options, todo.recommend, todo.if_ignored], [[], 'Keep both as text fields.', 'They are dropped at import.']);
+  assert.deepEqual(last(box), ['notify: Two fields have no home', NOTIFICATIONS]);
+  const kept = JSON.parse(fs.readFileSync(path.join(box.brain, ...NOTIFICATIONS.split('/')), 'utf8')).items[0];
+  assert.deepEqual([kept.recommend, 'options' in kept], ['Keep both as text fields.', false], 'the store gains no field');
+  // With answers, the suggestion is still one of them.
+  const refused = json(box, ['notify', 'add', '--title', 'Approve the scope?', '--option', 'yes', '--option', 'no', '--recommend', 'maybe', ...base]);
+  assert.equal(refused.data.error.code, 'BAD_RECOMMEND');
+  assert.equal(commits(box), n + 1);
+  // One that carries neither still reads, and "Do this" is not an answer the store takes: a session carries it out.
+  const plain = run(['notify', 'add', '--title', 'Look at this']).notification;
+  assert.deepEqual([plain.options, plain.recommend, plain.if_ignored], [[], '', '']);
+  assert.equal(json(box, ['notify', 'answer', todo.id, 'Keep both as text fields.', ...base]).data.error.code, 'NO_QUESTION');
+});
+
 test('a to-do added from a linked folder is committed in the brain, with no wrap-up', (t) => {
   const { box, run } = brain(t);
   run(['log', 'projects/demo/card', 'Kickoff held', '--source', 'call', '--create']);

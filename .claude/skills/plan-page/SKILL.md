@@ -19,7 +19,11 @@ A long plan in chat gets one reply that answers three of its twelve questions. T
 page, one control per decision, gets all twelve. This skill builds that page and closes the loop by
 reading the answers back, so the decisions land somewhere durable instead of scrolling away.
 
-**The page is not a document with radio buttons bolted on.** It is a strategy-consulting brief the
+**The page is slides, always.** The situation explained first, then one decision per slide, moved
+left and right, with a strip that stays in view and shows the answers building up. Whatever the
+number of rows: six or sixty.
+
+**It is not a document with radio buttons bolted on.** It is a strategy-consulting brief the
 owner can answer: MECE, the diagram carries the argument, every technical term defined where it
 appears, the fewest words that carry the full detail. That format half of this skill comes from an
 earlier kit of the author's own; what was kept and what was deliberately left behind is at the
@@ -27,7 +31,7 @@ bottom of this file, so a later session does not bring the rest back.
 
 ## Outcome
 
-- **One HTML decision page**, saved to the `output/` of the project it belongs to
+- **One HTML decision page, built as slides**, saved to the `output/` of the project it belongs to
   (`projects/<p>/output/`, created when the page is the first thing in it),
   named `<YYYY-MM-DD>-<subject>-decisions.html`. When no live project owns the subject, ask which
   one does; if none does, write it to the session's scratchpad or temp directory and say so.
@@ -49,7 +53,8 @@ the session is in.
 | `assets/before-after.html` | **read in full, once per session, before the first page** | The only thing that teaches the density. See Step 0 |
 | The source plan, backlog or doc being decided | full | Every row on the page comes from it, with its real ids kept |
 | the `design` skill | invoke | Owns the visual system; this skill owns the mechanics only |
-| `assets/decision-kit.js` | read before building | The persistence and copy-back code, identical every run |
+| `assets/slides.html` | copy, then fill | The slides every page is built from: structure and behaviour, identical every run. See Step 4 |
+| `assets/decision-kit.js` | read before building | The persistence and copy-back code, already pasted into `slides.html` |
 | `assets/check-page.cjs` | run before handoff | Mechanical faults, non-zero exit. See Step 6 |
 | `cogby map` | run | Finding the project that owns this subject |
 
@@ -61,9 +66,9 @@ budget", not "if unsure": in full, first.
 The hard part of this format is the dose. Every rule below can be followed to the letter and still
 produce a page that is three paragraphs per row wearing a diagram as a hat. The dose is not
 derivable from a rule, it is only visible in an example: that file takes one real Cogby backlog row
-written the ordinary way and writes it again at format, with the word count on both. The earlier kit
-made this read mandatory after a blind test caught a session skipping it to save budget while
-calling it the most useful file it had.
+written the ordinary way and writes it again at format, with the word count on both. Its "after"
+pane is the dose of one decision slide. The earlier kit made this read mandatory after a blind test
+caught a session skipping it to save budget while calling it the most useful file it had.
 
 ## Step 1: Check it earns a page
 
@@ -90,10 +95,12 @@ Pull every row from the source. For each one, carry:
   paths and no internal vocabulary. Source rows are written for whoever builds them, not for whoever
   decides them, and a row the owner cannot understand is a row they cannot answer.
 - **Status and cost**, where the source has them, so the trade is visible while they decide.
+- **Whether the choice changes something a person sees** (a screen, a message, a document). If it
+  does, the slide carries a small picture of that thing, before and after (Step 4).
 
 Where a row's state is genuinely unknown, say so on the row rather than giving it a confident line.
 
-**Every technical term gets a definition where it first appears**, in a box on the row that uses it:
+**Every technical term gets a definition where it first appears**, in a box on the slide that uses it:
 the term in bold, the everyday translation in parentheses, then one line of what it actually means.
 Never a glossary at the end, because nobody goes there. This is the single highest-value rule in the
 format and the one most often skipped.
@@ -113,14 +120,57 @@ HTML file in `output/` that persists to `localStorage` and carries a **Copy answ
 lane must always work: build the page so it degrades to it rather than treating it as a fallback
 bolted on afterwards.
 
-Both lanes emit the same answer block (Step 8). Read `assets/decision-kit.js` and use it as written
-— it is the same code every time, and the one part of this that has already failed in production.
+Both lanes emit the same answer block (Step 8). Read `assets/decision-kit.js` so you know what it
+does, and leave the copy inside `assets/slides.html` as written: it is the same code every time,
+and the one part of this that has already failed in production.
 
 ## Step 4: Build the page
 
+**Every page is built from `assets/slides.html`.** Copy it and fill it; never start from a blank
+file, and never lay the decisions out as one long page.
+
+| You fill | You do not change |
+|---|---|
+| every slot marked `REPLACE:` (the title, the slug, the opening slide, one decision slide per row, the lane line, the closing slide) | the STRUCTURE style block |
+| the LOOK style block, with what `design` gives you | the script: it reads the slug, the ids, the options, the recommendations and the costs from the page, so nothing is typed into it |
+| | the name of any `data-` attribute, the strip in the header, the Previous and Next bar |
+
+Delete each `TEMPLATE:` comment once you have filled what it describes. The checker faults any
+marker, any such comment and the placeholder look left in the page.
+
 Invoke `design` for the visual system: this skill deliberately holds no opinion about
 palette or type, because a decision page for a client proposal and one for an engineering backlog
-should not look alike.
+should not look alike. The greys in the template only keep it legible until `design` replaces them.
+
+### The slides, in order
+
+| Slide | What it holds |
+|---|---|
+| **The situation** (one slide, two when needed) | the plain explanation, the cards, and a visual of the thing itself. Before any decision |
+| **One slide per decision** | one row of the source, and nothing else. Never two decisions on a slide |
+| **Your answers** | every answer and every row still open, the tally of what the answers add up to, and Copy answers |
+| **How this was reached** | Step 5. Always the last slide |
+
+The owner moves one slide at a time with the left and right arrow keys, the Previous and Next
+buttons, or a swipe on a phone. The template does all three.
+
+### The opening explanation shows the thing itself
+
+The first slide explains the situation in two or three plain sentences and **one visual of the
+thing being decided**, before the owner is asked anything. The test: someone who has never seen the
+subject looks at the picture and knows what is being talked about.
+
+| Counts | Does not count |
+|---|---|
+| the real screen as it is, and as it would be | a map of the page's own rows |
+| a before and after of the thing (a form, a message, a document, a week) | a diagram of where notes or items were filed |
+| the real steps a person goes through, in order | a decorative diagram: boxes and arrows that could sit on any page |
+| real numbers as a chart | a logo, an icon, an illustration |
+
+The template has a before/after frame for it: two labelled panels, each a drawing of the real thing
+in inline SVG or simple HTML. Draw what a person would see, with the real labels and the real
+numbers, not a symbol of it. A page whose opening visual is about the page (how it is organised,
+where each note went) has explained nothing.
 
 ### The format, in one line
 
@@ -135,8 +185,8 @@ says more than a six-line paragraph and reads in two seconds.
 
 | Mechanic | The test |
 |---|---|
-| **The diagram carries the argument, the sentence confirms it** | remove every paragraph and the page still tells the story. If a paragraph says what the diagram already shows, the paragraph goes |
-| **Every section title asserts a conclusion** | someone who reads only the titles leaves with the whole argument. "Two mechanisms, and only two", never "The caching mechanisms" |
+| **The diagram carries the argument, the sentence confirms it** | remove every paragraph and the slide still tells the story. If a paragraph says what the diagram already shows, the paragraph goes |
+| **Every slide title asserts a conclusion** | someone who reads only the titles leaves with the whole argument. "Two mechanisms, and only two", never "The caching mechanisms". A decision slide keeps the source's own title |
 | **MECE** | no two blocks saying the same thing from different angles, and no "and other items" bucket at the end. A MECE split has no bin |
 | **Terms defined on the spot** | a reader who does not know the domain gets through without opening anything else |
 | **Few words, full detail** | the detail is all present, carried by the visual |
@@ -147,8 +197,9 @@ chart library: one more curve does not justify 300 KB of dependency, and a remot
 
 ### The cards at the top
 
-Open with **3 to 5 cards**: a label, the value large, and two lines saying what to conclude. The
-owner must be able to stop there and have the shape of the decision.
+The opening slide carries **3 to 5 cards**, above its visual: a label, the value large, and two
+lines saying what to conclude. The owner must be able to stop there and have the shape of the
+decision.
 
 **The large value is not necessarily a number.** On a subject with no measured data, hunting for
 figures is how invented ones get in.
@@ -164,31 +215,70 @@ Four aligned `No`s across the top beat four invented statistics, and they carry 
 Never a blank card, never a card filled with a figure you do not have. If none of the four rows
 apply, the page has no cards and that is fine.
 
+### A decision slide
+
+One row, one slide. It keeps, in this order: the source's real id, the title as the source states
+it, your plain-words line, the definition box for each term it uses first, status and cost, the
+options, and a note box.
+
+**Its own small visual, only when the choice changes something a person sees.** The same
+before/after frame as the opening slide, smaller: the thing as it is, and as it would be if the
+owner says yes. A slide whose choice changes nothing visible (an order of work, a budget, who owns
+something) carries no visual: delete the frame, never fill it with a decorative one.
+
+**Each option is a button** with a short label and one line on what it sets in motion. Its
+`data-value` is the short word that comes back in the answer block (`keep`, `cut`, `later`).
+
+### The answers build up in view
+
+The owner wants to see how the answers are evolving while still deciding, not only at the end.
+Three things do it, and the template draws all three from what was answered. You write none of them.
+
+- **The strip**, in the header of every slide: each decision as a small item with its id and what
+  was chosen (or "open"), and the count ("4 of 10 answered"). A click on an item goes to its slide.
+- **The answers slide**, after the last decision: every answer, every note, every row still open
+  with a button back to it, then Copy answers. Nothing is sent or copied before the owner has seen
+  this list.
+- **The tally**, on the answers slide and, on a wide screen, beside the count: what the answers add
+  up to so far, and what the open rows could still add. It exists only when the source has costs:
+  put a bare number in `data-cost` on each option and name the unit once
+  (`data-unit="days of work"`). With no costs in the source, leave both out and the tally stays
+  hidden.
+
+The strip and the answers slide are what keep the whole shape in view while one slide is on screen.
+
 ### The mechanics that are not taste
 
-- **Every decision is visible at rest.** No accordion hiding rows, no scroll-triggered reveal. The
-  owner needs to see the whole shape to weigh any part of it.
+- **One decision per slide, the whole set always one click away.** No slide holds two decisions,
+  and no decision is reachable only by paging through the others: the strip jumps to any of them.
 - **Every control starts unset.** A pre-selected default is your opinion wearing the owner's hat,
   and they will accept it by not noticing. A recommendation is allowed, but as a marked and labelled
   option, never as a pre-checked one.
-- **Every recommendation is passed to the kit**: `DecisionKit({ slug, recommended: { T3: "keep", M6: "cut" } })`,
-  the row id and the value of the option you marked. It comes back with the answers, and it is the
-  only way Step 9 can tell a recommendation taken from one chosen against. A row you recommend
-  nothing on has no entry.
-- **Every interaction saves immediately**, not on a Submit at the end. See `## Rules`.
-- **A running tally** of answered, unanswered, and whatever the decision actually buys: days of
-  work, cost, headcount. The tally is what turns a list into a decision.
+- **Every recommendation is marked once, on its option, and passed to the kit.** Put
+  `data-recommended` on the button and keep its visible "Recommended" tag. The template reads those
+  marks and calls `DecisionKit({ slug, recommended: { T3: "keep", M6: "cut" } })`: the row id and
+  the value of the option you marked. It comes back with the answers, and it is the only way Step 9
+  can tell a recommendation taken from one chosen against. A row you recommend nothing on has no
+  mark, and no entry.
+- **Every interaction saves immediately**, not on a Submit at the end: a click on an option, a
+  keystroke in a note. See `## Rules`.
 - **Grouped the way the source groups them**, with the group's own framing kept, so the owner's
-  mental model of the work survives the trip into the page.
+  mental model of the work survives the trip into the page. Put the group's name in `data-group`
+  on each of its slides and keep a group's slides together: the strip and the answers slide label
+  the groups from it. On a backlog-sized page a group may open with its own short slide
+  (`data-slide="intro"`) carrying the group's framing.
 - **Zero remote resources.** No CDN, no web font, no linked image. The page must open with no
-  network, from a USB stick, in ten years. Inline everything, including `decision-kit.js`.
+  network, from a USB stick, in ten years. Everything is inline, `decision-kit.js` included.
+- **It works on a phone.** The template does at phone width; a drawing you add must too: give
+  every SVG a `viewBox` and no fixed width.
 - **Wide tables scroll inside their own container**, never the page body.
 - **No em dash or en dash anywhere in the page.** Use colons and commas. This is this skill's own
   style rule, and the checker faults any dash in reader-visible text.
 
 ## Step 5: Close with "How this was reached"
 
-**Every page that recommends anything ends with this section, last, always.** Three parts, in order:
+**Every page that recommends anything ends with this section, last, always: it is the closing
+slide, after the answers slide.** Three parts, in order:
 
 1. **What was ruled out, and why.** Paths opened and closed. A documented dead end beats one never
    mentioned.
@@ -211,12 +301,15 @@ The checker sits beside this file, in this skill's `assets/` folder: give `node`
 Zero dependencies, non-zero exit on a fault. It catches the mechanical half: em dashes, remote
 resources, a table outside its scroll container, an SVG with no `viewBox` or no label, a
 pre-selected control, a missing "How this was reached", `decision-kit.js` referenced instead of
-inlined, template markers left in, a decision with no control. **Fix every FAULT before handing the
-page over.**
+inlined, template markers or the placeholder look left in, a decision with no control. And the
+slides: a page not built from the slide structure, no opening explanation before the first decision
+or one with no visual, two decisions on one slide, no progress strip, no answers slide, no way to
+move by keys, buttons or swipe. **Fix every FAULT before handing the page over.**
 
-It knows nothing about the half that matters: whether a term is defined in the right place, whether
-the split is really MECE, whether a title asserts anything. That gets re-read by you, against the
-five mechanics above.
+It knows nothing about the half that matters: whether the opening visual shows the thing itself,
+whether a term is defined in the right place, whether the split is really MECE, whether a title
+asserts anything. That gets re-read by you, against the five mechanics and the opening-explanation
+table above.
 
 ## Step 7: Hand it over
 
@@ -249,7 +342,8 @@ unanswered: T1, T2, S6
 nothing. A block with no such line, or a doc with no `recommended`, comes from a page built before
 recommendations were carried: it says nothing either way.
 
-**Screenshot:** a valid input, and often what actually arrives. Read the marks off it, then write
+**Screenshot:** a valid input, and often what actually arrives (the answers slide is the one
+screen that shows every mark). Read the marks off it, then write
 them into the store or the page so they are not lost a second time. Name every row you could not
 read confidently instead of guessing — a wrong verdict recorded silently is worse than an unanswered
 one, because the owner will never be asked again.
@@ -320,7 +414,20 @@ The date is the one in the answer block's first line, or the doc's `updated`. `-
   instead: areas that mean something to a user (installing and updating, routines, memory...), an
   area intro slide, then each item as Today / Why it matters / The fix in plain words, with arrow
   keys moving slide to slide and a contents overlay that keeps the whole shape one keypress away.
-  This overrides "every decision visible at rest" once a page carries more than about fifteen rows.
+  (The row count this rule started at, about fifteen, is replaced by the 2026-11-22 rule: slides
+  for every page. Its grouping and its Today / Why it matters / The fix shape still hold.)
+- 2026-11-22: **Every decision page is slides, whatever the number of rows, and it opens with the
+  thing itself.** The owner answered a ten-row page built as one long page that opened with a
+  diagram of where each of the owner's notes had landed. The verdict: "not clear", "hard to
+  navigate", "I need slides to go right or left", a wish to "see how my answers are evolving", and
+  an opening that "has a useless visual. It needs to be a better explanation with a correct
+  visual". So: one
+  decision per slide, moved left and right; the strip and the answers slide show the answers
+  building up; the first slide explains the situation with a visual of the thing being decided (the
+  screen, the before and after), never a map of the page's own items or a decorative diagram. This
+  replaces "every decision is visible at rest": the strip and the answers slide are what keep the
+  whole shape in view. `assets/slides.html` is that page, and the checker faults a page not built
+  from it.
 
 ## Self-Update
 
@@ -339,8 +446,14 @@ replaces it.
 - **`claude.use("db")` resolves null at runtime** → the page says "saved in this browser only" in
   its own status line and keeps working through `localStorage`. Never fail silently: a page that
   looks saved and is not is the exact failure this skill exists to prevent.
-- **Source has no per-row cost or status** → drop the tally's derived number rather than inventing
-  estimates. A fabricated total is worse than no total, because the owner will decide against it.
+- **Source has no per-row cost or status** → leave `data-cost` and `data-unit` out, and the tally
+  stays hidden, rather than inventing estimates. A fabricated total is worse than no total, because
+  the owner will decide against it.
+- **Nothing visible to draw for the opening** → draw the real steps a person goes through, or the
+  real numbers as a chart. If there is truly neither, say so to the owner before building: a page
+  with nothing to show is usually a question for chat.
+- **The page's script does not run** (a mail preview, a print) → the template shows every slide in
+  order as one long page, and says it cannot save.
 - **Too few decisions to earn a page** → say so and ask in chat instead.
 - **No `node` on the box** → walk Step 6's list by hand against the page source, and say in the
   handoff that the checker did not run.

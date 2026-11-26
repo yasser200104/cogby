@@ -15,96 +15,82 @@
 
 const { BrainError } = require('./db.cjs');
 
-// A card loads nothing: no font, no stylesheet, no image. Its type is the design system's stack
-// (.claude/skills/design/systems/main.md): IBM Plex Sans when the reader has it installed, the
-// host's own sans or the system's otherwise. Naming a family asks the network for nothing.
-const SANS = "'IBM Plex Sans',var(--font-sans,-apple-system,'Segoe UI',sans-serif)";
+// A card loads nothing: no font, no stylesheet, no image. Its type is the host's own (the chat's
+// interface font), so a card reads as part of the conversation and not as a page set into it.
+const SANS = "var(--font-sans,-apple-system,'Segoe UI',sans-serif)";
 
 // The colours come from the host's own theme variables, so a card is light or dark exactly when the
 // chat around it is, however the host says so; the values after each comma are Cogby's own, for a
 // host that has none. Cogby's purple is mixed from one hue and the host's text colour: deep on a
-// light page, light on a dark one. Text on it is the card's own colour. A selected answer is that
-// purple, filled, with a check: it reads at a glance in both themes, and not by colour alone.
-const BASE = `.cg{--cg-ink:var(--text-primary,#191634);--cg-body:var(--text-secondary,#3d3663);--cg-muted:var(--text-secondary,#5c5486);--cg-card:var(--surface-2,#fcfaf4);--cg-quiet:var(--surface-1,#f4f1e8);--cg-line:var(--border,rgba(55,36,118,.16));--cg-line2:var(--border-strong,rgba(55,36,118,.28));--cg-warn:var(--text-warning,#8A4A14);--cg-primary:color-mix(in srgb,#6e48ec,var(--cg-ink));--cg-onp:var(--cg-card);--cg-on:color-mix(in srgb,var(--cg-primary) 16%,var(--cg-card));font-family:${SANS};color:var(--cg-body);padding:.5rem 0}`;
+// light page, light on a dark one.
+//
+// Text is never set on that purple, and never changes colour when something is pressed. A host
+// styles its own buttons (their hover, their pressed state), and a card cannot know how: on
+// 25 Nov 2026 the owner pressed an answer in the quiz and could no longer read it. So a selected
+// answer keeps its text as it was and gains three things around it: a purple outline, a light
+// purple wash, and a mark that fills with a check. It reads in both themes, and not by colour alone.
+const BASE = `.cg{--cg-ink:var(--text-primary,#191634);--cg-body:var(--text-secondary,#3d3663);--cg-muted:var(--text-secondary,#5c5486);--cg-card:var(--surface-2,#ffffff);--cg-quiet:var(--surface-1,#f6f5f4);--cg-line:var(--border,rgba(25,22,52,.14));--cg-line2:var(--border-strong,rgba(25,22,52,.28));--cg-warn:var(--text-warning,#8A4A14);--cg-primary:color-mix(in srgb,#6e48ec 72%,var(--cg-ink));--cg-on:color-mix(in srgb,var(--cg-primary) 14%,transparent);font-family:${SANS};color:var(--cg-body);padding:.5rem 0}`;
 
 // One rule a line. A card carries the base and only the rules whose classes it uses (`styleFor`).
-const RULES = `.cg .card{background:var(--cg-card);border:1px solid var(--cg-line);border-radius:11px;padding:18px}
+const RULES = `.cg .card{background:var(--cg-card);border:.5px solid var(--cg-line);border-radius:12px;padding:16px 20px 18px}
 .cg .top{display:flex;align-items:center;gap:7px;margin-bottom:14px}
-.cg .brand{font-family:Rubik,var(--font-sans,sans-serif);font-weight:500;font-size:15px;letter-spacing:-.018em;color:var(--cg-ink);line-height:1}
-.cg .where{margin-left:auto;font-size:12px;color:var(--cg-muted)}
-.cg .q{font-size:16px;font-weight:500;color:var(--cg-ink);margin:0 0 4px}
+.cg .brand{font-weight:500;font-size:14px;color:var(--cg-ink);line-height:1}
+.cg .where{margin-left:auto;font-size:12.5px;color:var(--cg-muted)}
+.cg .bar{display:flex;gap:4px;margin:0 0 16px}
+.cg .seg{flex:1;height:3px;border-radius:2px;background:var(--cg-line2)}
+.cg .seg.done{background:var(--cg-primary)}
+.cg .seg.now{background:var(--cg-ink)}
+.cg .q{font-size:16px;font-weight:500;color:var(--cg-ink);margin:0 0 4px;line-height:1.4}
 .cg .why{font-size:13px;margin:0 0 14px;line-height:1.5}
-.cg .grp{font-size:12px;color:var(--cg-muted);margin:16px 0 8px}
+.cg .grp{font-size:13px;color:var(--cg-muted);margin:16px 0 8px}
 .cg .set{display:flex;flex-wrap:wrap;gap:8px}
-.cg .q+.set{margin-top:10px}
-.cg .set+.q{margin-top:24px}
-.cg .chip{font-family:inherit;font-size:13px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:9999px;padding:6px 13px;cursor:pointer}
-.cg .opt{display:block;width:100%;text-align:left;font-family:inherit;background:transparent;border:1px solid var(--cg-line2);border-radius:11px;padding:12px 14px;margin:0 0 8px;cursor:pointer}
-.cg .set .opt{margin:0}
-.cg .opt:hover{background:var(--cg-quiet);border-color:var(--cg-primary)}
-.cg .opt b{display:block;font-weight:500;font-size:14px;color:var(--cg-ink)}
-.cg .opt span{display:block;font-size:13px;color:var(--cg-body);margin-top:2px;line-height:1.45}
-.cg .go{font-family:inherit;font-size:14px;font-weight:500;color:var(--cg-onp);background:var(--cg-primary);border:1px solid var(--cg-primary);border-radius:7px;padding:8px 16px;cursor:pointer}
-.cg .quiet{font-family:inherit;font-size:14px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:7px;padding:8px 16px;cursor:pointer}
-.cg .mini{font-family:inherit;font-size:12.5px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:9999px;padding:3px 11px;cursor:pointer;flex:none}
-.cg .chip[aria-pressed="true"],.cg .opt[aria-pressed="true"],.cg .mini[aria-pressed="true"]{background:var(--cg-primary);border-color:var(--cg-primary);color:var(--cg-onp)}
-.cg .chip[aria-pressed="true"],.cg .mini[aria-pressed="true"]{font-weight:500}
-.cg .chip[aria-pressed="true"]::before,.cg .mini[aria-pressed="true"]::before,.cg .opt[aria-pressed="true"] b::before{content:"\\2713";margin-right:6px}
-.cg .opt[aria-pressed="true"] b,.cg .opt[aria-pressed="true"] span{color:var(--cg-onp)}
+.cg .chip{font-family:inherit;font-size:13px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:9999px;padding:6px 14px;cursor:pointer}
+.cg .opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-family:inherit;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:var(--radius,8px);padding:11px 14px;margin:0 0 8px;cursor:pointer}
+.cg .opt:hover,.cg .chip:hover,.cg .mini:hover{background:var(--cg-quiet);border-color:var(--cg-primary)}
+.cg .opt b{font-weight:400;font-size:14.5px;color:var(--cg-ink);line-height:1.4}
+.cg .dot{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--cg-line2);box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;line-height:1;color:var(--cg-card)}
+.cg .go{font-family:inherit;font-size:14px;font-weight:500;color:var(--cg-ink);background:var(--cg-on);border:1px solid var(--cg-primary);border-radius:var(--radius,8px);padding:8px 18px;cursor:pointer}
+.cg .quiet{font-family:inherit;font-size:14px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:var(--radius,8px);padding:8px 16px;cursor:pointer}
+.cg .mini{font-family:inherit;font-size:12.5px;color:var(--cg-ink);background:transparent;border:1px solid var(--cg-line2);border-radius:9999px;padding:4px 12px;cursor:pointer;flex:none}
+.cg .chip[aria-pressed="true"],.cg .opt[aria-pressed="true"],.cg .mini[aria-pressed="true"]{background:var(--cg-on);border-color:var(--cg-primary);box-shadow:inset 0 0 0 1px var(--cg-primary)}
+.cg .chip[aria-pressed="true"],.cg .mini[aria-pressed="true"],.cg .opt[aria-pressed="true"] b{font-weight:500}
+.cg .chip[aria-pressed="true"]::before,.cg .mini[aria-pressed="true"]::before{content:"\\2713";margin-right:6px;color:var(--cg-primary)}
+.cg .opt[aria-pressed="true"] .dot,.cg .opt.right .dot{background:var(--cg-primary);border-color:var(--cg-primary)}
+.cg .opt[aria-pressed="true"] .dot::before,.cg .opt.right .dot::before{content:"\\2713"}
 .cg .foot{display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}
 .cg .hint{font-size:13px;color:var(--cg-muted)}
 .cg .err{font-size:13px;color:var(--text-danger,#a32d2d);margin:12px 0 0;display:none}
-.cg .row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-top:1px solid var(--cg-line)}
+.cg .row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-top:.5px solid var(--cg-line)}
 .cg label.row{cursor:pointer}
 .cg .row input{margin:0;position:relative;top:2px;flex:none}
-.cg .tag{flex:none;font-size:12px;color:var(--cg-muted);border:1px solid var(--cg-line);border-radius:9999px;padding:1px 9px}
+.cg .tag{flex:none;font-size:12px;color:var(--cg-muted);border:.5px solid var(--cg-line2);border-radius:9999px;padding:1px 9px}
 .cg .name{font-size:14px;color:var(--cg-ink);line-height:1.45}
 .cg .name b{font-weight:500}
 .cg .note{font-size:12.5px;color:var(--cg-muted);margin-left:auto;text-align:right;flex:none;max-width:45%}
 .cg[data-js] .pg{display:none}
 .cg .pg.on{display:block}
 .cg .end:not(.on){display:none}
-.cg .none{font-size:13px;color:var(--cg-muted);padding:9px 0;border-top:1px solid var(--cg-line);margin:0}
-.cg .verdict{display:inline-block;font-size:12.5px;font-weight:500;color:var(--cg-ink);background:var(--cg-on);border:1px solid var(--cg-primary);border-radius:9999px;padding:2px 11px;margin:0 0 10px}
+.cg .none{font-size:13px;color:var(--cg-muted);padding:9px 0;border-top:.5px solid var(--cg-line);margin:0}
+.cg .verdict{display:inline-block;font-size:13px;font-weight:500;color:var(--cg-ink);background:var(--cg-on);border:1px solid var(--cg-primary);border-radius:9999px;padding:3px 12px;margin:0 0 12px}
 .cg .verdict.off{background:transparent;border-color:var(--cg-warn);color:var(--cg-warn)}
-.cg .pg .opt:disabled{cursor:default;pointer-events:none}
-.cg .opt.right{background:var(--cg-on);border-color:var(--cg-primary)}
-.cg .opt.right b{color:var(--cg-ink)}
-.cg .opt.wrong{background:transparent;border-color:var(--cg-warn)}
-.cg .opt.wrong b{color:var(--cg-warn)}
-.cg .opt.wrong b::before{content:"\\2717"}
-.cg .rev{display:none;margin-top:14px}
+.cg .pg .opt:disabled{cursor:default;pointer-events:none;opacity:1}
+.cg .opt.right{background:var(--cg-on);border-color:var(--cg-primary);box-shadow:inset 0 0 0 1px var(--cg-primary)}
+.cg .opt.wrong{background:transparent;border-color:var(--cg-warn);box-shadow:inset 0 0 0 1px var(--cg-warn)}
+.cg .opt.wrong .dot{background:transparent;border-color:var(--cg-warn);color:var(--cg-warn)}
+.cg .opt.wrong .dot::before{content:"\\2717"}
+.cg .opt.right::after,.cg .opt.wrong::after{margin-left:auto;padding-left:10px;font-size:12px;color:var(--cg-muted);flex:none}
+.cg .opt.right::after{content:"The answer"}
+.cg .opt.wrong::after{content:"Your answer"}
+.cg .opt.right[aria-pressed="true"]::after{content:"Your answer, and right"}
+.cg .rev{display:none;margin-top:16px;padding-top:14px;border-top:.5px solid var(--cg-line)}
 .cg .pg[data-shown] .rev{display:block}
 .cg .pg[data-shown] .ask{display:none}
 .cg .rev .verdict{display:none}
-.cg .pg[data-shown="right"] .v-right,.cg .pg[data-shown="wrong"] .v-wrong{display:inline-block}
-.cg .lbl{flex:none;width:112px;font-size:12.5px;color:var(--cg-muted)}
-.cg .pt b{display:block;font-weight:500;font-size:14px;color:var(--cg-ink);line-height:1.35}
-.cg .pt span{display:block;font-size:13px;line-height:1.45;margin-top:2px}
-.cg .pt ul{margin:4px 0 0;padding-left:16px;font-size:13px;line-height:1.5}
-.cg .flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:16px 0}
-.cg .step .n{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.cg .step .n::after{content:"";flex:1;height:1.5px;background:var(--cg-line2)}
-.cg .step:last-child .n::after{display:none}
-.cg .step .pt{padding-right:14px}
-.cg .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--cg-primary);color:var(--cg-onp);font-size:12.5px;font-weight:500;display:flex;align-items:center;justify-content:center}
-.cg .rail{margin-left:5px;border-left:1.5px solid var(--cg-line2);padding-left:18px}
-.cg .ev{position:relative;padding-bottom:14px}
-.cg .ev:last-child{padding-bottom:0}
-.cg .ev::before{content:"";position:absolute;left:-23.5px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--cg-primary);box-shadow:0 0 0 3px var(--cg-card)}
-.cg .ev time{display:block;font-size:12px;color:var(--cg-muted)}
-.cg .layers{border:1px solid var(--cg-line2);border-radius:11px;overflow:hidden}
-.cg .layer{display:flex;gap:12px;align-items:baseline;padding:11px 14px;border-top:1px solid var(--cg-line)}
-.cg .layer:first-child{border-top:0}
-.cg .layer:nth-child(odd){background:var(--cg-quiet)}
-.cg .layer b{flex:none;width:30%;font-weight:500;font-size:14px;color:var(--cg-ink)}
-.cg .layer span{font-size:13px;line-height:1.45}
-.cg .cols{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
-.cg .col{flex:1 1 150px;background:var(--cg-quiet);border:1px solid var(--cg-line);border-radius:11px;padding:14px}
-.cg .col.best{background:var(--cg-on);border-color:var(--cg-primary)}
-.cg .col em{display:block;font-style:normal;font-size:12px;color:var(--cg-muted);margin-bottom:4px}
-.cg .arrow{align-self:center;font-size:18px;color:var(--cg-primary)}
-.cg .point{margin:16px 0 0;padding:10px 14px;border-left:3px solid var(--cg-primary);background:var(--cg-quiet);border-radius:0 7px 7px 0;font-size:14px;color:var(--cg-ink);line-height:1.45}`.split('\n');
+.cg .pg[data-shown="right"] .v-right,.cg .pg[data-shown="wrong"] .v-wrong,.cg .pg[data-shown="idk"] .v-idk{display:inline-block}
+.cg .lbl{font-size:12.5px;color:var(--cg-muted);margin:0 0 3px}
+.cg .ans{font-size:15px;font-weight:500;color:var(--cg-ink);margin:0 0 6px;line-height:1.45}
+.cg .because{font-size:13.5px;line-height:1.55;margin:0 0 6px}
+.cg .src{font-size:12px;color:var(--cg-muted);margin:0}`.split('\n');
 
 // The whole sheet, every rule: what the tests read, and what any card could use.
 const STYLE = `<style>\n${BASE}\n${RULES.join('\n')}\n</style>`;
@@ -137,7 +123,9 @@ function styleFor(html) {
   return `<style>\n${open}${tokens.filter((decl) => needed.has(name(decl))).map((decl) => `${decl};`).join('')}${rest}\n${kept}\n</style>`;
 }
 
-const MARK = '<svg width="20" height="20" viewBox="0 0 32 32" role="img" aria-label="Cogby"><rect width="32" height="32" rx="7.36" fill="#1D1430"/><g transform="translate(16 16) scale(0.2115)"><g fill="#C6A8F0"><g id="cg-petals"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="33" width="22" height="26" rx="9"/></g><use href="#cg-petals" transform="rotate(45)"/><use href="#cg-petals" transform="rotate(90)"/><use href="#cg-petals" transform="rotate(135)"/><circle r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#fff"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#fff"/><path d="M-9 20q9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg>';
+// Cogby's mark on its own, with no tile behind it: the flower sits straight on the card, in a purple
+// that holds on a light card and on a dark one.
+const MARK = '<svg width="20" height="20" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.25)"><g fill="#9670E0"><g id="cg-petals"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="33" width="22" height="26" rx="9"/></g><use href="#cg-petals" transform="rotate(45)"/><use href="#cg-petals" transform="rotate(90)"/><use href="#cg-petals" transform="rotate(135)"/><circle r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#fff"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#fff"/><path d="M-9 20q9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg>';
 
 const MAX_ROWS = 8;
 const MAX_TEXT = 240;
@@ -150,7 +138,6 @@ function esc(value, max = MAX_TEXT) {
   return cut.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 const list = (value, max = MAX_ROWS) => (Array.isArray(value) ? value : []).filter((item) => item != null && item !== '').slice(0, max);
-const more = (value, max = MAX_ROWS) => { const extra = (Array.isArray(value) ? value.length : 0) - max; return extra > 0 ? `<p class="none">and ${extra} more</p>` : ''; };
 
 // The frame every card shares: the mark, where the person is, the body, and at most one script.
 // The style is the short part that comes first, the content next, the script last: a card streams,
@@ -180,13 +167,14 @@ const chip = (text, on) => `<button class="chip" aria-pressed="${on ? 'true' : '
 
 // The quiz: pages in an order, a first round over all of them and a second over what was missed.
 const QUIZ = `document.querySelector('.cg').setAttribute('data-js','');
-var pages=Array.prototype.slice.call(document.querySelectorAll('.cg .pg[data-q]')),end=document.getElementById('end'),go=document.getElementById('go'),idk=document.getElementById('idk'),err=document.getElementById('err'),where=document.getElementById('where');
+var pages=Array.prototype.slice.call(document.querySelectorAll('.cg .pg[data-q]')),end=document.getElementById('end'),go=document.getElementById('go'),idk=document.getElementById('idk'),err=document.getElementById('err'),where=document.getElementById('where'),segs=document.querySelectorAll('.cg .seg'),recap=document.getElementById('recap');
 var order=pages.map(function(p,i){return i;}),pos=0,round=1,res=pages.map(function(){return {first:'',sure:'',second:''};});
 function cur(){return pages[order[pos]];}
 function text(el){return el?el.textContent.trim():'';}
 function show(){pages.forEach(function(p,i){p.classList.toggle('on',i===order[pos]);});
 var shown=cur().hasAttribute('data-shown');go.style.display=shown?'':'none';idk.style.display=shown?'none':'';err.style.display='none';
-where.textContent=(round===1?'Quiz':'Second try')+' · '+(pos+1)+' of '+order.length;}
+segs.forEach(function(g,i){g.classList.toggle('done',res[i].first!=='');g.classList.toggle('now',i===order[pos]);});
+where.textContent=(round===1?'Question ':'Second try · ')+(pos+1)+' of '+order.length;}
 function reset(p){p.removeAttribute('data-shown');p.querySelectorAll('.opt').forEach(function(o){o.disabled=false;o.setAttribute('aria-pressed','false');o.classList.remove('right','wrong');});
 p.querySelectorAll('.sure .chip,.self .chip').forEach(function(c){c.setAttribute('aria-pressed','false');});}
 function reveal(sure,unknown){var p=cur(),r=res[order[pos]],opts=p.querySelectorAll('.opt'),pick=p.querySelector('.opt[aria-pressed="true"]'),out;
@@ -197,7 +185,12 @@ p.setAttribute('data-shown',out);if(round===1){r.first=out;r.sure=sure;}else{r.s
 function finish(){pages.forEach(function(p){p.classList.remove('on');});end.classList.add('on');
 var right=res.filter(function(r){return r.first==='right';}).length;
 document.getElementById('score').textContent=right+' of '+pages.length+' right the first time';
-go.textContent='Finish';go.style.display='';idk.style.display='none';err.style.display='none';where.textContent='Quiz · done';}
+pages.forEach(function(p,i){var r=res[i],row=document.createElement('div'),tag=document.createElement('span'),name=document.createElement('span');
+row.classList.add('row');tag.classList.add('tag');name.classList.add('name');
+tag.textContent=r.first==='right'?'\u2713 Right':r.second==='right'?'Second try':'\u2717 Missed';name.textContent=text(p.querySelector('.q'));
+row.appendChild(tag);row.appendChild(name);recap.appendChild(row);});
+segs.forEach(function(g){g.classList.add('done');g.classList.remove('now');});
+go.textContent='Finish';go.style.display='';idk.style.display='none';err.style.display='none';where.textContent='Done';}
 function send(){var right=0,missed=[],lucky=[],changed=[];
 pages.forEach(function(p,i){var r=res[i],q='"'+text(p.querySelector('.q'))+'"';
 if(r.first==='right'){right++;if(r.sure==='Guessing')lucky.push(q);}
@@ -220,7 +213,8 @@ if(round===1){r.first=s.hasAttribute('data-had')?'right':'wrong';}else{r.second=
 if(pos<order.length-1){pos++;show();return;}
 var missed=[];res.forEach(function(x,i){if(x.first!=='right')missed.push(i);});
 if(round===1&&missed.length){round=2;order=missed;pos=0;missed.forEach(function(i){reset(pages[i]);});show();return;}
-finish();});`;
+finish();});
+show();`;
 
 const CARDS = {
   // With a summary, the meeting record is shown too: the summary, the transcript it points at, and a
@@ -296,73 +290,43 @@ ${rows}
       if (!questions.length) throw new BrainError('USAGE', 'The quiz needs questions: [{ question, options, answer, why, source }].', '');
       const same = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
       const topic = data.topic ? esc(data.topic, 60) : 'your brain';
-      const row = (name, text, note) => `<div class="row"><span class="lbl">${name}</span><span class="name">${esc(text)}</span>${note ? `<span class="note">${esc(note, 60)}</span>` : ''}</div>`;
-      const pages = questions.map((item, index) => {
+            const pages = questions.map((item, index) => {
         if (!item.question || item.answer == null || item.answer === '') throw new BrainError('USAGE', `Quiz question ${index + 1} needs a question and its answer.`, '');
         const options = list(item.options, 4);
         if (options.length && options.filter((text) => same(text, item.answer)).length !== 1) {
           throw new BrainError('USAGE', `Quiz question ${index + 1}: exactly one of its options must be its answer.`, 'Pass `answer` as the text of the right option.');
         }
-        const choices = options.map((text) => `<button class="opt" aria-pressed="false"${same(text, item.answer) ? ' data-right' : ''}><b>${esc(text, 160)}</b></button>`).join('\n');
+        const choices = options.map((text) => `<button class="opt" aria-pressed="false"${same(text, item.answer) ? ' data-right' : ''}><i class="dot" aria-hidden="true"></i><b>${esc(text, 160)}</b></button>`).join('\n');
         const self = options.length ? '' : '<p class="grp">Did you have it?</p>\n<div class="set self" data-one><button class="chip" aria-pressed="false" data-had>I had it</button><button class="chip" aria-pressed="false">I missed it</button></div>';
         return `<section class="pg${index === 0 ? ' on' : ''}" data-q="${index + 1}">
 <p class="q">${esc(item.question)}</p>
-<p class="why">From ${topic}. ${options.length ? 'Answer from memory, before you look.' : 'Say your answer to yourself, or write it down. Then say how sure you are.'}</p>
+<p class="why">From ${topic}. ${options.length ? 'Pick your answer from memory.' : 'No options here: say your answer to yourself, or write it down.'}</p>
 ${choices}
-<div class="ask"><p class="grp">How sure are you?</p>
+<div class="ask"><p class="grp">${options.length ? 'Then say how sure you are. That shows the answer.' : 'Then say how sure you are. That shows what your brain holds.'}</p>
 <div class="set sure" data-one>${chip('Sure')}${chip('Think so')}${chip('Guessing')}</div></div>
-<div class="rev"><span class="verdict v-right">Right</span><span class="verdict off v-wrong">Not quite</span>
-${row('Your brain says', item.answer, item.source)}
-${item.why ? row('Why', item.why) : ''}
+<div class="rev"><span class="verdict v-right">&#10003; Right</span><span class="verdict off v-wrong">&#10007; Not quite</span><span class="verdict off v-idk">Now you know</span>
+<p class="lbl">Your brain says</p>
+<p class="ans">${esc(item.answer)}</p>
+${item.why ? `<p class="because">${esc(item.why)}</p>` : ''}
+${item.source ? `<p class="src">From ${esc(item.source, 120)}</p>` : ''}
 ${self}
-<p style="margin:12px 0 0"><button class="mini chg" aria-pressed="false">That has changed</button></p></div>
+<p style="margin:14px 0 0"><button class="mini chg" aria-pressed="false">This is out of date</button></p></div>
 </section>`;
       }).join('\n');
       return frame(`A quiz of ${questions.length} question${questions.length === 1 ? '' : 's'} from what your brain holds, one at a time.`,
-        `<span id="where">Quiz · 1 of ${questions.length}</span>`,
-        `${pages}
+        `<span id="where">Question 1 of ${questions.length}</span>`,
+        `<div class="bar" aria-hidden="true">${questions.map(() => '<i class="seg"></i>').join('')}</div>
+${pages}
 <section class="pg end" id="end" data-topic="${topic}">
 <p class="q" id="score">&nbsp;</p>
-<p class="why">Finish sends how it went, so I can say what is worth rereading and fix what has changed.</p>
+<p class="why">Finish sends how it went, so I can say what is worth rereading and fix what is out of date.</p>
+<div id="recap"></div>
 </section>
-<p class="err" id="err">Choose one first.</p>
+<p class="err" id="err">Pick an answer first.</p>
 <div class="foot"><button class="go" id="go" style="display:none">Continue</button><button class="quiet" id="idk">I don&#39;t know</button><button class="quiet" data-say="Stop the quiz.">Stop</button></div>`,
         `${SAY}
 ${CHIPS}
 ${QUIZ}`);
-    },
-  },
-
-  // One idea in one of five fixed layouts. A session picks the layout by the shape of the idea and
-  // passes words; the drawing is done here, so a picture looks the same every time.
-  'picture': {
-    about: 'One idea as a picture. data: { title, gist: one sentence, layout: flow|compare|layers|timeline|before-after, items: [{ title, text, when (timeline), points: [text], best: true (compare) }], takeaway, source: the page it comes from }',
-    render(data) {
-      const max = { flow: 6, compare: 3, layers: 6, timeline: 8, 'before-after': 2 }[data.layout];
-      if (!data.title) throw new BrainError('USAGE', 'The picture needs a title.', '');
-      if (!max) throw new BrainError('USAGE', 'The picture needs a layout.', 'One of: flow, compare, layers, timeline, before-after.');
-      const items = list(data.items, max).filter((item) => item && typeof item === 'object');
-      if (items.length < 2) throw new BrainError('USAGE', 'The picture needs at least two items: [{ title, text }].', '');
-      const points = (item) => (list(item.points, 5).length ? `<ul>${list(item.points, 5).map((text) => `<li>${esc(text, 120)}</li>`).join('')}</ul>` : '');
-      const pt = (item) => `<div class="pt"><b>${esc(item.title, 60)}</b>${item.text ? `<span>${esc(item.text, 160)}</span>` : ''}${points(item)}</div>`;
-      const col = (item, tag, best) => `<div class="col${best ? ' best' : ''}">${tag ? `<em>${tag}</em>` : ''}${pt(item)}</div>`;
-
-      const drawing = {
-        flow: () => `<div class="flow">\n${items.map((item, i) => `<div class="step"><div class="n"><span class="num">${i + 1}</span></div>${pt(item)}</div>`).join('\n')}\n</div>`,
-        compare: () => `<div class="cols">\n${items.map((item) => col(item, '', item.best === true)).join('\n')}\n</div>`,
-        layers: () => `<div class="layers">\n${items.map((item) => `<div class="layer"><b>${esc(item.title, 60)}</b><span>${esc(item.text, 160)}</span></div>`).join('\n')}\n</div>`,
-        timeline: () => `<div class="rail">\n${items.map((item) => `<div class="ev">${item.when ? `<time>${esc(item.when, 30)}</time>` : ''}${pt(item)}</div>`).join('\n')}\n</div>`,
-        'before-after': () => `<div class="cols">\n${col(items[0], 'Before')}\n<span class="arrow" aria-hidden="true">&rarr;</span>\n${col(items[1], 'After', true)}\n</div>`,
-      }[data.layout]();
-
-      const again = (text, how) => `<button class="quiet" data-say="${esc(`Picture "${data.title}" again, ${how}.`, 400)}">${text}</button>`;
-      const shape = { flow: 'a flow', compare: 'a comparison', layers: 'layers', timeline: 'a timeline', 'before-after': 'a before and after' }[data.layout];
-      return frame(`A picture of ${data.title}, drawn as ${shape}.`, 'Picture', `<p class="q">${esc(data.title, 100)}</p>
-<p class="why">${esc(data.gist) || '&nbsp;'}</p>
-${drawing}${more(data.items, max)}
-${data.takeaway ? `<p class="point">${esc(data.takeaway)}</p>` : ''}
-${data.source ? `<p class="hint" style="margin:10px 0 0">From ${esc(data.source, 80)}</p>` : ''}
-<div class="foot">${again('Simpler', 'simpler')}${again('Deeper', 'one level deeper')}${again('From my work', 'with an example from my own work')}<button class="go" data-say="${esc(`Quiz me on "${data.title}".`, 400)}">Quiz me on this</button></div>`, SAY);
     },
   },
 };
@@ -377,6 +341,7 @@ const REMOVED = {
   'check-in': 'The check-in skill reports in the chat; the command center is the page.',
   'meeting-brief': 'The meeting-prep skill writes the brief as text in the chat.',
   'wrap-up-summary': 'The wrap-up skill ends with a short text report in the chat.',
+  'picture': 'The picture skill draws the idea with the chat\'s own visual tool, following that tool\'s design, or answers in text.',
 };
 
 function render(name, data) {

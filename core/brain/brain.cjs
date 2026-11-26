@@ -40,6 +40,12 @@ const fold = (p) => (process.platform === 'win32' ? path.resolve(p).toLowerCase(
 const isInside = (child, parent) => { const rel = path.relative(fold(parent), fold(child)); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)); };
 const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')); } catch { return null; } };
 const isBrain = (dir) => fs.existsSync(path.join(dir, ...MARKER));
+// A brain its owner marked private (`"private": true` in .cogby/brain.json, written by
+// `cogby init --private`) is used only from inside its own folder. It is never the default brain, it
+// is never named from another folder, no other brain reads it as a source or from a folder that holds
+// it, and a session opened in it uses no other brain. Read from the marker each time it is asked, so
+// the mark holds from the moment it is written.
+const isPrivate = (dir) => { const marker = readJson(path.join(dir, ...MARKER)); return !!marker && marker.private === true; };
 
 // ---- which brain ------------------------------------------------------------------------------
 
@@ -67,18 +73,39 @@ function brainAbove(start) {
 // the installed one.
 function findBrain(options = {}) {
   const env = options.env || process.env;
+  const cwd = options.cwd || process.cwd();
   const named = options.brain || env.COGBY_BRAIN;
+  const above = brainAbove(cwd);
+  // The brain the session was opened in: where Claude Code says the session is, else where the
+  // command runs. A private brain is sealed both ways by it, whatever folder a shell has moved to.
+  const home = env.CLAUDE_PROJECT_DIR ? brainAbove(env.CLAUDE_PROJECT_DIR) : above;
+  const same = (a, b) => !!a && !!b && fold(a) === fold(b);
+  // Out: a session in a private brain uses that brain and no other.
+  const sealed = (other) => new BrainError('PRIVATE_BRAIN', `This is the private brain at ${home}: what is said here goes to no other brain, so ${other} is not used from it.`,
+    'Leave out --brain to use the private brain. To use another brain, open a chat in a folder outside this one.');
+  // In: a private brain is used only by a session opened in it.
+  const closed = (dir) => new BrainError('PRIVATE_BRAIN', `${dir} is a private brain: it is used only from a chat or a command started in its own folder.`,
+    'Open a chat in that folder, or run the command from inside it.');
+  const inHome = !!home && isPrivate(home);
   if (named) {
-    const dir = path.resolve(options.cwd || process.cwd(), named);
+    const dir = path.resolve(cwd, named);
     if (!isBrain(dir)) throw new BrainError('NOT_A_BRAIN', `${dir} is not a brain (no .cogby/brain.json).`, 'Create one there with `cogby init --brain <path>`.');
+    if (inHome && !same(dir, home)) throw sealed(dir);
+    if (isPrivate(dir) && !same(dir, home)) throw closed(dir);
     return dir;
   }
-  const above = brainAbove(options.cwd || process.cwd());
-  if (above) return above;
+  if (inHome) {
+    if (above && !same(above, home)) throw sealed(above);
+    return home;
+  }
+  if (above) {
+    if (isPrivate(above) && !same(above, home)) throw closed(above);
+    return above;
+  }
   const usual = defaultBrain(env);
   if (usual) return usual;
   const record = readJson(path.join(configDir(env), 'install.json'));
-  if (record && typeof record.brain === 'string' && path.isAbsolute(record.brain) && isBrain(record.brain)) return path.resolve(record.brain);
+  if (record && typeof record.brain === 'string' && path.isAbsolute(record.brain) && isBrain(record.brain) && !isPrivate(record.brain)) return path.resolve(record.brain);
   throw new BrainError('NO_BRAIN', 'No brain found from this folder.', 'Create one with `/cogby:onboarding` in Claude Code, or `cogby init` (tool: init); or pass --brain <path>.');
 }
 
@@ -115,10 +142,23 @@ const BRAINS_FILE = 'brains.json';
 function defaultBrain(env = process.env) {
   const data = readJson(path.join(configDir(env), BRAINS_FILE));
   const named = data && typeof data.default === 'string' && path.isAbsolute(data.default) ? path.resolve(data.default) : null;
-  return named && isBrain(named) ? named : null;
+  // A private brain is never the fallback, also one marked private after it was made the default.
+  return named && isBrain(named) && !isPrivate(named) ? named : null;
+}
+
+// Marks a brain private. True when the mark was written, false when it was there already. There is
+// no command that takes it off: that is a line removed from .cogby/brain.json by its owner.
+function setPrivate(brain) {
+  const file = path.join(brain, ...MARKER);
+  const marker = readJson(file);
+  if (!marker || typeof marker !== 'object' || Array.isArray(marker)) throw new BrainError('NOT_A_BRAIN', `${brain} is not a brain (no .cogby/brain.json).`, 'Create one there with `cogby init --brain <path> --private`.');
+  if (marker.private === true) return false;
+  writeJson(file, { ...marker, private: true });
+  return true;
 }
 
 function setDefaultBrain(brain, env = process.env) {
+  if (isPrivate(brain)) throw new BrainError('PRIVATE_BRAIN', `${path.resolve(brain)} is a private brain: it cannot be the default brain.`, 'The default brain is the one used from any folder; a private one is used only from its own.');
   const file = path.join(configDir(env), BRAINS_FILE);
   const data = readJson(file);
   writeJson(file, { ...(data && typeof data === 'object' && !Array.isArray(data) ? data : {}), default: path.resolve(brain) });
@@ -144,6 +184,8 @@ function addSource(brain, folder, options = {}) {
   const dir = path.resolve(options.cwd || process.cwd(), String(folder || ''));
   if (!folder || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) throw new BrainError('NO_FOLDER', `${dir} is not a folder.`, 'Pass an existing folder: cogby sources add <path>.');
   if (isInside(dir, brain) || isInside(brain, dir)) throw new BrainError('OVERLAP', `${dir} overlaps the brain itself.`, 'The brain is already indexed as the source `brain`.');
+  const owner = brainAbove(dir);
+  if (owner && isPrivate(owner)) throw new BrainError('PRIVATE_BRAIN', `${dir} is in the private brain at ${owner}: no other brain reads it.`, 'A private brain is searched only from a chat opened in its own folder.');
   const id = sourceId(options.id || path.basename(dir));
   if (!id || id === 'brain' || id === 'log') throw new BrainError('BAD_ID', `"${options.id || path.basename(dir)}" cannot be a source id.`, 'Pass --id with letters and digits.');
   const local = readLocal(brain);
@@ -169,6 +211,12 @@ function removeSource(brain, id) {
 function walk(source) {
   const files = [];
   const skipped = { credentials: 0, large: 0 };
+  // A private brain is read by its own index only: not as a source added before it was marked, and
+  // not from inside a folder that holds it.
+  if (source.id !== 'brain' && source.id !== 'log') {
+    const owner = brainAbove(source.path);
+    if (owner && isPrivate(owner)) return { files, skipped };
+  }
   const visit = (dir, rel) => {
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
@@ -178,6 +226,7 @@ function walk(source) {
       if (entry.isDirectory()) {
         if (SECRET_DIR_RE.test(entry.name)) { skipped.credentials++; continue; }
         if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
+        if (isPrivate(path.join(dir, entry.name))) continue;
         visit(path.join(dir, entry.name), childRel);
         continue;
       }
@@ -498,7 +547,7 @@ function getPage(brain, ref, options = {}) {
 
 module.exports = {
   BrainError, MARKER, SECRET_FILE_RE, SECRET_DIR_RE,
-  isBrain, findBrain, defaultBrain, setDefaultBrain, configDir, readLocal, writeLocal, fwd, fold, isInside,
+  isBrain, isPrivate, setPrivate, findBrain, defaultBrain, setDefaultBrain, configDir, readLocal, writeLocal, fwd, fold, isInside,
   listSources, addSource, removeSource, walk,
   sync, refresh, setIndex, indexStatus, sourceStatus, indexWanted, indexEnabled, syncInto, withIndex, STALE_MS, indexFile, deletePage, resolveLinks, lookup, nearest, pageFile, getPage,
 };

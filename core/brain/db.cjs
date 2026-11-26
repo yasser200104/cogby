@@ -157,7 +157,8 @@ function unchangedInGit(brain, rel) {
     const { gitIn, ownRepository } = require('../lib/brain-repo.cjs');
     if (!ownRepository(brain).repo) return false;
     const git = gitIn(brain);
-    return git('ls-files', '--error-unmatch', '--', rel).ok && git('status', '--porcelain', '--', rel).out === '';
+    // `--no-optional-locks`: a look never takes git's index lock (see write.cjs commitDayLogs).
+    return git('ls-files', '--error-unmatch', '--', rel).ok && git('--no-optional-locks', 'status', '--porcelain', '--', rel).out === '';
   } catch { return false; }
 }
 

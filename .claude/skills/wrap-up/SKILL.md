@@ -56,7 +56,7 @@ A project is one page, `projects/<name>/card`. For each project this session wor
   (they took your suggestion) or `overrode` (they chose against it). Pass `expect` and `review`
   (a date) only when the owner said what they expect or when to look again.
 - **`## Now` and `## Next`** sit above the timeline line: they are the current truth, and that changes with the
-  owner. Run by hand: show the lines you would change as a `Progress` item in the review of Step 1, and edit those two
+  owner. Run by hand: show the lines you would change as a `Progress` item in the review of Step 1 (a worked-on project with nothing under Now or Next always gets one line proposed for each: My view opens a project on them), and edit those two
   sections of `card.md` only once the owner kept that item. Headless: do not edit them. Log where work stopped as a timeline line, and the next session reads it.
 
 Never write a Done or Decisions list into the card, and never rewrite an earlier line. No project
@@ -134,7 +134,7 @@ Writes made with `log` and `remember` are already committed, and so is every to-
 ## Step 8: Refresh the command center, then report
 
 Invoke `my-view`: it does nothing when the page is off, and a failure there is one line in
-the report. Then `cogby routines ran wrap-up --if-any --source "wrap-up <date>" --result "<the commit line>"`.
+the report. Then `cogby mirror push --if-on`, an extra some owners turned on: say nothing when it prints nothing, one line in the report when it prints or fails. Then `cogby routines ran wrap-up --if-any --source "wrap-up <date>" --result "<the commit line>"`.
 
 Report in the chat, as text: there is no card for it. The last line is signed. It names Cogby and says
 what it did: how many timeline lines and facts this wrap-up wrote, and where they went.

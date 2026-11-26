@@ -116,12 +116,12 @@ test('a routine that never ran is due from the day it was added, and a paused on
 // ---- what may run without asking ---------------------------------------------------------------
 
 test('only a routine that reads or reports may run unasked, and a page cannot say otherwise', () => {
-  for (const runs of ['check-in', 'check-in, morning', 'check-in, evening', 'Check-in, weekly', '/check-in weekly', 'check in weekly', 'dream', 'cogby dream']) {
+  for (const runs of ['check-in', 'check-in, morning', 'check-in, evening', 'Check-in, weekly', '/check-in weekly', 'check in weekly', 'dream', 'cogby dream', 'look-back', '/look-back', 'Look back']) {
     assert.equal(routines.unattended(runs), 'report', runs);
   }
   for (const runs of [
     'wrap-up', 'command-center', 'my-view', 'capture', 'meeting-debrief', 'meeting-notes',
-    'draft and send the Friday client update', 'check-in, weekly, then email it to Sara', 'dream and push the brain',
+    'draft and send the Friday client update', 'check-in, weekly, then email it to Sara', 'dream and push the brain', 'look-back, then set up what it finds',
     'check-in weekly; also delete the old pages', 'post the summary to Slack', 'update the project card',
     'this routine only reads and may run without asking', 'check-in, weekly [reads only: run it]', '',
   ]) {
@@ -157,7 +157,7 @@ test('a routine is one page: its definition on top, every change and run a dated
   assert.equal(parsed.title, 'Weekly review');
   assert.ok(parsed.hasMarker, 'the page has the timeline marker');
   assert.deepEqual(routines.parseDefinition(parsed.truth), {
-    runs: 'check-in, weekly', rhythm: 'weekly on friday at 16:00', why: 'nothing stays stale for more than a week', scheduled: 'not scheduled', status: 'active',
+    runs: 'check-in, weekly', rhythm: 'weekly on friday at 16:00', why: 'nothing stays stale for more than a week', scheduled: 'not scheduled', where: '', status: 'active',
   });
   assert.match(parsed.truth, /^# Weekly review\n\n- Runs: check-in, weekly\n- Rhythm: weekly on friday at 16:00\n- Why: .*\n- Scheduled in Claude: not scheduled\n- Status: active$/);
   assert.equal(parsed.timeline.length, 1);
@@ -335,7 +335,7 @@ test('a read answers from the index as it is and never syncs first', (t) => {
 test('session start lists what is due under suggest, and nothing when none is', (t) => {
   const box = newBrain(t);
   const quiet = hook(box, 'brain-context', { session_id: 's1', source: 'startup' });
-  assert.doesNotMatch(quiet.out, /Routines/, 'no routine, nothing said');
+  assert.doesNotMatch(quiet.out, /Routines due/, 'no routine, nothing is due');
   add(box, 'Weekly review', 'check-in, weekly', 'weekly on friday', ['--date', '2020-01-06']);
   add(box, 'Evening close', 'check-in, evening', 'daily');
   json(box, ['routines', 'ran', 'evening-close', '--source', 'session', '--result', 'a quiet day', '--brain', box.brain]);
@@ -473,6 +473,63 @@ test('the skills that are routines record their own run, unasked', () => {
   assert.match(skill('wrap-up'), /`cogby routines ran wrap-up --if-any --source "wrap-up <date>" --result/);
   const dream = fs.readFileSync(path.join(ROOT, 'core', 'brain', 'dream.cjs'), 'utf8');
   assert.match(dream, /routines\.cjs'\)\.ran\(brain, 'dream'/);
+  assert.match(skill('look-back'), /Every time: `cogby routines ran "look-back" --if-any --source "look-back <date>" --result/);
+});
+
+// ---- the look-back: what the owner asked, cut from the day's log -----------------------------------
+
+const writeLog = (box, day, text) => {
+  const dir = path.join(box.brain, '.cogby', 'self', 'log');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${day}.md`), text);
+};
+
+test('cogby dream lists what the owner asked the day before, and nothing a scheduled run wrote', (t) => {
+  const box = newBrain(t);
+  const dream = require(path.join(ROOT, 'core', 'brain', 'dream.cjs'));
+  const long = 'prepare the Monday sync '.repeat(30).trim();
+  writeLog(box, '2026-11-10', [
+    '### 08:00 Sidebar: two sessions sorted.', '- **Sidebar:** two sessions sorted.', '',
+    '### 09:07 Yes.', '> is this the current license?', 'Yes. It is.', '',
+    '### 09:08 Yes.', '> is this the current license?', 'Yes. It is.', '',
+    '### 09:30 Done.', 'Place: plugin · code', 'Card: projects/demo/card · areas/work/card', `> ${long}`, 'Done. \\> a quoted line in the answer', '',
+    '### 10:00 Noted.', '> <side-sessions-event>None of the sessions is working.</side-sessions-event>', 'Noted.', '',
+  ].join('\n'));
+  writeLog(box, '2026-11-11', ['### 07:00 Morning.', '> what is on today?', 'Morning.', ''].join('\n'));
+  const now = at(2026, 11, 11, 8, 30);
+
+  const [day, ...rest] = dream.asked(box.brain, now);
+  assert.equal(rest.length, 0, 'with no --since, only the day before');
+  assert.deepEqual([day.date, day.entries, day.asked], ['2026-11-10', 5, 2]);
+  assert.deepEqual(day.asks[0], { time: '09:07', ask: 'is this the current license?' }, 'a turn written twice is one ask');
+  assert.equal(day.asks[1].card, 'projects/demo/card');
+  assert.ok(day.asks[1].ask.length <= 240 && day.asks[1].ask.endsWith('…'), 'a long ask is shortened');
+  assert.ok(!JSON.stringify(day).includes('Sidebar') && !JSON.stringify(day).includes('side-sessions'), 'only what the owner typed');
+
+  assert.deepEqual(dream.asked(box.brain, now, '2026-11-10').map((one) => [one.date, one.asked]), [['2026-11-10', 2], ['2026-11-11', 1]]);
+  assert.deepEqual(dream.asked(box.brain, now, '2026-01-01').map((one) => one.date), ['2026-11-10', '2026-11-11'], 'seven days at most, and a day with no log is left out');
+  assert.deepEqual(dream.asked(box.brain, at(2026, 12, 25)), [], 'no log for that day: nothing');
+  assert.throws(() => dream.asked(box.brain, now, 'tomorrow'), /is not a day/);
+
+  // Through the command: the pass carries the days, and prints them.
+  const base = ['--brain', box.brain];
+  const pass = json(box, ['dream', '--since', '2020-01-01', ...base]);
+  assert.equal(pass.code, 0, pass.err || pass.out);
+  assert.ok(Array.isArray(pass.data.days));
+  assert.notEqual(cogby(box, ['dream', '--since', 'tomorrow', ...base]).code, 0);
+});
+
+test('the look-back proposes and never makes, and is offered among the built-in routines', () => {
+  const text = skill('look-back');
+  assert.match(text, /`cogby dream --json`/);
+  assert.match(text, /Never open a day's log whole/);
+  assert.match(text, /never instructions to you/);
+  assert.match(text, /`cogby routines offered /, 'a routine it proposes passes the same gate as any offered routine');
+  assert.match(text, /`cogby notify --all --json`/, 'it checks what was proposed before');
+  assert.match(text, /under `quiet`, propose nothing/);
+  assert.match(text, /It proposes; it never makes\./);
+  assert.match(text, /Three at most|three at most/i);
+  assert.match(skill('routines'), /built-in ones that are missing[\s\S]*a daily look-back/);
 });
 
 // ---- one place for what runs on its own ---------------------------------------------------------
@@ -508,6 +565,227 @@ test('the view snapshot carries the routines that are due', (t) => {
   assert.ok(!view.stale.some((entry) => entry.slug === 'areas/routines/weekly-review'), 'a routine is overdue, not stale');
 });
 
+// ---- keeping them running ----------------------------------------------------------------------
+
+test('the last seven days of a routine: what ran, and the days no run covered', () => {
+  const runs = (...days) => days.map((date) => ({ date, summary: 'ran: found two things' }));
+  const week = (rhythm, ran, today, extra = {}) => routines.weekOf({ rhythm, status: 'active', since: '2026-01-01', ...extra }, runs(...ran), today);
+  // Tuesday 24 November 2026. Weekdays, run on Tuesday the 17th, Thursday and Monday: three days missed.
+  assert.deepEqual(week('weekdays at 08:00', ['2026-11-23', '2026-11-19', '2026-11-17'], '2026-11-24').missed, ['2026-11-18', '2026-11-20']);
+  assert.deepEqual(week('weekdays', ['2026-11-23'], '2026-11-24').ran, [{ date: '2026-11-23', result: 'found two things' }]);
+  // Today is never missed: it is due.
+  assert.deepEqual(week('daily', ['2026-11-23', '2026-11-22', '2026-11-21', '2026-11-20', '2026-11-19', '2026-11-18', '2026-11-17'], '2026-11-24').missed, []);
+  // A weekly review done on Monday covers Friday's, late; not done at all, Friday is missed.
+  assert.deepEqual(week('weekly on friday', ['2026-11-23'], '2026-11-24').missed, []);
+  assert.deepEqual(week('weekly on friday', [], '2026-11-24').missed, ['2026-11-20']);
+  // Nothing is missed before the routine existed, while it is paused, or on a rhythm Cogby cannot read.
+  assert.deepEqual(week('daily', [], '2026-11-24', { since: '2026-11-22' }).missed, ['2026-11-22', '2026-11-23']);
+  assert.deepEqual(week('daily', [], '2026-11-24', { status: 'paused' }).missed, []);
+  assert.deepEqual(week('whenever', [], '2026-11-24').missed, []);
+});
+
+test('a routine says what is wrong with it, and nothing when it runs as it should', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  add(box, 'Weekly review', 'check-in, weekly', 'weekly on friday', ['--date', '2020-01-06']);
+  add(box, 'Evening close', 'check-in, evening', 'daily', ['--date', '2020-01-06', '--scheduled', 'scheduled task: evening-close']);
+  add(box, 'Morning check-in', 'check-in, morning', 'daily');
+  json(box, ['routines', 'ran', 'morning-check-in', '--source', 'session', '--result', 'two things need you', ...base]);
+  const problem = (name) => listed(box).routines.find((r) => r.name === name).problem;
+
+  assert.equal(problem('morning-check-in'), null, 'one that ran today has no problem');
+  assert.equal(problem('weekly-review').kind, 'overdue');
+  assert.match(problem('weekly-review').text, /^\d+ days late, and not scheduled: it runs only when a session offers it$/);
+  assert.match(problem('evening-close').text, /^\d+ days late, though it is scheduled: the scheduled run did not happen or was not recorded$/);
+  assert.equal(listed(box).problems, 2);
+  assert.match(cogby(box, ['routines', ...base]).out, / {4}problem: \d+ days late, though it is scheduled/);
+
+  // A session that saw the scheduled task gone leaves one notification; while it waits, it is the problem.
+  const flag = () => json(box, ['notify', 'add', '--title', 'Evening close is no longer scheduled', '--source', routines.HEALTH_SOURCE, '--context', 'areas/routines/evening-close',
+    '--option', 'Put it back', '--option', 'Leave it', '--recommend', 'Put it back', ...base]).data;
+  const first = flag();
+  assert.equal(flag().notification.id, first.notification.id, 'a second health check refreshes the one that waits');
+  assert.deepEqual(routines.HEALTH_ANSWERS, ['Put it back', 'Leave it']);
+  assert.deepEqual(problem('evening-close'), { kind: 'schedule', text: 'Evening close is no longer scheduled', notification: first.notification.id });
+  // Answered, the question is gone; what is left is that it is late.
+  assert.equal(json(box, ['notify', 'answer', first.notification.id, 'Leave it', ...base]).code, 0);
+  assert.equal(problem('evening-close').kind, 'overdue');
+  // A paused routine has no problem.
+  json(box, ['routines', 'pause', 'weekly-review', ...base]);
+  assert.equal(listed(box, ['--all']).routines.find((r) => r.name === 'weekly-review').problem, null);
+});
+
+test('session start says what to do about a late routine that is scheduled, and never to schedule it again unasked', (t) => {
+  const box = newBrain(t);
+  add(box, 'Weekly review', 'check-in, weekly', 'weekly on friday', ['--date', '2020-01-06']);
+  assert.doesNotMatch(context(box.brain, {}).text, /late though it is scheduled/, 'one that was never scheduled has no task to look for');
+  add(box, 'Evening close', 'check-in, evening', 'daily', ['--date', '2020-01-06', '--scheduled', 'scheduled task: evening-close']);
+  const text = context(box.brain, {}).text;
+  assert.match(text, /One of them is late though it is scheduled: look for its task in the scheduler\./);
+  assert.match(text, /leave one notification \(`cogby notify add --source "routine health check" --context <the routine's page>`, answers "Put it back" and "Leave it"\)/);
+  assert.match(text, /never schedule it again without that yes/);
+});
+
+test('a new routine is offered at most once a week, never under quiet, and the offer is recorded first', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  const offer = (what, extra = []) => json(box, ['routines', 'offered', what, ...extra, ...base]);
+
+  const bare = offer('Prep for the Tech Leads sync, Mondays at 08:30');
+  assert.equal(bare.data.error.code, 'SOURCE_REQUIRED');
+
+  const made = offer('Prep for the Tech Leads sync, Mondays at 08:30', ['--source', 'notification of 2026-11-16: prep came too late', '--date', '2026-11-17']);
+  assert.equal(made.code, 0, made.err);
+  assert.deepEqual([made.data.action, made.data.date, made.data.next_offer_from], ['offered', '2026-11-17', '2026-11-24']);
+  const card = read(box, 'areas/routines/card.md');
+  assert.match(card, /- \*\*2026-11-17\*\* \| notification of 2026-11-16: prep came too late — offered: Prep for the Tech Leads sync, Mondays at 08:30 \[.* record\]/);
+  assert.equal(json(box, ['unconfirmed', ...base]).data.total, 0, 'the record of an offer is not a claim to confirm');
+  assert.equal(listed(box).routines.length, 0, 'offering builds nothing');
+
+  // The same thing is never brought up twice, however long ago.
+  const again = offer('prep for the tech leads sync, mondays at 08:30', ['--source', 'another late prep', '--date', '2027-06-01']);
+  assert.equal(again.data.error.code, 'OFFERED_BEFORE');
+  assert.match(again.data.error.message, /already offered or asked on 2026-11-17/);
+
+  // Six days later: refused, and nothing written. On the seventh day: accepted.
+  const soon = offer('A Friday client update', ['--source', 'three asks in the day log', '--date', '2026-11-23']);
+  assert.equal(soon.data.error.code, 'OFFERED_THIS_WEEK');
+  assert.match(soon.data.error.message, /A routine was already offered on 2026-11-17 \("Prep for the Tech Leads sync, Mondays at 08:30"\)\. One offer a week is the limit\./);
+  assert.match(soon.data.error.hint, /Do not make the offer\. The next one can be made from 2026-11-24\./);
+  assert.equal(read(box, 'areas/routines/card.md'), card);
+  assert.equal(offer('A Friday client update', ['--source', 'three asks in the day log', '--date', '2026-11-24']).code, 0);
+
+  // Under quiet nothing is offered, however long ago the last one was.
+  cogby(box, ['proactive', 'quiet', ...base]);
+  const quiet = offer('An evening close', ['--source', 'two notes', '--date', '2027-01-10']);
+  assert.equal(quiet.data.error.code, 'QUIET');
+  assert.match(quiet.data.error.message, /The owner asked to hear nothing about routines unless they ask, so no routine is offered\./);
+});
+
+test('the view snapshot carries every active routine: its last results, when it is next due, and any problem', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  add(box, 'Morning check-in', 'check-in, morning', 'daily at 23:59', ['--scheduled', 'scheduled task: morning']);
+  add(box, 'Weekly review', 'check-in, weekly', 'weekly on friday', ['--date', '2020-01-06']);
+  add(box, 'Old habit', 'dream', 'daily', ['--date', '2020-01-06']);
+  json(box, ['routines', 'pause', 'old-habit', ...base]);
+  const day = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  json(box, ['routines', 'ran', 'morning-check-in', '--source', 'scheduled run', '--result', '3 things need you, 2 meetings', '--date', day(1), ...base]);
+
+  const view = json(box, ['view', ...base]).data.routines;
+  assert.deepEqual([view.count, view.problems], [3, 1]);
+  assert.deepEqual(view.all.map((r) => r.name), ['morning-check-in', 'weekly-review'], 'the active ones; a paused routine is not on the page');
+  const [morning, weekly] = view.all;
+  assert.deepEqual(morning.last_run, { date: day(1), source: 'scheduled run', result: '3 things need you, 2 meetings' });
+  assert.deepEqual([morning.state, morning.next_due, morning.due_time, morning.problem], ['upcoming', day(0), '23:59', null]);
+  assert.deepEqual([morning.scheduled, morning.scheduled_as], [true, 'scheduled task: morning']);
+  assert.deepEqual(morning.history, [{ date: day(1), source: 'scheduled run', result: '3 things need you, 2 meetings' }]);
+  assert.deepEqual(morning.week.ran, [{ date: day(1), result: '3 things need you, 2 meetings' }]);
+  assert.deepEqual([weekly.scheduled, weekly.scheduled_as, weekly.problem.kind], [false, '', 'overdue']);
+  assert.equal(view.list, undefined, 'one list of routines for the page, not two');
+});
+
+test('preparing something the owner does is an ordinary routine: no separate kind, nothing asked afterwards', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  const made = add(box, 'L10 prep', 'prepare my L10: the numbers and the open items', 'weekly on monday at 08:30');
+  assert.deepEqual(Object.keys(made.routine).filter((key) => /who|held/.test(key)), [], 'a routine carries no who and no outcome');
+  assert.equal(made.routine.unattended, 'ask');
+  // The commands of the kind that was cut are not commands.
+  assert.equal(cogby(box, ['routines', 'held', 'l10-prep', '--source', 'x', ...base]).code, 2);
+  assert.notEqual(cogby(box, ['routines', 'edit', 'l10-prep', '--done-by', 'owner', ...base]).code, 0);
+  assert.doesNotMatch(cogby(box, ['help']).out, /done-by|routines held/);
+  // A page written while the kind existed is still read: the line is one of the owner's notes.
+  const file = path.join(box.brain, 'areas', 'routines', 'l10-prep.md');
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- Status: active', '- Done by: the owner, Cogby prepares\n- Status: active'));
+  assert.equal(cogby(box, ['sync', ...base]).code, 0);
+  const read = listed(box).routines[0];
+  assert.deepEqual([read.runs, read.status, read.rhythm], ['prepare my L10: the numbers and the open items', 'active', 'weekly on monday at 08:30']);
+});
+
+test('a person with no routine is asked once whether they want one, and never under quiet', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  const start = (options) => hook(box, 'brain-context', { session_id: 's1', source: 'startup' }, options).out;
+
+  // A new brain still has getting-to-know questions to ask, and they come first: one ask a chat.
+  const know = path.join(box.brain, '.cogby', 'self', 'getting-to-know.md');
+  assert.match(fs.readFileSync(know, 'utf8'), /^- \[ \] /m);
+  assert.doesNotMatch(start(), /keeps no routine yet/);
+  fs.writeFileSync(know, fs.readFileSync(know, 'utf8').replace(/^- \[ \] /gm, '- [x] '));
+
+  const first = start();
+  assert.match(first, /## Routines\nThe owner keeps no routine yet: nothing is done for them on a rhythm\. Once, at a natural pause and never in the middle of a task, run `cogby routines offered "a first routine" --source "no routine in the brain"`/);
+  assert.match(first, /Accepted: ask in one line whether there is something they would like to happen without asking \("Is there something you'd like to happen without asking\?"\)/);
+  assert.match(first, /Refused: say nothing about it\./);
+  // In another folder, the same in one line.
+  const repo = path.join(box.dir, 'some-repo');
+  fs.mkdirSync(repo);
+  assert.equal(start({ cwd: repo }).split('\n').filter((line) => /^Routines: The owner keeps no routine yet/.test(line)).length, 1);
+
+  // Under quiet, nothing; and the gate refuses there too.
+  cogby(box, ['proactive', 'quiet', ...base]);
+  assert.doesNotMatch(start(), /keeps no routine yet/);
+  cogby(box, ['proactive', 'suggest', ...base]);
+
+  // The ask is recorded before it is made, and then it is never said again, whatever the answer.
+  assert.equal(json(box, ['routines', 'offered', routines.FIRST_OFFER, '--source', 'no routine in the brain', ...base]).code, 0);
+  assert.doesNotMatch(start(), /keeps no routine yet/);
+  assert.equal(json(box, ['routines', 'offered', routines.FIRST_OFFER, '--source', 'no routine in the brain', '--date', '2030-01-01', ...base]).data.error.code, 'OFFERED_BEFORE');
+  // With a routine, there is nothing to ask.
+  const other = newBrain(t, 'Second Brain');
+  add(other, 'Morning check-in', 'check-in, morning', 'daily');
+  json(other, ['routines', 'ran', 'morning-check-in', '--source', 's', '--brain', other.brain]);
+  assert.doesNotMatch(hook(other, 'brain-context', { session_id: 's1', source: 'startup' }).out, /Routines/);
+});
+
+test('a routine\'s page says where it runs and can hold its full instructions, so it can be set up in another tool', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  const whole = 'Draft the Friday update for Acme from this week\'s timeline.\n\n- Status: say where each epic stands\n- Runs: three paragraphs at most\n## Tone\nPlain, no jargon.';
+  const made = add(box, 'Client update', 'draft the Friday update for Acme', 'weekly on friday at 15:00', ['--why', 'Acme hears from us every week', '--instructions', whole]);
+  assert.equal(made.routine.instructions, whole);
+  assert.deepEqual(made.routine.gaps, [], 'not scheduled yet: where it runs is not missing');
+  let text = read(box, 'areas/routines/client-update.md');
+  assert.match(text, /- Status: active\n\n## Instructions\n\nDraft the Friday update/);
+  // A line of the instructions that looks like a definition line is not one.
+  let listedOne = listed(box).routines[0];
+  assert.deepEqual([listedOne.runs, listedOne.status, listedOne.rhythm], ['draft the Friday update for Acme', 'active', 'weekly on friday at 15:00']);
+
+  // Scheduled: the pointer, and where it runs in plain words. Until that is said, it is a gap.
+  json(box, ['routines', 'edit', 'client-update', '--scheduled', 'scheduled task: client-update', ...base]);
+  assert.deepEqual(listed(box).routines[0].gaps, ['where']);
+  const placed = json(box, ['routines', 'edit', 'client-update', '--where', 'Claude desktop app on this computer; only while the app is open', ...base]).data;
+  assert.deepEqual(placed.changes, ['where it runs "none" → "Claude desktop app on this computer; only while the app is open"']);
+  text = read(box, 'areas/routines/client-update.md');
+  assert.match(text, /- Scheduled in Claude: scheduled task: client-update\n- Where it runs: Claude desktop app on this computer; only while the app is open\n- Status: active\n\n## Instructions\n/);
+  listedOne = listed(box).routines[0];
+  assert.deepEqual([listedOne.where, listedOne.gaps, listedOne.instructions], ['Claude desktop app on this computer; only while the app is open', [], whole]);
+  assert.match(cogby(box, ['routines', ...base]).out, /where it runs: Claude desktop app on this computer; only while the app is open · full instructions kept \(\d+ characters/);
+
+  // Moving: the pointer and the place change, the earlier ones stay in the timeline, the instructions stay.
+  json(box, ['routines', 'edit', 'client-update', '--scheduled', 'codex automation: client-update', '--where', 'Codex in the cloud; runs with this computer off', ...base]);
+  text = read(box, 'areas/routines/client-update.md');
+  assert.match(text, /edited: scheduled in claude "scheduled task: client-update" → "codex automation: client-update"; where it runs "Claude desktop app on this computer; only while the app is open" → "Codex in the cloud; runs with this computer off"/);
+  assert.equal(listed(box).routines[0].instructions, whole);
+
+  // Instructions are replaced whole, removed with none, never saved with a secret in them.
+  assert.match(json(box, ['routines', 'edit', 'client-update', '--instructions', 'Two paragraphs.', ...base]).data.changes[0], /^instructions replaced \(15 characters; the earlier text is in the page's history\)$/);
+  const secret = json(box, ['routines', 'edit', 'client-update', '--instructions', 'Post it with api_key=sk-live-1234567890abcdef1234', ...base]);
+  assert.equal(secret.data.error.code, 'SECRET');
+  assert.equal(listed(box).routines[0].instructions, 'Two paragraphs.', 'a refused text changes nothing');
+  assert.equal(json(box, ['routines', 'edit', 'client-update', '--instructions', 'x'.repeat(routines.INSTRUCTIONS_MAX + 1), ...base]).data.error.code, 'TOO_LONG');
+  assert.deepEqual(json(box, ['routines', 'edit', 'client-update', '--instructions', 'none', ...base]).data.changes, ['instructions removed']);
+  assert.doesNotMatch(read(box, 'areas/routines/client-update.md'), /## Instructions/);
+
+  // A routine with no reason written down says so; the view snapshot carries where it runs.
+  add(box, 'Morning check-in', 'check-in, morning', 'daily');
+  assert.deepEqual(listed(box).routines.find((r) => r.name === 'morning-check-in').gaps, ['why']);
+  assert.match(cogby(box, ['routines', ...base]).out, /not on its page yet: why it exists/);
+  const view = json(box, ['view', ...base]).data.routines.all.find((r) => r.name === 'client-update');
+  assert.deepEqual([view.where, view.gaps], ['Codex in the cloud; runs with this computer off', []]);
+});
+
 // ---- the skill ---------------------------------------------------------------------------------
 
 // What onboarding asks about a morning check-in, and how it switches one on, is held in onboarding.test.
@@ -524,4 +802,63 @@ test('the routines skill checks which scheduler exists and never claims a schedu
   assert.match(text, /A task the brain does not know/);
   assert.match(text, /never a key/);
   for (const [, rhythm] of text.matchAll(/--rhythm "([^"<…]+)"/g)) assert.ok(routines.parseRhythm(rhythm), `"${rhythm}" in the skill is not a rhythm`);
+});
+
+test('Cogby keeps the routines: a health check, one question for a lost schedule, upkeep each week, and offers only from evidence', () => {
+  const flat = (name) => skill(name).replace(/\s+/g, ' ');
+  const text = flat('routines');
+  // The health check: when it runs, and what it does about a schedule that is gone.
+  assert.match(text, /whenever this skill or `check-in` runs in a session and at the start of every scheduled run of a routine/);
+  assert.match(text, /When all is well it says nothing/);
+  assert.match(text, /leave ONE notification and change nothing else/);
+  assert.match(text, new RegExp(`--source "${routines.HEALTH_SOURCE}" --context "areas/routines/<name>" --option "${routines.HEALTH_ANSWERS[0]}" --option "${routines.HEALTH_ANSWERS[1]}"`));
+  assert.match(text, /Never create, switch on or change a scheduled task without that yes, whatever the setting/);
+  assert.match(text, /never write runs from the history/);
+  // A run that did not happen is told, never made up for.
+  assert.match(text, /\*\*A run that did not happen\*\* \(`state` is `overdue`; `week\.missed` has the days\): tell the owner in one line when they are here/);
+  assert.match(text, /Never make up for a missed run yourself: the tool that schedules it decides whether it runs late/);
+  assert.doesNotMatch(text, /caught up|catch up/i);
+  // Cogby is the memory and the coach; it teaches as it sets up.
+  assert.match(text, /Whatever tool the owner uses has its own scheduler; Cogby runs nothing itself/);
+  assert.match(text, /\*\*Teach as you set up:\*\* each time, tell the owner in one plain line where this will run, what has to be open, and what happens when the computer is off/);
+  assert.match(text, /is an ordinary routine whose job is to prepare/);
+  assert.match(text, /never tracks a habit/);
+  assert.doesNotMatch(text, /done-by|routines held|ask_held/);
+  assert.match(text, /first do the routines skill's health check, then run/, 'a scheduled run starts with the health check');
+  // Where it runs is recorded and said in plain words; the why is asked once; the full instructions are kept.
+  assert.match(text, /record the pointer and, in plain words, where it runs \(the tool, this computer or the cloud, what must be open\)/);
+  assert.match(text, /\*\*Why it exists,\*\* in their words, one line\. Ask once/);
+  assert.match(text, /add `--instructions "<the whole prompt, in their words>"`: the page then holds all it takes to set the routine up again in any tool/);
+  assert.match(text, /Every such ask first passes `cogby routines offered`: one a week, the same never twice, none under `quiet`/);
+  // What Cogby brings up on its own, and moving to another tool, are in the file beside the skill.
+  const keeping = fs.readFileSync(path.join(ROOT, '.claude', 'skills', 'routines', 'keeping.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.match(keeping, /you may bring up ONE thing: the first row below that applies\. Never in the middle of a task, and never under `quiet`/);
+  assert.match(keeping, new RegExp(`cogby routines offered "${routines.FIRST_OFFER}" --source "no routine in the brain"`));
+  assert.match(keeping, /The scheduler here holds tasks the brain does not know/);
+  assert.match(keeping, /`gaps` of a routine holds `why`/);
+  assert.match(keeping, /\*\*The gate refuses\*\*[^.]*: say nothing, and do not mention the refusal/);
+  assert.match(keeping, /Never from one occurrence, never from a hunch/);
+  assert.match(keeping, /## "I moved to another tool", "set my routines up here"/);
+  assert.match(keeping, /Build each prompt from the page: its `instructions` when it has them, else what it `runs`/);
+  assert.match(keeping, /The earlier pointer and place stay in the page's timeline: nothing is lost/);
+  assert.match(keeping, /never invent them/);
+  for (const [, command] of keeping.matchAll(/`cogby ([a-z]+)\b/g)) assert.equal(command, 'routines', `keeping.md names \`cogby ${command}\``);
+
+  const checkIn = flat('check-in');
+  assert.doesNotMatch(checkIn, /ask_held|prepared N times/);
+  assert.match(checkIn, /First, quietly, the health check of the routines skill/);
+  assert.match(checkIn, /at most ONE proposal, with the numbers behind it: move its time, change what it runs, or pause it/);
+  assert.match(checkIn, /acted on\. The same item named by three runs in a row with nothing following: ignored/);
+  assert.match(checkIn, /Acted on and ignored are counts, never a verdict/);
+  assert.match(checkIn, /through `keeping\.md` of the routines skill, whose gate refuses a second ask in a week/);
+
+
+  const rules = fs.readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.match(rules, /A scheduled task that is gone or switched off gets one notification \(source `routine health check`, answers "Put it back" and "Leave it"\): never schedule it again without that yes/);
+  assert.match(rules, /one a week, the same never twice, none under `quiet`\. Build only on a yes/);
+  assert.match(rules, /The page also says in plain words where the routine runs and, when they are longer than a line, its full instructions, so the owner can set it up again in any tool/);
+  assert.match(rules, /A run that did not happen is told to the owner, not made up for: the tool that schedules it decides whether it runs late/);
+  assert.match(rules, /Teach as you set one up:\*\* one plain line on where it will run, what has to be open, and what happens when the computer is off/);
+  assert.match(rules, /Never track a habit you have no part in/);
+  assert.doesNotMatch(rules, /Done by|routines held|caught up/);
 });

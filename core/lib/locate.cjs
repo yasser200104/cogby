@@ -102,4 +102,28 @@ function rootsFrom(cwd) {
   return { engine: ENGINE, brain: paths.brainOf(ENGINE), inTree: true };
 }
 
-module.exports = { rootsFrom, ENGINE };
+/**
+ * crossesPrivate(cwd, opened = CLAUDE_PROJECT_DIR) → boolean
+ *
+ * A private brain (core/brain/brain.cjs isPrivate) is sealed both ways. The hooks that write the
+ * day's log and save it (capture-log, session-wrapup) work from the folder the payload names, which
+ * can be one the shell moved to, while the session belongs to the folder it was opened in, the one
+ * plugin-hook.cjs and findBrain go by. When the two lie in different brains, or one in a brain and
+ * one in none, and a brain among them is private, those hooks do nothing: a private brain's turns
+ * never reach another brain, and another chat's never reach it. A marker that cannot be read is no
+ * mark, so where no brain is private nothing changes.
+ */
+function crossesPrivate(cwd, opened = process.env.CLAUDE_PROJECT_DIR) {
+  if (!opened || cwd == null || String(cwd).trim() === '') return false;
+  const a = brainAbove(startDir(opened));
+  const b = brainAbove(startDir(cwd));
+  if (!a && !b) return false;
+  if (a && b && paths.samePath(a, b)) return false;
+  const marked = (dir) => {
+    try { return JSON.parse(fs.readFileSync(path.join(dir, '.cogby', 'brain.json'), 'utf8').replace(/^\uFEFF/, '')).private === true; }
+    catch { return false; }
+  };
+  return (!!a && marked(a)) || (!!b && marked(b));
+}
+
+module.exports = { rootsFrom, crossesPrivate, ENGINE };

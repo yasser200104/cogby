@@ -185,14 +185,14 @@ const TOOLS = [
   },
   {
     name: 'notify', title: 'Notifications', readOnly: false,
-    description: 'What Cogby leaves for its owner. Actions: list (all: true for every one), add, read, dismiss, later, answer, comment. add: a title the owner can act on; the same source and context refreshes the one waiting; pass options and recommend when it asks a question; status "acted" with reason and undo records something done without asking. Nothing is deleted.',
+    description: 'What waits for the owner. add: a notification carries a question and its answers (options, recommend) or one thing to do (recommend alone), or it is not one: what needs nothing from the owner is added with status "acted" (reason, undo), shown as done without them. The same source and context refreshes the one waiting. list: all for every one. Nothing is deleted.',
     inputSchema: obj({
       action: { type: 'string', enum: ['list', 'add', 'read', 'dismiss', 'later', 'answer', 'comment'] },
       id: str('All but list and add'), all: { type: 'boolean' },
-      title: str('add: one sentence'), body: str('add: the detail'), source: str('add: who leaves it; comment: where the words came from'),
-      context: str('add: what it is about, e.g. "<project> · <thread>"'), priority: { type: 'string', enum: ['normal', 'high'] },
+      title: str('add: one sentence'), body: str('add: the detail'), source: str('add: who leaves it; comment: where it was said'),
+      context: str('add: its project, or <project> · <thread>'), priority: { type: 'string', enum: ['normal', 'high'] },
       options: { type: 'array', items: { type: 'string' }, description: 'add: the possible answers' },
-      recommend: str('add: the recommended option'), if_ignored: str('add: what happens with no answer'),
+      recommend: str('add: the suggested option, or what to do'), if_ignored: str('add: what happens if ignored'),
       status: { type: 'string', enum: ['unread', 'acted'] }, reason: str('add, acted: why'), undo: str('add, acted: how to undo it'),
       option: str('answer: the chosen option'), text: str('comment: the words'), author: str('comment: who said them'),
     }, ['action']),
@@ -210,7 +210,7 @@ const TOOLS = [
   },
   {
     name: 'card', title: 'Show a card', readOnly: true, needsBrain: false,
-    description: 'A card to show in the chat, where the session can show an inline visual. Returns `html`: show it exactly as returned. A click sends an ordinary chat message. Names: wrap-up-review, debrief-review, digest-review, quiz, picture. The skill that uses a card gives its `data`.',
+    description: 'A card to show in the chat, where the session can show an inline visual. Returns `html`: show it exactly as returned. A click sends an ordinary chat message. Names: wrap-up-review, debrief-review, digest-review, quiz. The skill that uses a card gives its `data`.',
     inputSchema: obj({ name: str('The card'), data: { type: 'object', description: 'What the card shows' } }, ['name']),
     run: (_, a) => require('./cards.cjs').render(a.name, a.data),
   },

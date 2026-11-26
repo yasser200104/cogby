@@ -168,9 +168,10 @@ function view(brain, options = {}) {
 }
 
 // A notification is about a project when its context is the project's slug, its folder, or its
-// folder's name: `projects/harbor/card`, `projects/harbor` and `harbor` all name Harbor.
+// folder's name: `projects/harbor/card`, `projects/harbor` and `harbor` all name Harbor. A context
+// written "<project> · <thread>" is about the project before the dot.
 function names(context, slug, folder) {
-  const key = String(context || '').trim().toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '');
+  const key = String(context || '').split(' · ')[0].trim().toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '');
   if (!key) return false;
   return [slug, folder, folder.split('/').at(-1)].some((name) => key === String(name).toLowerCase());
 }

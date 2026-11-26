@@ -25,7 +25,8 @@
 // from: exit 2 would block a prompt or a tool call over a hook that only reads and records. stdio is
 // inherited, so the payload reaches the hook on stdin and its output reaches Claude Code unchanged;
 // the hook's exit code is passed back. Not require(): a hook run as main and a hook loaded as a
-// module are not the same program.
+// module are not the same program. One hook is not waited for: session-wrapup is started as a
+// detached helper and this file returns at once (the reason is at the hand-over, further down).
 //
 // Two hooks also start the background sync that keeps the brain's index up to date: brain-context
 // (a session starts) and capture-log (a turn ended in the brain). It is a detached process this file does not
@@ -117,7 +118,11 @@ let usual = null;
 if (!here && (HOOK === 'brain-context' || HOOK === 'capture-log' || HOOK === 'session-wrapup')) {
   try {
     const named = JSON.parse(fs.readFileSync(path.join(configDir(process.env), 'brains.json'), 'utf8').replace(/^\uFEFF/, '')).default;
-    if (typeof named === 'string' && path.isAbsolute(named) && fs.existsSync(path.join(named, '.cogby', 'brain.json'))) usual = path.resolve(named);
+    // A private brain is never the fallback (core/brain/brain.cjs isPrivate): its marker says so. A
+    // marker that cannot be read says nothing, so any other brain is picked exactly as before.
+    let marked = false;
+    try { marked = JSON.parse(fs.readFileSync(path.join(named, '.cogby', 'brain.json'), 'utf8').replace(/^\uFEFF/, '')).private === true; } catch { /* not marked */ }
+    if (typeof named === 'string' && path.isAbsolute(named) && fs.existsSync(path.join(named, '.cogby', 'brain.json')) && !marked) usual = path.resolve(named);
   } catch { /* none recorded */ }
 }
 const brain = here || usual;
@@ -129,15 +134,56 @@ if (!engine) fail(`no Cogby program for the brain at ${brain} (none above it, an
 
 // The program's own spawn module, the one door to child_process (spawn-chokepoint.test), and the only
 // thing this file loads from the program it found.
+let spawn;
 let spawnSync;
-try { ({ spawnSync } = require(path.join(engine, 'core', 'lib', 'spawn.cjs'))); }
+try { ({ spawn, spawnSync } = require(path.join(engine, 'core', 'lib', 'spawn.cjs'))); }
 catch (e) { fail(`the program's spawn module did not load: ${String(e && e.message).slice(0, 120)}`); }
 
 // Outside a brain, capture-log is handed the default brain by name. It never works one out itself:
 // a code repository with a CLAUDE.md beside a .claude/ folder would otherwise pass for an install,
 // and the log would be planted in it.
 const placeOf = (HOOK === 'capture-log' || HOOK === 'session-wrapup') && !here && usual ? ['--place-of', usual] : [];
-const r = spawnSync(process.execPath, [path.join(engine, '.claude', 'hooks', `${HOOK}.cjs`), ...process.argv.slice(3), ...placeOf], { stdio: 'inherit' });
+const hookArgs = [path.join(engine, '.claude', 'hooks', `${HOOK}.cjs`), ...process.argv.slice(3), ...placeOf];
+
+// session-wrapup is the one hook this file does not wait for. Claude Code gives a SessionEnd hook
+// 1.5 seconds and then stops it wherever it is, and what that hook does is a save: git commands in
+// the brain. On Windows a git stopped while it holds .git/index.lock leaves the lock behind, and
+// every later save is refused. So the hook runs as a detached helper that belongs to nobody: this
+// file reads the payload, hands it to the helper on its stdin and returns, having run no git. The
+// helper starts in the program's folder, not the session's (on Windows it would hold that folder
+// for as long as it runs), and is told the session's folder the way Claude Code tells a hook.
+// COGBY_SESSION_END_INLINE=1 keeps the old way, the work done before this file returns: the tests
+// set it, and it is how a dry run (BRAIN_WRAPUP_DRYRUN=1) is read at a terminal.
+if (HOOK === 'session-wrapup' && process.env.COGBY_SESSION_END_INLINE !== '1') {
+  const done = () => process.exit(0);
+  let payload = '';
+  const handOff = () => {
+    try {
+      const child = spawn(process.execPath, [hookArgs[0], '--helper', ...hookArgs.slice(1)], {
+        cwd: engine, detached: true, stdio: ['pipe', 'ignore', 'ignore'],
+        env: { ...process.env, CLAUDE_PROJECT_DIR: process.env.CLAUDE_PROJECT_DIR || process.cwd() },
+      });
+      child.on('error', done);          // it did not start: the log waits for the next session end
+      child.stdin.on('error', done);
+      child.unref();
+      // Written, not ended: ending the pipe waits until the helper has started and read it, which
+      // is a second Node start inside the hook's time. What is written stays readable after this
+      // process is gone, and its exit is what closes the pipe. A helper that reads nothing (this
+      // process was stopped first) does nothing.
+      child.stdin.write(payload.trim() || '{}', done);
+      setTimeout(done, 1000);           // a payload that will not go through is not waited for
+      if (process.env.BRAIN_WRAPUP_DRYRUN === '1' && child.pid) process.stdout.write(`[wrapup] helper started: pid ${child.pid}\n`);
+    } catch { done(); }
+  };
+  const noPayload = setTimeout(done, 4000);
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => { payload += chunk; });
+  process.stdin.on('error', done);
+  process.stdin.on('end', () => { clearTimeout(noPayload); handOff(); });
+  return;
+}
+
+const r = spawnSync(process.execPath, hookArgs, { stdio: 'inherit' });
 // The sync after a turn is for a session in the brain. A turn in a linked folder changes nothing
 // the index answers from (the day's log is not in default search), so it starts none.
 if (brain && (HOOK === 'brain-context' || (HOOK === 'capture-log' && here))) {

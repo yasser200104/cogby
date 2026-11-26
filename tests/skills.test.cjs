@@ -21,7 +21,8 @@ const MAX_LINES = 160;
 // Onboarding carries its own questions, where they used to come from the card tool: it has to work in
 // the chat where the plugin was just installed, before Cogby's tool server runs. Its screens are files
 // beside it.
-const MAX_LINES_OF = { onboarding: 200 };
+// 204 since 2026-11-24: the six steps the chat lists moved in from screens-text.md, which is read too late.
+const MAX_LINES_OF = { onboarding: 204 };
 
 function frontmatter(text) {
   const block = /^---\n([\s\S]*?)\n---\n/.exec(text);
@@ -40,8 +41,8 @@ function frontmatter(text) {
 
 test('the plugin ships exactly the skills it documents', () => {
   assert.deepEqual(names.slice().sort(), [
-    'capture', 'check-in', 'digest', 'meeting-notes', 'meeting-prep', 'picture', 'quiz-me', 'routines', 'onboarding', 'wrap-up',
-    'clean-writing', 'my-view', 'design', 'plan-page',
+    'capture', 'check-in', 'digest', 'look-back', 'meeting-notes', 'meeting-prep', 'picture', 'quiz-me', 'routines', 'onboarding', 'wrap-up',
+    'clean-writing', 'my-view', 'design', 'plan-page', 'notion-mirror',
   ].sort());
 });
 
@@ -52,6 +53,8 @@ for (const name of names) {
     assert.ok(meta.description.length > 80, 'the description is too short to trigger on');
     assert.ok(meta.description.length < 1024, 'the description is over the length Claude Code reads');
     assert.match(meta.description, /NOT |not for|Does NOT/i, 'the description does not say what the skill is not for');
+    // Cowork refuses a plugin whose skill description holds anything shaped like a tag.
+    assert.doesNotMatch(meta.description, /<[^>]*>/, 'the description holds angle brackets, which Cowork refuses on upload');
   });
 
   test(`skill ${name}: everything it names exists`, () => {

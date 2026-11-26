@@ -1,6 +1,6 @@
 ---
 name: meeting-notes
-description: Turn what happened in a meeting into evidence in the brain. Use on "debrief the meeting", "debrief my 1:1 with…", "debrief today's meetings", "here are my notes from the call with…", "log this meeting", "we just met with…", "process this transcript", /meeting-notes (the old /meeting-debrief), or pasted meeting notes, a transcript or a recap email. Finds the transcript itself through the session's connectors (calendar, Drive, Granola or another notes tool), extracts what was decided, what was learned, who promised what and what waits on the owner, shows it for one confirmation, then writes each item to its one home and keeps a meeting record that points at the transcript. NOT for preparing a meeting (meeting-prep), NOT for a single item (capture), NOT for closing the whole session (wrap-up).
+description: Turn what happened in a meeting into evidence in the brain. Use on "debrief the meeting", "debrief my 1:1 with…", "debrief today's meetings", "here are my notes from the call with…", "log this meeting", "we just met with…", "process this transcript", "catch me up on my meetings", "connect my meetings", /meeting-notes (the old /meeting-debrief), or pasted meeting notes, a transcript or a recap email. Finds the transcript itself through the session's connectors (calendar, Drive, Granola or another notes tool), extracts what was decided, what was learned, who promised what and what waits on the owner, shows it for one confirmation, then writes each item to its one home and keeps a meeting record that points at the transcript. NOT for preparing a meeting (meeting-prep), NOT for a single item (capture), NOT for closing the whole session (wrap-up).
 ---
 
 # Meeting notes: what happened becomes evidence
@@ -11,12 +11,13 @@ the next session will look, and keeps the way back to the transcript.
 ## Step 1: Find the meeting and its transcript
 
 **Which meeting.** One the owner names ("my 1:1 with Sam", "the Acme call yesterday"): find it by
-title, attendee and day. "Today's meetings": list today's calendar events that have ended and
-have a transcript, let the owner pick, then debrief each picked one on its own (its own review, its
-own record).
+title, attendee and day. "Today's meetings": list today's ended calendar events that have a
+transcript, let the owner pick, then debrief each on its own. "Catch me up on my meetings", or the
+Meeting catch-up routine: every meeting held since the last record, as `catch-up.md` beside this file says.
 
-**Where the transcript is.** Use the connectors this session has, in this order, and stop at the
-first that has it. Read only: never edit, share or comment on a transcript, a note or an event.
+**Where the transcript is.** A fact on `areas/work/card` may say where the owner's meetings are recorded:
+try that tool first ("connect my meetings": ask where, check it is connected, keep it as that fact). Then the
+connectors here, in this order, stopping at the first that has it. Read only: never edit, share or comment.
 
 1. **The calendar event** (Google Calendar). Google Meet attaches to it a Google Doc
    "<event title> - YYYY/MM/DD HH:MM GMT – Transcript", a Drive file "… – Recording" and, when
@@ -37,10 +38,9 @@ first that has it. Read only: never edit, share or comment on a transcript, a no
    in the day's log, as every ask does. When no connector was there, name the one that would make
    this automatic: Google Calendar with Drive for Meet, or Granola.
 
-A tool's own summary (Gemini notes, Granola's notes) is a starting point. Decisions, who made the
-call, commitments and facts are read from the transcript. Speaker labels can be wrong (one name for
-a whole room, or for both people on a 1:1): when who said or decided something matters and the
-label is in doubt, ask. A long transcript is read once, here, and never pasted into the brain.
+A tool's own summary (Gemini notes, Granola's notes) is a starting point. Decisions, who made the call,
+commitments and facts are read from the transcript. Speaker labels can be wrong (one name for a whole room, or
+for both on a 1:1): when who said it matters and the label is in doubt, ask. A transcript is read once, here.
 
 ## Step 2: Find the pages
 

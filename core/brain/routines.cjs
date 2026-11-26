@@ -27,6 +27,7 @@
 //   - Rhythm: weekly on friday at 16:00
 //   - Why: nothing stays stale for more than a week
 //   - Scheduled in Claude: scheduled task "cogby-weekly-review"
+//   - Where it runs: Claude desktop app on this computer; only while the app is open
 //   - Status: active
 //
 //   <!-- timeline -->
@@ -47,11 +48,52 @@ const page = require('./page.cjs');
 
 const FOLDER = 'areas/routines';
 const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const FIELDS = { runs: 'Runs', rhythm: 'Rhythm', why: 'Why', scheduled: 'Scheduled in Claude', status: 'Status' };
-const FIELD_RE = /^\s*[-*]\s*(runs|rhythm|why|scheduled(?: in claude)?|status)\s*:\s*(.*)$/i;
+const FIELDS = { runs: 'Runs', rhythm: 'Rhythm', why: 'Why', scheduled: 'Scheduled in Claude', where: 'Where it runs', status: 'Status' };
+const FIELD_RE = /^\s*[-*]\s*(runs|rhythm|why|scheduled(?: in claude)?|where it runs|status)\s*:\s*(.*)$/i;
+const keyOf = (label) => { const key = label.toLowerCase(); return key.startsWith('scheduled') ? 'scheduled' : key === 'where it runs' ? 'where' : key; };
+// A routine's page is what the owner takes with them to another tool. So beside the pointer, which
+// only means something inside one scheduler, it says in plain words where the routine runs (which
+// tool, this computer or the cloud, what has to be open), and it can hold the full instructions,
+// when what the routine does takes more than the one `Runs` line. They are the last section of the
+// current truth, under this heading, and everything below it is the instructions: a line in them
+// that looks like a definition line is not one. What is scheduled right now is still read in the
+// scheduler, never copied here.
+const INSTRUCTIONS_HEAD = '## Instructions';
+const INSTRUCTIONS_RE = /(^|\n)##\s+Instructions[ \t]*(\n|$)/i;
+const INSTRUCTIONS_MAX = 4000;
+function splitTruth(truth) {
+  const text = String(truth || '');
+  const at = INSTRUCTIONS_RE.exec(text);
+  if (!at) return { head: text, instructions: '' };
+  return { head: text.slice(0, at.index).replace(/\s+$/, ''), instructions: text.slice(at.index + at[0].length).trim() };
+}
+const joinTruth = (head, instructions) => (instructions ? `${head.replace(/\s+$/, '')}\n\n${INSTRUCTIONS_HEAD}\n\n${instructions}` : head.replace(/\s+$/, ''));
+// The instructions as they are kept: the owner's words, with nothing that could end the page's
+// current truth early, and never a secret. One that looks like it holds a secret is refused whole,
+// not saved with a hole in it: a routine names the connector or the variable, never the value.
+function cleanInstructions(value) {
+  const text = String(value == null ? '' : value).replace(/\r\n?/g, '\n').replace(/<!--|-->/g, '').trim();
+  if (!text || /^none$/i.test(text)) return '';
+  if (text.length > INSTRUCTIONS_MAX) throw new BrainError('TOO_LONG', `The instructions are ${text.length} characters; a routine's page keeps ${INSTRUCTIONS_MAX} at most.`, 'Shorten them, or keep the long version in a file of the brain and name that file in the instructions.');
+  if (require('../lib/redact.cjs').redact(text) !== text) throw new BrainError('SECRET', 'The instructions look like they hold a secret (a key, a token or a password), so they were not saved.', 'Name the connector or the environment variable instead of the value, and give them again.');
+  return text;
+}
 const NOT_SCHEDULED = 'not scheduled';
 const RAN_RE = /^ran\b:?\s*(.*)$/i;
 const CONTEXT_LINES = 4;
+// How many of a routine's last runs the view snapshot carries (`history`), newest first.
+const RECENT_RUNS = 5;
+// The days before today that the weekly upkeep looks back over.
+const WEEK_DAYS = 7;
+// The source of the one notification a session leaves when a routine's scheduled task is gone or
+// switched off. Its context is the routine's page. While it waits, the routine carries it as its
+// problem; the same source and context is one notification, refreshed, never a second (notify.cjs).
+const HEALTH_SOURCE = 'routine health check';
+const HEALTH_ANSWERS = Object.freeze(['Put it back', 'Leave it']);
+// A new routine is offered from what the brain shows at most once in this many days, and the offer
+// is a line on the folder's card that starts with this word.
+const OFFER_GAP_DAYS = 7;
+const OFFER_RE = /^offered\b:?\s*(.*)$/i;
 
 const pad = (n) => String(n).padStart(2, '0');
 const isoDay = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -68,7 +110,7 @@ const slugify = (name) => String(name || '').toLowerCase().normalize('NFKD').rep
 const norm = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 // What a routine runs, compared: `/check-in weekly`, `check-in, weekly` and `cogby dream` are the
 // same as `check in weekly` and `dream`.
-const runKey = (text) => norm(text).replace(/^cogby /, '').replace(/^check in\b/, 'check-in').replace(/^wrap up\b/, 'wrap-up');
+const runKey = (text) => norm(text).replace(/^cogby /, '').replace(/^check in\b/, 'check-in').replace(/^wrap up\b/, 'wrap-up').replace(/^look back\b/, 'look-back');
 
 // ---- rhythm -----------------------------------------------------------------------------------
 
@@ -146,10 +188,12 @@ function dueState(routine, now = new Date()) {
 // reads and reports. That is decided here, by a list, and never by the routine's own words: what a
 // routine runs is text on a page, and text on a page must not be able to grant itself permission.
 // On the list: the check-in at any size (it reads and reports, and changes nothing unless the owner
-// picks something) and `dream` (mechanical, writes no page of the owner's). Everything else asks
+// picks something), `dream` (mechanical, writes no page of the owner's) and the look-back (it reads
+// what was asked the day before and leaves proposals as notifications: nothing is made without the
+// owner's yes). Everything else asks
 // first, whatever the setting: the wrap-up (it commits and may push), anything that sends, and any
 // free-text prompt, because nobody can say from here what a prompt will touch.
-const REPORT_ONLY = new Set(['check-in', 'check-in morning', 'check-in evening', 'check-in weekly', 'dream']);
+const REPORT_ONLY = new Set(['check-in', 'check-in morning', 'check-in evening', 'check-in weekly', 'dream', 'look-back']);
 const unattended = (runs) => (REPORT_ONLY.has(runKey(runs)) ? 'report' : 'ask');
 
 // ---- the proactivity setting --------------------------------------------------------------------
@@ -179,15 +223,69 @@ function status(brain, switched = false) {
   return { proactive: readMode(brain), switched, wrapup: wrapup.mode, wrapup_forced_by_env: wrapup.envForced, view_auto: require('./view.cjs').autoStatus(brain).auto };
 }
 
+// ---- keeping them running ----------------------------------------------------------------------
+
+// The last seven days of one routine, for the weekly upkeep: the runs recorded in them, and the days
+// its rhythm fell on that no run covered. A run covers a day when it was recorded on that day or
+// before the rhythm's next day: a weekly review done on Monday covers Friday's, late. Today is never
+// missed, only due. A paused routine misses nothing, and one whose rhythm Cogby cannot read has no
+// days to miss.
+function weekOf(routine, runs, today) {
+  const from = addDays(today, -WEEK_DAYS);
+  const ran = runs.filter((line) => line.date >= from && line.date <= today).map((line) => ({ date: line.date, result: parseRan(line.summary).result }));
+  const rhythm = routine.status === 'paused' ? null : parseRhythm(routine.rhythm);
+  const missed = [];
+  if (rhythm) {
+    const start = page.isDate(routine.since) && routine.since > from ? routine.since : from;
+    for (let day = start; day < today; day = addDays(day, 1)) {
+      if (!occursOn(rhythm, day)) continue;
+      const next = nextOccurrence(rhythm, addDays(day, 1));
+      const until = next && next <= today ? addDays(next, -1) : today;
+      if (!runs.some((line) => line.date >= day && line.date <= until)) missed.push(day);
+    }
+  }
+  return { from, ran, missed };
+}
+
+// The notifications a health check left that still wait, by the routine page each is about.
+function flagged(brain) {
+  const found = new Map();
+  let waiting = [];
+  try { waiting = require('./notify.cjs').list(brain).notifications; } catch { waiting = []; }
+  for (const item of waiting) {
+    if (item.source !== HEALTH_SOURCE || !item.context) continue;
+    const key = String(item.context).trim().toLowerCase().replace(/\\/g, '/').replace(/\.md$/, '').split('/').at(-1);
+    if (key && !found.has(key)) found.set(key, item);
+  }
+  return found;
+}
+
+// What is wrong with a routine, if anything, in one plain line. Speak by exception: a routine that
+// runs on its rhythm has no problem and says nothing. In order: its scheduled task is gone or off
+// (a session saw that in the scheduler and left the notification; nothing here can see a scheduler),
+// it is late, or its rhythm line is not one Cogby reads.
+function problemOf(routine, notes) {
+  if (routine.status === 'paused') return null;
+  const note = notes.get(routine.name);
+  if (note) return { kind: 'schedule', text: note.title, notification: note.id };
+  if (routine.state === 'overdue') {
+    const late = `${routine.days_overdue} day${routine.days_overdue === 1 ? '' : 's'} late`;
+    return { kind: 'overdue', text: routine.scheduled === NOT_SCHEDULED ? `${late}, and not scheduled: it runs only when a session offers it` : `${late}, though it is scheduled: the scheduled run did not happen or was not recorded` };
+  }
+  if (routine.state === 'unknown') return { kind: 'rhythm', text: 'its rhythm is not one Cogby reads, so it is never due' };
+  return null;
+}
+const withProblems = (brain, all) => { const notes = flagged(brain); return all.map((routine) => ({ ...routine, problem: problemOf(routine, notes) })); };
+
 // ---- reading -----------------------------------------------------------------------------------
 
 // The definition lines of a routine page's current truth.
 function parseDefinition(truth) {
-  const out = { runs: '', rhythm: '', why: '', scheduled: NOT_SCHEDULED, status: 'active' };
-  for (const line of String(truth || '').split('\n')) {
+  const out = { runs: '', rhythm: '', why: '', scheduled: NOT_SCHEDULED, where: '', status: 'active' };
+  for (const line of splitTruth(truth).head.split('\n')) {
     const field = FIELD_RE.exec(line);
     if (!field) continue;
-    const key = field[1].toLowerCase().startsWith('scheduled') ? 'scheduled' : field[1].toLowerCase();
+    const key = keyOf(field[1]);
     const value = field[2].trim();
     if (key === 'status') out.status = /^paused\b/i.test(value) ? 'paused' : 'active';
     else if (key === 'scheduled') out.scheduled = value && !/^(none|no|not scheduled)$/i.test(value) ? value : NOT_SCHEDULED;
@@ -198,19 +296,28 @@ function parseDefinition(truth) {
 
 const definitionLines = (def) => [
   `- ${FIELDS.runs}: ${def.runs}`, `- ${FIELDS.rhythm}: ${def.rhythm}`, ...(def.why ? [`- ${FIELDS.why}: ${def.why}`] : []),
-  `- ${FIELDS.scheduled}: ${def.scheduled || NOT_SCHEDULED}`, `- ${FIELDS.status}: ${def.status || 'active'}`,
+  `- ${FIELDS.scheduled}: ${def.scheduled || NOT_SCHEDULED}`, ...(def.where ? [`- ${FIELDS.where}: ${def.where}`] : []),
+  `- ${FIELDS.status}: ${def.status || 'active'}`,
 ];
 
 // One field's line replaced where it stands, or added after the last definition line. Every other
 // line of the page, the owner's own notes included, is left as it is.
-function setLine(truth, key, value) {
+function setLine(whole, key, value) {
+  const { head, instructions } = splitTruth(whole);
+  return joinTruth(setHeadLine(head, key, value), instructions);
+}
+function setHeadLine(truth, key, value) {
   const lines = truth.split('\n');
-  const is = (line, name) => { const m = FIELD_RE.exec(line); return !!m && (m[1].toLowerCase().startsWith('scheduled') ? 'scheduled' : m[1].toLowerCase()) === name; };
+  const is = (line, name) => { const m = FIELD_RE.exec(line); return !!m && keyOf(m[1]) === name; };
   const at = lines.findIndex((line) => is(line, key));
   const text = `- ${FIELDS[key]}: ${value}`;
   if (at !== -1) { lines[at] = text; return lines.join('\n'); }
+  // A new line takes its usual place (where it runs sits under where it is scheduled), or goes
+  // after the last definition line when the page keeps an order of its own.
+  const order = Object.keys(FIELDS);
   let last = -1;
-  lines.forEach((line, index) => { if (FIELD_RE.test(line)) last = index; });
+  lines.forEach((line, index) => { const m = FIELD_RE.exec(line); if (m && order.indexOf(keyOf(m[1])) < order.indexOf(key)) last = index; });
+  if (last === -1) lines.forEach((line, index) => { if (FIELD_RE.test(line)) last = index; });
   if (last === -1) { lines.push('', text); return lines.join('\n').replace(/^\n+/, ''); }
   lines.splice(last + 1, 0, text);
   return lines.join('\n');
@@ -231,12 +338,17 @@ function collect(db, now = new Date()) {
     const first = timeline.at(-1) || null;
     const routine = {
       name: row.slug.split('/').at(-1), slug: row.slug, title: row.title, runs: def.runs, rhythm: def.rhythm, why: def.why,
+      where: def.where, instructions: splitTruth(row.truth).instructions,
+      // What the page does not say yet and a later owner, or another tool, would need: why the
+      // routine exists, and where it runs once it is scheduled. Asked once, never guessed.
+      gaps: def.status === 'paused' ? [] : [...(def.why ? [] : ['why']), ...(def.scheduled !== NOT_SCHEDULED && !def.where ? ['where'] : [])],
       scheduled: def.scheduled, status: def.status, since: first ? first.date : null,
       last_run: last ? { date: last.date, source: last.source, result: parseRan(last.summary).result } : null,
       runs_recorded: runs.length, unattended: unattended(def.runs), revision: row.revision,
+      recent_runs: runs.slice(0, RECENT_RUNS).map((line) => ({ date: line.date, source: line.source, result: parseRan(line.summary).result })),
     };
     const due = dueState(routine, now);
-    return { ...routine, state: due.state, next_due: due.next_due, due_time: due.time || null, days_overdue: due.days_overdue };
+    return { ...routine, state: due.state, next_due: due.next_due, due_time: due.time || null, days_overdue: due.days_overdue, week: weekOf(routine, runs, due.today) };
   });
 }
 
@@ -248,10 +360,10 @@ const byUrgency = (a, b) => b.days_overdue - a.days_overdue || (a.slug < b.slug 
 function list(brain, options = {}) {
   const now = options.now ? new Date(options.now) : new Date();
   return brainLib.withIndex(brain, (db, stats) => {
-    const all = collect(db, now);
+    const all = withProblems(brain, collect(db, now));
     const due = all.filter(isDue).sort(byUrgency);
     return {
-      routines: options.due ? due : all, due: due.length, only_due: !!options.due, proactive: readMode(brain),
+      routines: options.due ? due : all, due: due.length, problems: all.filter((routine) => routine.problem).length, only_due: !!options.due, proactive: readMode(brain),
       today: isoDay(now), index: stats.index, index_as_of: stats.synced_at || null,
     };
   });
@@ -262,6 +374,10 @@ function list(brain, options = {}) {
 const say = (text, max = 80) => { const flat = String(text || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim(); return flat.length > max ? `${flat.slice(0, max)}…` : flat; };
 const lateness = (routine) => (routine.state === 'overdue' ? `overdue since ${routine.next_due} (${routine.days_overdue} day${routine.days_overdue === 1 ? '' : 's'})` : 'due today');
 const RECORD = '`cogby routines ran "<name>" --source "<this session>" --result "<one line>"`';
+const FIRST_OFFER = 'a first routine';
+const FIRST_ASK = 'The owner keeps no routine yet: nothing is done for them on a rhythm. Once, at a natural pause and never in the middle of a task, '
+  + `run \`cogby routines offered "${FIRST_OFFER}" --source "no routine in the brain"\`. Accepted: ask in one line whether there is something they would like to happen `
+  + 'without asking ("Is there something you\'d like to happen without asking?"), and on a yes set it up with them (the routines skill, or `cogby routines add`). Refused: say nothing about it.';
 
 // What `cogby context` says about routines: nothing when none is due or the setting is `quiet`,
 // else a few lines. A routine's name and what it runs are the owner's notes and are shown as notes,
@@ -270,7 +386,11 @@ const RECORD = '`cogby routines ran "<name>" --source "<this session>" --result 
 function forContext(db, brain, options = {}) {
   const mode = readMode(brain);
   if (mode === 'quiet') return { mode, due: [], lines: [], brief: '' };
-  const due = collect(db, options.now ? new Date(options.now) : new Date()).filter(isDue).sort(byUrgency);
+  const all = collect(db, options.now ? new Date(options.now) : new Date());
+  // No routine at all, and never asked: the session is told to ask, once. The record of the ask is
+  // written before it is made (`routines offered`), so the next session start says nothing.
+  if (!all.length) return { mode, due: [], lines: [], brief: '', first: offers(db).length ? null : { lines: ['', '## Routines', FIRST_ASK], brief: `Routines: ${FIRST_ASK}` } };
+  const due = all.filter(isDue).sort(byUrgency);
   if (!due.length) return { mode, due, lines: [], brief: '' };
   const act = mode === 'act';
   const tag = (routine) => (act ? (routine.unattended === 'report' ? ' [reads only: run it]' : ' [ask first]') : '');
@@ -281,6 +401,11 @@ function forContext(db, brain, options = {}) {
   lines.push(act
     ? `Proactivity is \`act\`: run each one marked [reads only: run it] now, without asking, record it with ${RECORD}, and leave \`cogby notify add --status acted\` saying what you ran and what came of it. One marked [ask first] is offered, and run only on a yes, whatever the setting.`
     : `Proactivity is \`suggest\`: offer, in one line, to run what is due. Run it only on a yes, then record it with ${RECORD}.`);
+  // A late one that has a scheduled task: the task may be gone or switched off. Only a session can
+  // look in the scheduler, so the rule for what it does then is said here, to any agent.
+  if (due.some((routine) => routine.state === 'overdue' && routine.scheduled !== NOT_SCHEDULED)) {
+    lines.push(`One of them is late though it is scheduled: look for its task in the scheduler. If the task is gone or switched off, leave one notification (\`cogby notify add --source "${HEALTH_SOURCE}" --context <the routine's page>\`, answers "${HEALTH_ANSWERS.join('" and "')}"), and never schedule it again without that yes.`);
+  }
   const brief = `Routines due in the brain: ${shown.map((routine) => `${say(routine.title, 40)} (${routine.state === 'overdue' ? `overdue ${routine.days_overdue}d` : 'today'}${tag(routine)})`).join(', ')}`
     + `${due.length > shown.length ? `, and ${due.length - shown.length} more` : ''}. `
     + (act ? 'Proactivity is `act`: run the ones marked [reads only: run it] without asking, record each with `cogby routines ran` and leave `cogby notify add --status acted`; the others ask first.'
@@ -288,12 +413,26 @@ function forContext(db, brain, options = {}) {
   return { mode, due, lines, brief };
 }
 
-// What the view snapshot carries: the setting and the routines that are due.
+// What the view snapshot carries: the setting, the routines that are due, and every active routine
+// with what its last runs found (`all`), so that My view can show the result itself and not only a
+// count. `scheduled` says whether it has a scheduled task and `scheduled_as` names it; `history` is
+// its last five runs, each with what ran it and what it found. Each also says what is wrong with it,
+// if anything (`problem`), where it runs and what its page does not say yet (`gaps`). My view is
+// drawn elsewhere: nothing here decides how a routine looks on the page.
 function forView(db, brain, now = new Date()) {
-  const all = collect(db, now);
+  const all = withProblems(brain, collect(db, now));
+  const active = all.filter((routine) => routine.status !== 'paused');
+  const has = (routine) => routine.scheduled !== NOT_SCHEDULED;
   return {
     proactive: readMode(brain), count: all.length,
     due: all.filter(isDue).sort(byUrgency).map(({ name, title, runs, rhythm, state, next_due, days_overdue, unattended: how }) => ({ name, title, runs, rhythm, state, next_due, days_overdue, unattended: how })),
+    problems: active.filter((routine) => routine.problem).length,
+    all: active.map((routine) => ({
+      name: routine.name, title: routine.title, runs: routine.runs, rhythm: routine.rhythm, why: routine.why,
+      scheduled: has(routine), scheduled_as: has(routine) ? routine.scheduled : '', where: routine.where, gaps: routine.gaps,
+      state: routine.state, next_due: routine.next_due, due_time: routine.due_time, days_overdue: routine.days_overdue, unattended: routine.unattended,
+      last_run: routine.last_run, history: routine.recent_runs, week: routine.week, problem: routine.problem,
+    })),
   };
 }
 
@@ -344,7 +483,8 @@ function add(brain, name, options = {}) {
   const runs = clean(options.run);
   if (!runs) throw new BrainError('USAGE', 'A routine needs what it runs.', 'Add --run "<skill or prompt>", for example --run "check-in, weekly".');
   const rhythm = requireRhythm(options.rhythm);
-  const def = { runs, rhythm, why: clean(options.why), scheduled: scheduledValue(options.scheduled), status: 'active' };
+  const def = { runs, rhythm, why: clean(options.why), scheduled: scheduledValue(options.scheduled), where: clean(options.where, 200), status: 'active' };
+  const instructions = cleanInstructions(options.instructions);
   const source = clean(options.source, 120) || 'cogby routines add';
   const by = write().recorder(brain, options);
   const date = options.date || isoDay(new Date());
@@ -353,7 +493,7 @@ function add(brain, name, options = {}) {
   const written = write().writePage(brain, `${FOLDER}/${key}`, (parsed) => {
     if (parsed.truth.trim() || parsed.timeline.length) throw new BrainError('EXISTS', `There is already a routine "${key}".`, 'Change it with `cogby routines edit`, or pick another name.');
     parsed.fmRaw = page.setField(page.setField(parsed.fmRaw, 'type', 'routine'), 'title', title);
-    parsed.truth = [`# ${title}`, '', ...definitionLines(def)].join('\n');
+    parsed.truth = joinTruth([`# ${title}`, '', ...definitionLines(def)].join('\n'), instructions);
     const summary = `added: runs "${runs}", ${rhythm}${def.scheduled === NOT_SCHEDULED ? '' : `, scheduled in Claude as ${def.scheduled}`}`;
     parsed.timelineText = page.insertTimelineLine(parsed.timelineText, page.renderTimelineLine({ date, source, summary, ...by }), date);
     parsed.hasMarker = true;
@@ -390,14 +530,24 @@ function edit(brain, ref, options = {}) {
   if (options.rhythm !== undefined) wanted.rhythm = requireRhythm(options.rhythm);
   if (options.why !== undefined) wanted.why = clean(options.why);
   if (options.scheduled !== undefined) wanted.scheduled = scheduledValue(options.scheduled);
+  if (options.where !== undefined) wanted.where = /^none$/i.test(String(options.where).trim()) ? '' : clean(options.where, 200);
+  const instructions = options.instructions !== undefined ? cleanInstructions(options.instructions) : null;
   const title = options.title !== undefined ? clean(options.title, 80) : null;
-  if (!Object.keys(wanted).length && !title) throw new BrainError('USAGE', 'Nothing to change.', 'cogby routines edit <name> [--run "…"] [--rhythm "…"] [--why "…"] [--scheduled "<pointer>"|none] [--title "…"]');
+  if (!Object.keys(wanted).length && !title && instructions === null) throw new BrainError('USAGE', 'Nothing to change.', 'cogby routines edit <name> [--run "…"] [--rhythm "…"] [--why "…"] [--scheduled "<pointer>"|none] [--where "<plain words>"|none] [--instructions "<the full instructions>"|none] [--title "…"]');
   return change(brain, ref, 'edit', (was, parsed) => {
     const changes = [];
     for (const [key, value] of Object.entries(wanted)) {
       if (was[key] === value) continue;
       parsed.truth = setLine(parsed.truth, key, value);
       changes.push(`${FIELDS[key].toLowerCase()} "${was[key] || 'none'}" → "${value || 'none'}"`);
+    }
+    if (instructions !== null) {
+      const now = splitTruth(parsed.truth);
+      if (now.instructions !== instructions) {
+        parsed.truth = joinTruth(now.head, instructions);
+        // The text itself is too long for a line: the page's history holds what it was.
+        changes.push(!instructions ? 'instructions removed' : now.instructions ? `instructions replaced (${instructions.length} characters; the earlier text is in the page's history)` : `instructions kept on the page (${instructions.length} characters)`);
+      }
     }
     if (title && title !== parsed.title) {
       parsed.fmRaw = page.setField(parsed.fmRaw, 'title', title);
@@ -455,8 +605,46 @@ function ran(brain, ref, options = {}) {
   return { action: 'ran', recorded, asked: String(ref || ''), date };
 }
 
+// `cogby routines offered`: the record that a new routine was offered to the owner from what the
+// brain shows (the same ask on a rhythm, a note that something came too late). It is written BEFORE
+// the offer is made, and it is the gate: refused under `quiet`, and refused when one was offered in
+// the last seven days. So "at most one a week, never when the owner asked for quiet" holds even when
+// a session forgets the rule. The line goes on the folder's card and ends in `record`: it says an
+// offer was made, and claims nothing about the owner's work.
+// The same command is the gate for the other things Cogby asks about routines on its own: the first
+// routine of a person who has none, recording scheduled tasks the brain does not know, the missing
+// why of a routine. One such ask a week at most, and the same one never twice, whatever its answer.
+function offers(db) {
+  return db.prepare(
+    `SELECT t.date, t.summary FROM timeline_entries t JOIN pages p ON p.id = t.page_id
+      WHERE p.source_id = 'brain' AND lower(p.slug) = ? AND t.retracted = 0 ORDER BY t.date DESC, t.rowid DESC`,
+  ).all(`${FOLDER}/card`).filter((line) => OFFER_RE.test(String(line.summary || '').trim()))
+    .map((row) => ({ date: row.date, what: OFFER_RE.exec(row.summary.trim())[1].trim() }));
+}
+
+function offered(brain, what, options = {}) {
+  const text = clean(what, 200);
+  if (!text) throw new BrainError('USAGE', 'Say which routine is being offered.', 'cogby routines offered "<the routine, in one line>" --source "<what in the brain shows the need>"');
+  const source = clean(options.source, 120);
+  if (!source) throw new BrainError('SOURCE_REQUIRED', 'routines offered needs a source: what in the brain shows the need.', 'Add --source "<evidence>", for example --source "notification of 2026-11-20: prep came too late".');
+  if (readMode(brain) === 'quiet') throw new BrainError('QUIET', 'The owner asked to hear nothing about routines unless they ask, so no routine is offered.', 'Do not make the offer. `cogby proactive status` shows the setting; only the owner changes it.');
+  const date = options.date || isoDay(new Date());
+  if (!page.isDate(date)) throw new BrainError('BAD_DATE', `"${date}" is not a date.`, 'Use YYYY-MM-DD.');
+  const made = brainLib.withIndex(brain, (db) => offers(db));
+  const same = made.find((offer) => norm(offer.what) === norm(text));
+  if (same) throw new BrainError('OFFERED_BEFORE', `This was already offered or asked on ${same.date} ("${same.what}"). The same thing is never brought up twice.`, 'Do not bring it up. If the owner raises it themself, help them then.');
+  const last = made[0] || null;
+  if (last && page.isDate(last.date) && daysBetween(last.date, date) < OFFER_GAP_DAYS) {
+    throw new BrainError('OFFERED_THIS_WEEK', `A routine was already offered on ${last.date} ("${last.what}"). One offer a week is the limit.`, `Do not make the offer. The next one can be made from ${addDays(last.date, OFFER_GAP_DAYS)}.`);
+  }
+  ensureFolderCard(brain, { by: write().recorder(brain, options), env: options.env });
+  const written = write().appendRecord(brain, `${FOLDER}/card`, `offered: ${text}`, { ...options, source, date, command: 'routines offered' });
+  return { action: 'offered', what: text, date, next_offer_from: addDays(date, OFFER_GAP_DAYS), status: written.status, line: written.line, revision: written.revision, commit: written.commit };
+}
+
 module.exports = {
-  FOLDER, MODES, DEFAULT_MODE, NOT_SCHEDULED, REPORT_ONLY,
+  splitTruth, FIRST_OFFER, INSTRUCTIONS_MAX,
+  FOLDER, MODES, DEFAULT_MODE, NOT_SCHEDULED, REPORT_ONLY, HEALTH_SOURCE, HEALTH_ANSWERS, OFFER_GAP_DAYS, weekOf, problemOf, offered,
   parseRhythm, renderRhythm, occursOn, nextOccurrence, dueState, unattended, runKey,
   parseDefinition, parseRan, collect, list, forContext, forView,
   add, edit, setStatus, ran, readMode, setMode, status,

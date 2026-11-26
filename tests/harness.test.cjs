@@ -224,7 +224,8 @@ test('nothing in the plugin sends a session to the map file', () => {
   for (const file of ['AGENTS.md', '.claude/skills/capture/SKILL.md', '.claude/skills/plan-page/SKILL.md', 'core/templates/starter-brain/.cogby/self/SOUL.md']) {
     const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
     assert.doesNotMatch(text, /context-index/, file);
-    assert.match(text, /`cogby map`/, file);
+    // SOUL.md says who Cogby is and how it sounds; where things are is AGENTS.md's to say.
+    if (!file.endsWith('SOUL.md')) assert.match(text, /`cogby map`/, file);
   }
   assert.equal(fs.existsSync(path.join(ROOT, 'core', 'templates', 'starter-brain', '.cogby', 'context-index.md')), false);
 });

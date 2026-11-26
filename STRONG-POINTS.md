@@ -273,8 +273,8 @@ cannot be read. A corrupt store refuses writes and is left untouched.
 
 **What.** Small fixed pages and cards the owner answers by clicking, built from their own brain.
 Each answer comes back to the session.
-**Where.** `core/brain/cards.cjs` (`cogby card`); the `quiz-me`, `picture`, `plan-page` and
-`my-view` skills; `.claude/skills/plan-page/assets/decision-kit.js`;
+**Where.** `core/brain/cards.cjs` (`cogby card`); the `quiz-me`, `plan-page` and `my-view` skills
+(a picture is drawn by the session with the chat's own visual tool, not filled in by a card); `.claude/skills/plan-page/assets/decision-kit.js`;
 `core/templates/command-center.html` and `core/brain/center.cjs`.
 **Today.** Holds. Code fills each card from data, so no note can become markup. A card button sends
 one chat message. `plan-page` answers return through the page's store, a pasted block or a

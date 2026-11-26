@@ -38,6 +38,9 @@
   .top b{font-family:var(--brand);font-weight:500;font-size:26px;letter-spacing:-.018em;color:var(--ink);line-height:1}
   .top .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .asof{font-size:12.5px;color:var(--muted);border:1px solid var(--hairline);border-radius:var(--r-pill);padding:4px 11px;background:var(--surface-card);white-space:nowrap}
+  /* Which Cogby made the page: one quiet line at the foot, under every view. Not the footer the owner's
+     review of 18 Nov took off (a paragraph on what a snapshot is): only the version. */
+  .version{margin:40px 0 0}
   /* The answers a file opened from disk cannot send, as text to paste, when the clipboard is closed. */
   #copybox{flex:1 1 100%;min-height:90px;font-family:var(--mono);font-size:12px}
 
@@ -138,6 +141,16 @@
   .spill.on-hold{--st-c:var(--st-needs);--st-ink:var(--st-needs-ink)}
   .spill.done{--st-c:var(--st-running);--st-ink:var(--st-running-ink)}
   .spill.other{--st-c:var(--muted-soft);--st-ink:var(--muted);border-style:dashed}
+  /* A status that is changed where it is shown: the same pill, as a menu. */
+  select.spick{cursor:pointer;min-height:24px;padding:2px 6px;font-family:var(--mono)}
+  @media (pointer:coarse){ select.spick{min-height:44px} }
+  /* A task read from the owner's own tool: its box is not a button, and its words are a link to it there. */
+  .tcheck.ext{cursor:default;border-style:dashed}
+  .tcheck.ext:hover{border-color:var(--hairline-strong)}
+  .tcheck.ext:not(.done):hover::after{border-color:transparent}
+  a.tname,a.t{text-decoration:none}
+  .tat.over{color:var(--warn)}
+  .tag-src{color:var(--st-accent-ink)}
   .cdot{flex:none;width:7px;height:7px;border-radius:50%;margin-right:6px}
   /* A project's page: the Console's header (status, open tasks, when it moved) and its tabs. */
   .crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
@@ -232,6 +245,9 @@
   tr.miss{background:color-mix(in srgb, var(--error) 7%, transparent)}
   tr.miss td.files{color:var(--error);font-weight:600}
   .srcnote{margin:10px 2px 0}
+  .sstrip{display:inline-block;margin:-6px 0 18px;padding:7px 12px;border:1px solid var(--hairline);border-radius:999px;background:var(--surface-card);color:var(--ink);font-size:13.5px;text-decoration:none}
+  .sstrip:hover{border-color:var(--hairline-strong)}
+  #mycogby{text-decoration:none}#mycogby[aria-current]{border-color:var(--hairline-strong)}#mycogby .count{margin-left:6px}
 
   code{font-family:var(--mono);font-size:12px;background:var(--surface-strong);border-radius:4px;padding:1px 5px}
 
@@ -292,6 +308,12 @@
   .row.todo:hover{background:var(--canvas-soft)}
   .todo .noteopen{-webkit-line-clamp:2}
   .todo .check,.todo .m a,.todo .btn,.todo .ntag{position:relative;z-index:1}
+  /* A notification opens its panel the same way: its title is the button; its answers, its buttons and the
+     box for the owner's own words sit above it. */
+  .row.notif{position:relative}
+  .row.notif:hover{background:var(--canvas-soft)}
+  .notif .noteopen{-webkit-line-clamp:2}
+  .notif .m a,.notif .btn,.notif .ntag,.notif .ask,.notif .note{position:relative;z-index:1}
   /* A to-do's panel, after the Console's: its words as a heading you can change, then one line per field. */
   .ttitle{display:block;width:calc(100% + 7px);min-height:0;margin:2px 0 0 -7px;padding:4px 6px;font-family:var(--serif);font-weight:400;font-size:21px;line-height:1.35;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:var(--r-sm);resize:none;field-sizing:content}
   .ttitle:hover{border-color:var(--hairline)}
@@ -359,6 +381,23 @@
   .pop .ends{display:flex;gap:8px;justify-content:flex-end;flex:1 1 100%}
 
 
+  /* What Cogby already thought of, on an inbox row: its suggestion, then one press to take it. */
+  .sugg{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13.5px;color:var(--ink)}
+  .sugg .kicker{font-size:10.5px;color:var(--st-accent-ink)}
+  /* The one Copy prompt, the toast after it, and the box that shows the prompt when copying is refused. */
+  .btn.copied{background:color-mix(in srgb, var(--success) 14%, var(--surface-card));border-color:color-mix(in srgb, var(--success) 45%, transparent);color:var(--st-running-ink)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:var(--ink);color:#fff;font-size:13.5px;line-height:1.4;padding:10px 16px;border-radius:var(--r-lg);box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+  .promptbox{width:100%;min-height:150px;font-size:13.5px}
+  .toastbtn{margin-left:14px;padding:2px 4px;background:none;border:0;font:600 13.5px var(--sans);color:#cbb8ff;cursor:pointer;text-decoration:underline}
+  /* Routines: each one's last result, broken into short lines. */
+  .rres{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:2px}
+  .rres li{font-size:13.5px;line-height:1.45;color:var(--body);padding-left:14px;position:relative;overflow-wrap:anywhere}
+  .rres li::before{content:"";position:absolute;left:3px;top:.62em;width:4px;height:4px;border-radius:50%;background:var(--muted-soft)}
+  .rres li.rlbl{font-size:12px;font-weight:600;color:var(--muted);padding-left:0;margin-top:6px}
+  .rres li.rlbl:first-child{margin-top:0}
+  .rres li.rlbl::before{display:none}
+  .rres li.rgap{margin-top:6px}
+
   /* a row folds by the width of its own column, not of the window: the side column is narrow on a desktop too. */
   section{container-type:inline-size}
   @container (max-width:520px){
@@ -411,8 +450,9 @@
     </svg>
     <b>cogby</b>
     <div class="right">
-      <button class="btn small" id="copy" type="button" hidden>Copy my answers</button>
+      <button class="btn small accent" id="copy" type="button" hidden>Copy prompt</button>
       <span class="asof" id="outbox" hidden></span>
+      <a class="btn small quiet" id="mycogby" href="#/cogby">My Cogby</a>
       <span class="asof" id="asof"></span>
     </div>
     <textarea id="copybox" hidden readonly aria-label="Your answers, to paste to Claude"></textarea>
@@ -420,6 +460,7 @@
 
   <div class="tabsbar"><nav class="tabs" id="tabs" aria-label="Sections"></nav></div>
   <main id="view"></main>
+  <p class="soft version" id="version" hidden></p>
 </div>
 
 <script type="application/json" id="cogby-data">__COGBY_DATA__</script>
@@ -434,7 +475,9 @@
   var sources = data.sources || [];
   var recent = data.recent || [];
   var routines = data.routines || [];              // the owner's routines that are due today or late
+  var routineRuns = data.routine_runs || []; var sessions = data.sessions || null; var skills = data.skills || [];       // every active routine and what its last run found
   var baseTodos = data.todos || [];
+  var extTasks = data.tasks || [];                 // tasks read from the owner's own tool: shown here, opened and ticked there
   var baseNotes = data.notes || [];
   var KEY = 'cogby-center:' + (data.generated_at || '');
   // The page's own store, on the published page only (set at the bottom), and what Copy said last.
@@ -494,7 +537,7 @@
   var plink = function (p) { return only ? el('span', null, p.title) : link(address(p), 'plink', p.title); };
   // A notification is about a project when its context is the project's slug, its folder or its folder's name.
   var isAbout = function (context, p) {
-    var key = String(context || '').trim().toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '');
+    var key = String(context || '').split(' · ')[0].trim().toLowerCase().replace(/\\/g, '/').replace(/\/+$/, '');
     if (!key) return false;
     var folder = String(p.slug).replace(/\/card$/i, '');
     return [p.slug, folder, p.name].some(function (name) { return key === String(name || '').toLowerCase(); });
@@ -522,7 +565,8 @@
     if (!db) return;
     Object.keys(pending.actions).forEach(function (k) {
       var a = pending.actions[k];
-      if (a.sending || a.failed) return;
+      if (a.sending || a.failed || (a.hold && Date.now() < a.hold)) return;   // a Clear or Later waits out its Undo
+      delete a.hold;
       a.sending = true;
       var one = { kind: a.kind, id: a.id }; if (a.option) one.option = a.option;
       post([one], [], function () {
@@ -538,7 +582,7 @@
       if (c.extra) Object.keys(c.extra).forEach(function (f) { one[f] = c.extra[f]; });
       post([], [one], function () {
         if (pending.comments[k] === c) { delete pending.comments[k]; openNote[k] = false; }
-        pending.sentComments[k] = true;
+        pending.sentComments[k] = c.text || true;      // the words, so that a notification can still offer them as a line to copy
       }, function (code) { c.sending = false; c.failed = code; });
     });
   }
@@ -546,16 +590,18 @@
   // A comment bubble on a row: the words leave with the row's id. With the store, Save sends them at once.
   // `how.fix`: a "Fix" button instead of the bubble, for a line Cogby wrote that the owner wants changed.
   // `how.extra`: fields that leave with the comment, so that a session can find what it is about.
+  // `how.say`: what the bubble is for, when it is not a comment (a notification: "Answer in your own words").
   function commentable(kind, id, label, how) {
     how = how || {};
     var key = kind + ':' + (how.key || id);
     var c = pending.comments[key];
+    var what = (how.fix ? 'Fix: ' : how.say ? how.say + ': ' : 'Comment on ') + label;
     var bubble = el('button', how.fix ? 'btn quiet small fix' : 'btn bubble'); bubble.type = 'button';
     if (how.fix) bubble.textContent = 'Fix'; else bubble.innerHTML = BUBBLE;
-    bubble.setAttribute('aria-label', (how.fix ? 'Fix: ' : 'Comment on ') + label); bubble.dataset.fk = 'c:' + key;
+    bubble.setAttribute('aria-label', what); bubble.dataset.fk = 'c:' + key; if (how.say) bubble.title = how.say;
     var box = el('div', 'note');
     var area = el('textarea'); area.placeholder = how.placeholder || (how.fix ? 'What should it say?' : 'Your words on this, for Cogby');
-    area.setAttribute('aria-label', (how.fix ? 'Fix: ' : 'Comment on ') + label); area.dataset.fk = 'ct:' + key;
+    area.setAttribute('aria-label', what); area.dataset.fk = 'ct:' + key;
     area.value = (c && c.text) || '';
     box.appendChild(area);
     var save = null;
@@ -578,13 +624,131 @@
     });
     bubble.addEventListener('click', function () { box.hidden = !box.hidden; openNote[key] = !box.hidden; mark(); if (!box.hidden) area.focus(); });
     mark();
-    return { bubble: bubble, box: box, tag: pending.sentComments[key] ? sentMark() : null };
+    return { bubble: bubble, box: box, tag: null };
   }
-  // What left the page and waits for Cogby: one short word, the when in its tooltip.
-  var LATER = 'Cogby applies it the next time it refreshes this page: when you ask for it, or when a session wraps up.';
-  function sentMark() { var t = tag('sent', 'tag-new'); t.title = LATER; return t; }
+  // What the page saves is filed into the brain later, by a session. The page no longer marks each row
+  // "sent" (owner, 2026-11-24: "it shows sent everywhere even when it does not make sense"): a tick shows
+  // as ticked, an answer as pressed, and the header alone counts what is saved and not filed yet. For
+  // anything that needs Claude now, every row offers Copy prompt instead of a send.
+  var LATER = 'Saved on this page. Cogby files it into your brain the next time it refreshes this page. To have it done now, press Copy prompt at the top and paste it into a new chat.';
+  var HOW = 'What you press here is saved, and Cogby picks it up on its next refresh. To have it done now, press Copy prompt at the top and paste it into a new chat: it starts a session that handles everything you chose.';
+  var OFFLINE = 'This page was opened from a file: nothing you press leaves it. Press Copy prompt at the top and paste it into a chat with Claude.';
+  function sentMark() { return null; }
+
+  // ---- Copy prompt: the page cannot start Claude, so it hands over a ready request to paste ----
+  // The prompt says what to do in plain words and names what Cogby needs to find it (a to-do's or a
+  // notification's id), so that the chat it is pasted into can act and then tick or clear it.
+  var toastTimer = null;
+  // `undo`: a function, offered as an Undo button for as long as the toast is up.
+  function toast(text, undo) {
+    var t = $('cogby-toast');
+    if (!t) { t = el('div', 'toast'); t.id = 'cogby-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.textContent = text; t.hidden = false;
+    if (undo) {
+      var b = el('button', 'toastbtn', 'Undo'); b.type = 'button';
+      b.addEventListener('click', function () { clearTimeout(toastTimer); t.hidden = true; undo(); });
+      t.appendChild(b);
+    }
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, undo ? UNDO_MS - 200 : 3200);
+  }
+  // When the clipboard is closed (a file, some browsers), the prompt opens in a box, selected, to copy by hand.
+  function promptBox(text) {
+    var d = overlay(function (x) { gone(x); });
+    var area = el('textarea', 'promptbox'); area.readOnly = true; area.value = text; area.setAttribute('aria-label', 'The prompt, to copy');
+    var close = el('button', 'btn', 'Close'); close.type = 'button'; close.addEventListener('click', function () { gone(d); });
+    put(d, el('h2', 'mtitle', 'Copy this into a new chat'), area, put(el('div', 'tfoot'), close));
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+    area.focus(); area.select();
+  }
+  // The old copy first, while the press still counts as the person's own (a page inside a frame often has
+  // no clipboard permission), then the clipboard, then the box.
+  function copyOld(text) {
+    var area = el('textarea'); area.value = text; area.setAttribute('readonly', ''); area.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(area); area.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+  function copyPrompt(text, b) {
+    var done = function () {
+      if (b) { b.classList.add('copied'); b.textContent = 'Copied'; setTimeout(function () { b.classList.remove('copied'); b.textContent = b.dataset.label || 'Copy prompt'; }, 2500); }
+      toast('Copied. Paste it into a new chat with Claude.');
+    };
+    if (copyOld(text)) { done(); return; }
+    try { navigator.clipboard.writeText(text).then(done, function () { promptBox(text); }); } catch (e) { promptBox(text); }
+  }
+  // ---- The handoff: one Copy prompt at the top (owner, 2026-11-24) ----
+  // What the owner presses or asks on the page is saved, and a session files it on its next refresh. To
+  // have it done now, Copy prompt at the top gathers all of it into one request to paste into a chat, which
+  // starts a session of its own to handle it end to end.
+  var quote = function (text) { return '"' + String(text || '').replace(/\s+/g, ' ').trim() + '"'; };
+  var flat = function (text) { return String(text || '').replace(/\s+/g, ' ').trim(); };
+  // The owner's own words inside a sentence of the prompt: closed with a full stop when they have none.
+  var ended = function (text) { return /[.!?…]$/.test(text) ? text : text + '.'; };
+  var notifById = function (id) { return notes.waiting.filter(function (n) { return n.id === id; })[0] || null; };
+  var meetById = function (id) { return (meetings || []).filter(function (m) { return m.id === id; })[0] || null; };
+  var todoById = function (id) { return baseTodos.filter(function (t) { return t.id === id; })[0] || null; };
+  function handoffItems() {
+    var out = [];
+    var acts = {};
+    Object.keys(pending.sent).forEach(function (k) { acts[k] = pending.sent[k]; });
+    Object.keys(pending.actions).forEach(function (k) { acts[k] = pending.actions[k]; });
+    Object.keys(acts).forEach(function (k) {
+      var a = acts[k];
+      if (a.kind === 'prepare') {
+        var m = meetById(k.replace(/^meeting:/, ''));
+        out.push('Prepare me for my meeting ' + quote(m ? m.title : a.label) + (m && m.time ? ' at ' + m.time : '') + ': who they are, where things stand, what was promised, what I should ask or decide.');
+        return;
+      }
+      var n = notifById(k); var name = quote(n ? n.title : a.label) + ' (' + k + ')';
+      if (a.kind === 'answer') out.push('Cogby asked ' + name + '. My answer: ' + quote(a.option) + '. Carry it out.');
+      else if (a.kind === 'do') out.push('Cogby left ' + name + '. Yes, do what it suggests' + (n && n.recommend ? ': ' + flat(n.recommend) : '') + '.');
+      else if (a.kind === 'later') out.push('Put off ' + name + ' for now.');
+      else if (a.kind === 'dismiss') out.push('Clear ' + name + ': nothing to do.');
+    });
+    var says = {};
+    Object.keys(pending.sentComments).forEach(function (k) { says[k] = typeof pending.sentComments[k] === 'string' ? pending.sentComments[k] : ''; });
+    Object.keys(pending.comments).forEach(function (k) { says[k] = pending.comments[k].text; });
+    Object.keys(says).forEach(function (k) {
+      var text = flat(says[k]); if (!text) return;
+      var kind = k.split(':')[0]; var id = k.slice(kind.length + 1);
+      if (kind === 'request') out.push('Do this for me: ' + text);
+      else if (kind === 'notification') { var n = notifById(id); out.push('About ' + quote(n ? n.title : id) + ' (' + id + '), in my own words: ' + text); }
+      else if (kind === 'meeting') { var m = meetById(id); out.push('My notes for the meeting ' + quote(m ? m.title : id) + ': ' + text + ' (file them where they belong).'); }
+      else if (kind === 'line') { var parts = id.split('|'); out.push('Fix the line of ' + (parts[1] || '') + ' on ' + parts[0] + ' (' + quote(parts.slice(2).join('|')) + '): ' + text); }
+      else out.push('My comment on ' + kind + ' ' + id + ': ' + text);
+    });
+    // A to-do or a note made on this page has no id in the brain yet: the prompt names it by its words,
+    // never by the key this page gave it, which means nothing in a chat.
+    var madeHere = function (key) { var a = pending.changes.filter(function (o) { return o.client_id === key && (o.kind === 'todo-add' || o.kind === 'note-add'); })[0]; return a ? a.text : ''; };
+    pending.changes.forEach(function (c) {
+      var t = c.id ? todoById(c.id) : null; var mine = c.client_id && c.kind !== 'todo-add' ? madeHere(c.client_id) : '';
+      var what = quote(t ? t.text : mine || c.text || c.id || c.client_id) + (c.id ? ' (' + c.id + ')' : mine ? ', the one I added on this page' : '');
+      if (c.kind === 'todo-add') out.push('Add a to-do: ' + quote(c.text) + (c.due ? ', due ' + c.due : '') + (c.project ? ', on ' + c.project : '') + (c.body ? '. Notes: ' + flat(c.body) : '') + (c.by === 'cogby' ? '. Assign it to Cogby (cogby todo add --by cogby) and think of a plan for it' : '') + '.');
+      else if (c.kind === 'todo-done') out.push('Tick off the to-do ' + what + '.');
+      else if (c.kind === 'todo-reopen') out.push('Open the to-do ' + what + ' again.');
+      else if (c.kind === 'todo-drop') out.push('Remove the to-do ' + what + '.');
+      else if (c.kind === 'todo-edit') out.push('Change the to-do ' + what + ':' + [c.text ? ' its words to ' + quote(c.text) : '', c.due ? ' due ' + c.due : '', c.project ? ' project ' + c.project : '', c.body ? ' notes ' + quote(c.body) : '', c.by ? (c.by === 'cogby' ? ' assign it to Cogby (--by cogby), think of a plan for it and write the plan on it (--plan)' : ' give it back to me (--by me)') : ''].filter(Boolean).join(';') + '.');
+      else if (c.kind === 'note-add') out.push('Keep a note' + (c.project ? ' on ' + c.project : '') + ': ' + flat(c.text) + (c.body ? ' (' + flat(c.body) + ')' : '') + '.');
+      else if (c.kind === 'note-dismiss' && c.id) out.push('Remove the note ' + c.id + '.');
+      else if (c.kind === 'note-dismiss' && mine) out.push('Remove the note ' + quote(mine) + ', the one I added on this page.');
+      else if (c.kind === 'project-status') out.push('Set the status of my project ' + quote(c.project) + ' to ' + quote(c.status) + ' (cogby project status).');
+    });
+    return out;
+  }
+  function handoffText() {
+    var lines = ['From my Cogby page (made ' + (when || 'earlier') + '). Start a new session for this and let it handle everything below on its own, end to end (if you cannot start one, do it here). In that session, ask me first only before sending a message for me, deleting something, spending money, pushing code or touching anything outside my brain.', ''];
+    handoffItems().forEach(function (s, i) { lines.push((i + 1) + '. ' + s); });
+    lines.push('', db ? 'These are also saved on my page. Apply them the way Cogby\'s my-view skill applies what I send from the page, so that each is done once.' : 'This page was opened from a file: these are saved nowhere else.');
+    return lines.join('\n');
+  }
 
   // One choice per row. With the store it leaves at once; on a file, pressing it again takes it back.
+  // Clear and Later take the notification off the page at once (owner, 2026-11-24: "when I click clear it
+  // should actually clear"), and leave after a few seconds, while a toast offers Undo.
+  var UNDO_MS = 5000;
+  var putAway = function (n) { var a = pending.actions[n.id] || pending.sent[n.id]; return !!a && (a.kind === 'dismiss' || a.kind === 'later'); };
+  var liveOnly = function (list) { return list.filter(function (n) { return !putAway(n); }); };
   function choice(id, title, label, kind, cls, option) {
     var b = el('button', cls, label); b.type = 'button';
     var a = pending.actions[id]; var s = pending.sent[id];
@@ -593,69 +757,139 @@
     b.addEventListener('click', function () {
       if (same(a) && a.sending) return;
       if (!a && same(s)) return;                                  // sent already: a session applies it
-      if (same(a) && !a.failed) delete pending.actions[id];       // not sent yet: taken back
-      else { pending.actions[id] = { kind: kind, id: id, label: title }; if (option) pending.actions[id].option = option; }
-      said = ''; sendOut(); render();
+      if (same(a) && !a.failed) { delete pending.actions[id]; said = ''; sendOut(); render(); return; }   // not sent yet: taken back
+      var made = { kind: kind, id: id, label: title }; if (option) made.option = option;
+      var away = kind === 'dismiss' || kind === 'later';
+      if (away) made.hold = Date.now() + UNDO_MS;
+      pending.actions[id] = made;
+      said = ''; keep(); sendOut(); render();
+      if (away) {
+        setTimeout(function () { sendOut(); }, UNDO_MS + 100);
+        toast((kind === 'dismiss' ? 'Cleared: ' : 'Put off: ') + String(title).slice(0, 60), function () {
+          if (pending.actions[id] === made && !made.sending) { delete pending.actions[id]; keep(); render(); }
+        });
+      }
     });
     return b;
   }
-  // Where a choice is: on its way, refused by the store, or sent and waiting for a session to apply it.
+  // Only a choice the store refused is marked: the others show as pressed, and that is enough.
   function sentTag(id) {
     var a = pending.actions[id];
-    if (a && a.failed) return tag('not sent · press it again', 'tag-err');
-    if (a && a.sending) return tag('sending', 'tag-new');
-    var s = pending.sent[id]; if (!s || a) return null;
-    return sentMark();
+    return a && a.failed ? tag('not saved · press it again', 'tag-err') : null;
   }
 
+  // How a notification is answered: with its own answers when it asks a question (the one Cogby suggests
+  // carries a small mark; nothing is chosen until the person presses one), Later and Clear, and a box for
+  // the owner's own words; these are saved and a session files them. To get it done now, Copy prompt
+  // hands over a request with the answer in it (it replaced "Do this", a send that waited for a refresh).
+  var REPLY = 'Answer in your own words';
+  function answerChips(n) {
+    var opts = el('div', 'options');
+    n.options.forEach(function (option) {
+      var b = choice(n.id, n.title, option, 'answer', 'chip', option);
+      if (option === n.recommend) { b.classList.add('sug'); b.title = 'Cogby suggests this'; }
+      opts.appendChild(b);
+    });
+    if (n.if_ignored) opts.title = 'If nothing is done: ' + n.if_ignored;
+    return opts;
+  }
+  // The answer Cogby already thought of, in sight on the row (owner, 2026-11-24: "even better if the AI
+  // already thought of an answer for me"): what it suggests, and one press to take it. A question keeps
+  // its own answers, the suggested one marked.
+  function suggestion(n) {
+    if (!n.recommend && !n.options.length) return null;
+    var box = el('div', 'ask');
+    if (n.recommend) box.appendChild(put(el('div', 'sugg'), el('span', 'kicker', 'Cogby suggests'), el('span', null, n.recommend)));
+    box.appendChild(n.options.length ? answerChips(n) : put(el('div', 'options'), choice(n.id, n.title, 'Yes, do that', 'do', 'chip')));
+    return box;
+  }
   function notifRow(n, here) {
     var row = el('div', 'row notif' + (pending.actions[n.id] || pending.sent[n.id] ? ' chosen' : ''));
     var line = el('div', 'line');
     line.appendChild(dot(n.priority === 'high' ? 'var(--error)' : n.options.length ? 'var(--st-accent)' : 'var(--st-needs)'));
     if (n.priority === 'high') line.appendChild(tag('high', 'tag-err'));
     var main = el('div', 'main');
-    main.appendChild(el('div', 't', n.title));
-    // Under the title: its project and what it says, in two lines at most.
+    // Its title opens it, the way a to-do's words open the to-do.
+    var open = el('button', 'noteopen t', n.title); open.type = 'button'; open.dataset.fk = 'notif:' + n.id; open.setAttribute('aria-haspopup', 'dialog');
+    open.addEventListener('click', function () { showNotif(n.id); });
+    main.appendChild(open);
+    // Under the title: its project and what it says, in two lines at most. The rest is inside.
     var meta = el('div', 'm clamp');
     var p = here ? null : projectOf(n.context);
     if (p) put(meta, plink(p), n.body ? sep() : null);
     if (n.body) meta.appendChild(document.createTextNode(n.body));
-    // A tap opens the rest of a long one.
-    if (meta.childNodes.length) { meta.addEventListener('click', function (e) { if (e.target === meta) meta.classList.toggle('clamp'); }); main.appendChild(meta); }
+    if (meta.childNodes.length) main.appendChild(meta);
     line.appendChild(main);
-    var c = commentable('notification', n.id, n.title);
-    line.appendChild(put(el('div', 'acts'), sentTag(n.id), c.tag, c.bubble, choice(n.id, n.title, 'Later', 'later', 'btn quiet'), choice(n.id, n.title, 'Clear', 'dismiss', 'btn quiet')));
+    var c = commentable('notification', n.id, n.title, { say: REPLY, placeholder: REPLY });
+    line.appendChild(put(el('div', 'acts'), sentTag(n.id), c.bubble,
+      choice(n.id, n.title, 'Later', 'later', 'btn quiet'), choice(n.id, n.title, 'Clear', 'dismiss', 'btn quiet')));
     row.appendChild(line);
-    if (n.options.length) {
-      // A question arrives with its answers and the one Cogby suggests. Nothing is chosen until the person presses one.
-      // The answer Cogby suggests carries a small mark; what happens with no answer is in the tooltip.
-      var ask = el('div', 'ask'); var opts = el('div', 'options');
-      n.options.forEach(function (option) {
-        var b = choice(n.id, n.title, option, 'answer', 'chip', option);
-        if (option === n.recommend) { b.classList.add('sug'); b.title = 'Cogby suggests this'; }
-        opts.appendChild(b);
-      });
-      if (n.if_ignored) opts.title = 'With no answer: ' + n.if_ignored;
-      ask.appendChild(opts);
-      row.appendChild(ask);
-    }
+    var sug = suggestion(n);
+    if (sug) row.appendChild(sug);
     row.appendChild(c.box);
     return row;
   }
+  // One notification, opened over the page the way a to-do is: all of what it says, the project it is about
+  // (a link to that project's view), when it was left and by whom, what Cogby suggests and what happens if
+  // nothing is done (when it says so), then every way to answer it and when that answer takes effect.
+  var shownNotif = null; var notifBox = null;
+  function showNotif(id) { shownNotif = id; drawNotif(); }
+  function closeNotif() {
+    var d = notifBox; var was = shownNotif; notifBox = null; shownNotif = null;
+    if (!d) return;
+    gone(d);
+    render();                                       // its row takes what was typed in the panel
+    var from = was ? $('view').querySelector('[data-fk="notif:' + was.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (from) from.focus({ preventScroll: true });
+  }
+  function drawNotif() {
+    var n = shownNotif ? notes.waiting.filter(function (x) { return x.id === shownNotif; })[0] : null;
+    if (!n || putAway(n)) { closeNotif(); return; }               // cleared or put off from its panel: it closes
+    var fresh = !notifBox;
+    if (fresh) notifBox = overlay(function (d) { if (notifBox === d) closeNotif(); });
+    var box = notifBox;
+    var active = document.activeElement; var fk = active && box.contains(active) && active.dataset ? active.dataset.fk : '';
+    box.textContent = ''; box.setAttribute('aria-label', 'Waiting for you: ' + n.title.slice(0, 80));
+    // The same buttons as on the row, under names of their own: the row is still on the page behind.
+    var mine = function (node) {
+      [node].concat([].slice.call(node.querySelectorAll('[data-fk]'))).forEach(function (one) { if (one.dataset && one.dataset.fk) one.dataset.fk = 'nt:' + one.dataset.fk; });
+      return node;
+    };
+    var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.dataset.fk = 'nt:x';
+    x.addEventListener('click', closeNotif);
+    put(box, put(el('div', 'mhead'), el('span', 'kicker', 'Waiting for you'), n.priority === 'high' ? tag('high', 'tag-err') : null, sentTag(n.id), x), el('h2', 'mtitle', n.title));
+    var p = projectOf(n.context);
+    var day = String(n.created || '').slice(0, 10);
+    var facts = [day ? 'Left ' + (day === today ? 'today' : niceDay(day)) : '', n.source && n.source !== 'manual' ? 'from ' + n.source : '', n.snoozed ? 'put off ' + plural(n.snoozed, 'time') : ''].filter(Boolean).join(' · ');
+    if (p || facts) box.appendChild(put(el('div', 'm'), p ? plink(p) : null, p && facts ? sep() : null, facts ? document.createTextNode(facts) : null));
+    if (n.body) box.appendChild(put(el('div', 'mblock'), el('p', 'nbody', n.body)));
+    if (n.recommend) box.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'What Cogby suggests'), el('p', null, n.recommend)));
+    if (n.if_ignored) box.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'If nothing is done'), el('p', null, n.if_ignored)));
+    var before = n.comments || [];
+    if (before.length) {
+      var told = put(el('div', 'mblock'), el('span', 'kicker', 'Said on this before'));
+      before.forEach(function (one) { told.appendChild(el('p', 'nbody', niceDay(String(one.at || '').slice(0, 10)) + ': ' + (one.text || ''))); });
+      box.appendChild(told);
+    }
+    var sug = suggestion(n); if (sug) sug.style.margin = '0';
+    box.appendChild(mine(put(el('div', 'mblock'), el('span', 'kicker', 'Your answer'), sug,
+      put(el('div', 'options'), choice(n.id, n.title, 'Later', 'later', 'btn'), choice(n.id, n.title, 'Clear', 'dismiss', 'btn')))));
+    var c = commentable('notification', n.id, n.title, { say: REPLY, placeholder: 'What you want done, or what you think' });
+    c.box.hidden = false;
+    box.appendChild(mine(put(el('div', 'mblock'), el('span', 'kicker', 'Or in your own words'), c.box)));
+    box.appendChild(put(el('div', 'mblock'), el('p', 'soft', db ? HOW : OFFLINE)));
+    if (fresh) { if (typeof box.showModal === 'function') box.showModal(); else box.setAttribute('open', ''); }
+    var back = fk ? box.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (back && !back.disabled) back.focus({ preventScroll: true }); else if (fresh || (back && back.disabled)) x.focus();
+  }
 
-  // A routine that is due: read only, said here so that "Needs you" is the one list of what waits.
   // What Cogby wrote and the owner has not confirmed is not shown anywhere (owner, 2026-11-18): nobody
   // confirms lines one by one. Each line has a Fix instead, for the owner who sees something wrong.
-  function routineRow(r) {
-    var meta = el('div', 'm', r.rhythm ? r.rhythm + ' · ' : '');
-    meta.appendChild(r.state === 'overdue' ? el('span', 'late', plural(r.days_overdue || 1, 'day') + ' late') : document.createTextNode('due today'));
-    return put(el('div', 'row'), put(el('div', 'line'), dot('var(--st-scheduled)'), put(el('div', 'main'), el('div', 't', r.title), meta), tag('routine')));
-  }
-  var needsCount = function () { return (notes.count || 0) + routines.length; };
+  // A routine that is late is a row of the inbox (further down, `resultRow`), with Run it now.
 
   // ---- meetings: the day as a calendar, and a card for each meeting ----
   // A meeting with something sent from the page for it (Prepare me, notes) carries a mark until a session applies it.
-  var meetSent = function (m) { return !!(pending.sent['meeting:' + m.id] || pending.sentComments['meeting:' + m.id]); };
+  var meetSent = function () { return false; };
   // A meeting as one row, on a project's view and for a meeting whose time could not be read. It opens the card.
   function meetingRow(m) {
     var b = el('button', 'row meet rowbtn'); b.type = 'button'; b.dataset.fk = 'meet:' + m.id;
@@ -752,11 +986,13 @@
       meetBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Who · ' + people.length), who));
     }
     if (m.last) meetBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Last on this project'), el('p', null, m.last)));
+    // Prepare me is saved like any press, and goes into Copy prompt at the top to have it done now.
     meetBox.appendChild(put(el('div', 'options mblock'), m.url ? outside(link(m.url, 'btn accent', 'Join')) : null, choice(id, m.title, 'Prepare me', 'prepare', 'btn'), sentTag(id)));
+    if (pending.actions[id] || pending.sent[id]) meetBox.appendChild(el('p', 'soft', 'To have it ready now, press Copy prompt at the top and paste it into a new chat.'));
     openNote['meeting:' + m.id] = true;
     var c = commentable('meeting', m.id, m.title, { placeholder: 'Your notes for this meeting' });
     c.box.hidden = false;
-    meetBox.appendChild(put(el('div', 'mblock'), put(el('span', 'kicker', 'Your notes '), c.tag), c.box));
+    meetBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Your notes'), c.box));
     if (fresh) { if (typeof meetBox.showModal === 'function') meetBox.showModal(); else meetBox.setAttribute('open', ''); }
     var back = fk ? meetBox.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
     if (back) back.focus({ preventScroll: true }); else if (fresh) x.focus();
@@ -765,35 +1001,6 @@
   var waitsTag = function (p) { return p.waiting ? tag(plural(p.waiting, 'waits for you', 'wait for you'), 'tag-needs') : null; };
   var card = function (rows, cls) { var c = el('div', 'card' + (cls ? ' ' + cls : '')); rows.forEach(function (r) { c.appendChild(r); }); return c; };
   var title = function (text) { var h = el('h1', null, text); h.tabIndex = -1; return h; };
-  // A timeline, by day: what was written and, on the Brain tab, on which page. Each line has a Fix: what
-  // the owner types leaves with the page and the line, and a session records it as their correction.
-  var dayName = function (day) { return day === today ? 'Today' : day === yesterday ? 'Yesterday' : niceDay(day); };
-  function timelineRow(entry, withPage, slug) {
-    var main = el('div', 'main'); var t = el('div', 't', entry.summary); t.style.fontWeight = '400'; main.appendChild(t);
-    if (withPage) {
-      var m = /^projects\/([^/]+)/i.exec(entry.slug || ''); var p = m ? byName(m[1]) : null;
-      main.appendChild(put(el('div', 'm'), p ? plink(p) : el('span', null, entry.title || entry.slug || '')));
-    }
-    var page = entry.slug || slug || '';
-    var day = String(entry.date || '').slice(0, 10);
-    var c = page ? commentable('line', page, entry.summary, { fix: true, key: page + '|' + day + '|' + String(entry.summary).slice(0, 80), extra: { date: day, line: String(entry.summary).slice(0, 300) } }) : null;
-    return put(el('div', 'row tl'), put(el('div', 'line'), main, c ? put(el('div', 'acts'), c.tag, c.bubble) : null), c ? c.box : null);
-  }
-  function timelineRows(entries, withPage, slug) {
-    var out = []; var last = null;
-    var dayOf = function (entry) { return String(entry.date || '').slice(0, 10); };
-    entries.forEach(function (entry) {
-      var day = dayOf(entry);
-      if (day !== last) {
-        var size = entries.filter(function (other) { return dayOf(other) === day; }).length;
-        out.push(put(el('div', 'grouphead', dayName(day) + ' '), el('span', null, String(size))));
-        last = day;
-      }
-      out.push(timelineRow(entry, withPage, slug));
-    });
-    return out;
-  }
-
   // ---- the owner's own lists: to-dos and notes ----
   // A tick, a new to-do or a new note is kept here at once and written to the page's store when there
   // is one. A session applies it to the brain later; until then the row says so.
@@ -814,9 +1021,9 @@
     return b;
   }
   function todoList() {
-    var list = baseTodos.map(function (t) { return { id: t.id, text: t.text, body: t.body || '', due: t.due || '', project: t.project || '', done: !!t.done, done_at: t.done_at || '', added: t.added || '', source: t.source || '', by: t.by || '' }; });
+    var list = baseTodos.map(function (t) { return { id: t.id, text: t.text, body: t.body || '', due: t.due || '', project: t.project || '', done: !!t.done, done_at: t.done_at || '', added: t.added || '', source: t.source || '', by: t.by || '', plan: t.plan || '' }; });
     pending.changes.forEach(function (c) {
-      if (c.kind === 'todo-add') list.push({ id: c.client_id, text: c.text, body: c.body || '', due: c.due || '', project: c.project || '', done: false, added: today, source: 'this page', fresh: true, changed: true });
+      if (c.kind === 'todo-add') list.push({ id: c.client_id, text: c.text, body: c.body || '', due: c.due || '', project: c.project || '', done: false, added: today, source: 'this page', by: c.by || '', plan: '', fresh: true, changed: true });
       else if (c.kind === 'todo-done' || c.kind === 'todo-reopen') {
         var key = c.id || c.client_id;
         list.forEach(function (t) { if (t.id === key) { t.done = c.kind === 'todo-done'; t.changed = true; } });
@@ -827,10 +1034,14 @@
           if (t.id !== which) return;
           if (c.text) t.text = c.text;
           ['due', 'project', 'body'].forEach(function (k) { if (c[k]) t[k] = c[k] === 'none' ? '' : c[k]; });
+          if (c.by) t.by = c.by === 'cogby' ? 'cogby' : '';
           t.changed = true;
         });
       }
     });
+    // A task that lives in the owner's own tool (Notion, Google Tasks, a tracker): read there for this
+    // page, never copied into the brain.
+    extTasks.forEach(function (t) { list.push({ id: t.id, text: t.text, body: '', due: t.due || '', project: t.project || '', done: !!t.done, done_at: '', added: '', source: '', by: '', plan: '', tool: t.tool, link: t.link || '', ext: true }); });
     return list.filter(function (t) { return !removed('todo-drop', t.id); });
   }
   function noteList() {
@@ -842,7 +1053,7 @@
   var openTodos = function () { return todoList().filter(function (t) { return !t.done; }); };
   var dueTodos = function () { return openTodos().filter(function (t) { return t.due && t.due <= today; }); };
   var unsaved = function () { return pending.changes.filter(function (c) { return !c.saved; }); };
-  var notYet = function () { return db ? sentMark() : tag('only in this browser', 'tag-new'); };
+  var notYet = function () { return null; };
   function change(fields) {
     fields.at = new Date().toISOString(); fields.saved = false;
     pending.changes.push(fields); said = ''; flush(); render();
@@ -854,7 +1065,7 @@
       if (c.sending) return;
       c.sending = true;
       var doc = { at: c.at, read: false, page_generated_at: data.generated_at || '', kind: c.kind };
-      ['id', 'client_id', 'text', 'due', 'project', 'body'].forEach(function (k) { if (c[k]) doc[k] = c[k]; });
+      ['id', 'client_id', 'text', 'due', 'project', 'body', 'by', 'status'].forEach(function (k) { if (c[k]) doc[k] = c[k]; });
       db.collection('changes').add(doc).then(function () { c.saved = true; c.sending = false; keep(); header(); }, function () { c.sending = false; header(); });
     });
   }
@@ -874,6 +1085,11 @@
     var c = { kind: t.done ? 'todo-reopen' : 'todo-done' }; c[t.fresh ? 'client_id' : 'id'] = t.id; change(c);
   }
   function todoRow(t, here) {
+    if (t.ext) {
+      var xm = put(el('div', 'main'), t.link ? outside(link(t.link, 't', t.text)) : el('div', 't', t.text));
+      var xd = dueText(t); if (xd && !t.done) xm.appendChild(el('div', 'm' + (xd.late ? ' late' : ''), xd.text));
+      return put(el('div', 'row todo' + (t.done ? ' isdone' : '')), put(el('div', 'line'), dot('var(--st-scheduled)'), xm, sourceTag(t)));
+    }
     var check = el('button', 'check'); check.type = 'button'; check.setAttribute('role', 'checkbox'); check.setAttribute('aria-checked', String(!!t.done));
     check.setAttribute('aria-label', t.text); check.dataset.fk = 'tick:' + t.id; check.appendChild(el('i'));
     check.addEventListener('click', function () { tick(t); });
@@ -967,7 +1183,7 @@
     var meta = el('div', 'notemeta'); meta.appendChild(el('span', null, n.date === today ? 'today' : niceDay(n.date)));
     var p = !here && n.project ? byName(n.project) : null; if (p) meta.appendChild(plink(p));
     if (n.body) meta.appendChild(el('span', 'notemore', 'More inside'));
-    if (n.fresh) meta.appendChild(notYet());
+    var ny = n.fresh ? notYet() : null; if (ny) meta.appendChild(ny);
     var b = makeTodoButton(n, 'btn quiet', 'mk:' + n.id); b.style.marginLeft = 'auto';
     return put(el('div', 'notecard'), noteOpener(n, 'noteline'), put(meta, b, removeButton('note-dismiss', n)));
   }
@@ -1055,13 +1271,13 @@
     if (fresh) taskBox = overlay(function (d) { if (taskBox === d) closeTask(); });
     var active = document.activeElement; var fk = active && taskBox.contains(active) && active.dataset ? active.dataset.fk : '';
     // What is typed stays while the page redraws around it.
-    var d = taskDraft || (taskDraft = { text: t.text, due: t.due, project: t.project, body: t.body });
+    var d = taskDraft || (taskDraft = { text: t.text, due: t.due, project: t.project, body: t.body, by: t.by || '' });
     taskBox.textContent = ''; taskBox.setAttribute('aria-label', 'To-do: ' + t.text.slice(0, 80));
     var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.dataset.fk = 'tp:x';
     x.addEventListener('click', closeTask);
     var save = el('button', 'btn accent', 'Save'); save.type = 'button'; save.dataset.fk = 'tp:save';
     var differs = function () {
-      return d.text.trim() !== t.text || (d.due || '') !== (t.due || '') || (d.project || '') !== (t.project || '') || d.body.trim() !== String(t.body || '').trim();
+      return d.text.trim() !== t.text || (d.due || '') !== (t.due || '') || (d.project || '') !== (t.project || '') || d.body.trim() !== String(t.body || '').trim() || (d.by || '') !== (t.by || '');
     };
     var update = function () { save.disabled = !differs() || !d.text.trim(); };
 
@@ -1070,7 +1286,7 @@
     words.setAttribute('aria-label', 'What to do');
     words.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
     words.addEventListener('input', function () { d.text = words.value.replace(/\s*\n\s*/g, ' '); update(); });
-    var from = [t.added ? 'Added ' + (t.added === today ? 'today' : niceDay(t.added)) : '', t.source ? 'from ' + t.source : ''].filter(Boolean).join(' · ');
+    var from = ['Kept in Cogby', t.added ? 'added ' + (t.added === today ? 'today' : niceDay(t.added)) : '', t.source ? 'from ' + t.source : ''].filter(Boolean).join(' · ');
     put(taskBox, put(el('div', 'mhead'), el('span', 'kicker', t.done ? 'To-do · done' : 'To-do'), t.changed ? notYet() : null, x), words, from ? el('div', 'm', from) : null);
 
     var grid = el('div', 'tgrid');
@@ -1087,12 +1303,21 @@
     where.value = d.project || '';
     where.addEventListener('change', function () { d.project = where.value; update(); });
     put(grid, el('span', 'lbl', 'Project'), where);
+    // Whose it is: the owner's, or handed to Cogby, who thinks of a plan the next time it wakes up.
+    var who = el('div', 'seg'); who.setAttribute('role', 'group'); who.setAttribute('aria-label', 'Assigned to');
+    [['', 'Me'], ['cogby', 'Cogby']].forEach(function (o) {
+      var b = el('button', null, o[1]); b.type = 'button'; b.dataset.fk = 'tp:by:' + o[0]; b.setAttribute('aria-pressed', String((d.by || '') === o[0]));
+      b.addEventListener('click', function () { d.by = o[0]; drawTask(); }); who.appendChild(b);
+    });
+    put(grid, el('span', 'lbl', 'Assigned to'), who);
     taskBox.appendChild(grid);
+    if (t.plan) { var plan = el('p', 'noteline', t.plan); taskBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Cogby\'s plan'), plan)); }
+    else if (d.by === 'cogby') taskBox.appendChild(el('p', 'soft', 'Cogby thinks of a plan the next time it wakes up, and brings it to your inbox for a yes before it does anything.'));
 
     var body = el('textarea', 'tbody'); body.maxLength = 4000; body.value = d.body; body.dataset.fk = 'tp:body';
-    body.placeholder = 'What it is for, what done looks like, links'; body.setAttribute('aria-label', 'Details');
+    body.placeholder = 'Your notes: what it is for, what done looks like, links'; body.setAttribute('aria-label', 'Notes');
     body.addEventListener('input', function () { d.body = body.value; update(); });
-    taskBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Details'), body));
+    taskBox.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Notes'), body));
 
     save.addEventListener('click', function () {
       var text = d.text.trim(); if (!text || !differs()) return;
@@ -1100,7 +1325,7 @@
       // Made on this page and not sent yet: the new to-do itself takes the change.
       var add = t.fresh ? pending.changes.filter(function (c) { return c.kind === 'todo-add' && c.client_id === t.id && !c.saved && !c.sending; })[0] : null;
       if (add) {
-        add.text = text.slice(0, 200); add.due = d.due || ''; add.project = d.project || ''; add.body = detail.slice(0, 4000);
+        add.text = text.slice(0, 200); add.due = d.due || ''; add.project = d.project || ''; add.body = detail.slice(0, 4000); add.by = d.by || '';
         taskDraft = null; said = ''; keep(); render(); return;
       }
       var c = { kind: 'todo-edit' }; c[t.fresh ? 'client_id' : 'id'] = t.id;
@@ -1108,10 +1333,23 @@
       if ((d.due || '') !== (t.due || '')) c.due = d.due || 'none';
       if ((d.project || '') !== (t.project || '')) c.project = d.project || 'none';
       if (detail !== String(t.body || '').trim()) c.body = detail.slice(0, 4000) || 'none';
+      if ((d.by || '') !== (t.by || '')) c.by = d.by || 'me';
       taskDraft = null; change(c);
     });
     var rm = removeButton('todo-drop', t); rm.dataset.fk = 'tp:rm:' + t.id;
-    taskBox.appendChild(put(el('div', 'tfoot'), save, rm));
+    // Hand to Claude: the task and its notes become the brief of a new chat, through Copy prompt.
+    var hand = null;
+    if (!t.done) {
+      hand = el('button', 'btn', 'Hand to Claude'); hand.type = 'button'; hand.dataset.fk = 'tp:hand';
+      hand.title = 'Start a chat with Claude on this task, with your notes as the brief';
+      hand.addEventListener('click', function () {
+        var words_ = d.text.trim() || t.text; var notes_ = d.body.trim();
+        closeTask();
+        addRequest('Work on my task ' + quote(words_) + (t.fresh ? '' : ' (' + t.id + ')') + (d.project ? ', project ' + d.project : '') + (d.due ? ', due ' + d.due : '') + '.' + (notes_ ? ' My notes: ' + ended(flat(notes_)) : '') + (t.plan ? ' Cogby\'s plan: ' + ended(flat(t.plan)) : '') + ' Read the project in my brain first, tell me your plan in a few lines, then do it. I stay the owner: tick it off only when I say it is done.',
+          'Hand to Claude: ' + words_, 'Added. Press Copy prompt at the top and paste it into a new chat.');
+      });
+    }
+    taskBox.appendChild(put(el('div', 'tfoot'), save, hand, rm));
     update();
     if (fresh) { if (typeof taskBox.showModal === 'function') taskBox.showModal(); else taskBox.setAttribute('open', ''); }
     var back = fk ? taskBox.querySelector('[data-fk="' + fk.replace(/["\\]/g, '\\$&') + '"]') : null;
@@ -1181,9 +1419,25 @@
   }
   // One task as the Console's row: the round tick, its words (which open it), and at the right its due date,
   // which a click lets you change ("+ due" when it has none), or the time it was done.
+  // Where a task lives, as a small tag: the owner's own tool, or Cogby's list (owner, 2026-11-25: "tasks can
+  // have an external source … to see source"). On a row only when the page holds tasks from more than one place.
+  var mixedTasks = function () { return extTasks.length > 0; };
+  var sourceTag = function (t) {
+    var s = tag(t.tool || 'Cogby', t.tool ? 'tag-src' : null);
+    s.title = t.tool ? 'Lives in ' + t.tool + ': open and tick it there' : 'On Cogby\'s own list';
+    return s;
+  };
   function taskLine(t, how) {
     how = how || {};
     var row = el('div', 'trow' + (t.done ? ' tdone' : ''));
+    if (t.ext) {
+      // Read from the owner's tool: its words open it there, and it is ticked there.
+      var box = el('span', 'tcheck ext' + (t.done ? ' done' : '')); box.title = 'Tick it in ' + t.tool;
+      var words = t.link ? outside(link(t.link, 'tname', t.text)) : el('span', 'tname', t.text);
+      words.title = t.text + (t.link ? ' · opens in ' + t.tool : ''); words.dataset.fk = 'task:' + t.id;
+      var xdm = dueMeta(t, how.home);
+      return put(row, box, words, sourceTag(t), el('span', 'tat' + (xdm && !t.done && xdm.over ? ' over' : ''), xdm && !t.done ? xdm.label : ''));
+    }
     var check = el('button', 'tcheck' + (t.done ? ' done' : '')); check.type = 'button'; check.setAttribute('role', 'checkbox'); check.setAttribute('aria-checked', String(!!t.done));
     check.setAttribute('aria-label', (t.done ? 'Open again: ' : 'Mark done: ') + t.text); check.dataset.fk = 'tick:' + t.id;
     check.addEventListener('click', function () { tick(t); });
@@ -1191,7 +1445,7 @@
     name.addEventListener('click', function () { showTask(t.id); });
     var mark = null;
     if (isCogby(t)) { mark = el('span', 'lane-mark'); mark.innerHTML = COG; mark.title = 'Cogby\'s task'; mark.style.cssText = 'flex:none;width:14px;height:14px;color:var(--accent)'; }
-    put(row, check, mark, name, t.changed ? notYet() : null);
+    put(row, check, mark, name, mixedTasks() ? sourceTag(t) : null, t.changed ? notYet() : null);
     if (how.pull && !t.done) {
       var pull = el('button', 'tpull', '↑ Now'); pull.type = 'button'; pull.title = 'Pull into Now: gives it today\'s date'; pull.dataset.fk = 'pull:' + t.id;
       pull.addEventListener('click', function () { setDue(t, today); });
@@ -1267,7 +1521,7 @@
       d.textContent = '';
       var todo = mode === 'todo';
       var seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Kind');
-      [['todo', 'To-do'], ['note', 'Note']].forEach(function (o) {
+      [['todo', 'Task'], ['note', 'Quick note']].forEach(function (o) {
         var b = el('button', null, o[1]); b.type = 'button'; b.setAttribute('aria-pressed', String(mode === o[0]));
         b.addEventListener('click', function () { keepTyped(); mode = o[0]; draw(); }); seg.appendChild(b);
       });
@@ -1309,38 +1563,17 @@
     draw();
   }
 
-  // Today's tasks, as the Console's Home had them: what is due today or late, what was done today, and a
-  // field that adds a task for today.
-  function todayTasks() {
-    var mine = todoList().filter(function (t) { return t.done || (t.due && t.due <= today); });
-    var open = mine.filter(function (t) { return !t.done; });
-    var box = section(2, 'Today\'s tasks', open.length ? open.length + ' yours' : '');
-    box.firstChild.appendChild(link('#/todos', 'more', 'Open board →'));
-    var rows = open.map(function (t) { return taskLine(t, { home: true }); })
-      .concat(mine.filter(function (t) { return t.done; }).map(function (t) { return taskLine(t, { at: true }); }));
-    if (!rows.length) rows.push(put(el('div', 'trow'), el('span', 'm', 'Nothing due today.')));
-    var f = el('form', 'compose tadd');
-    var words = el('input', 'bare'); words.placeholder = 'Add a task for today…'; words.setAttribute('aria-label', 'New task for today'); words.maxLength = 200; words.dataset.fk = 'form:today';
-    words.value = drafts.today || '';
-    words.addEventListener('input', function () { drafts.today = words.value; });
-    var add = el('button', 'btn', 'Add'); add.type = 'submit'; add.dataset.fk = 'form:today';
-    f.addEventListener('submit', function (e) {
-      e.preventDefault(); var text = words.value.trim(); if (!text) return;
-      drafts.today = ''; change({ kind: 'todo-add', client_id: newKey(), text: text.slice(0, 200), due: today, project: '' });
-    });
-    rows.push(put(f, el('span', 'cmark'), words, add));
-    return put(box, card(rows, 'tcard'));
-  }
 
   // ---- the views: four tabs, and the view of one project ----
   var views = {};
 
-  // To-dos and notes are one tab: the to-dos on the left, the notes beside them.
+  // Tasks: one list, and the quick notes under it.
   views.todos = function (view) {
-    var top = title('Tasks & notes'); top.style.marginBottom = '24px';
+    var top = title('Tasks'); top.style.marginBottom = '24px';
     view.appendChild(top);
-    var left = el('div', 'col'); var right = el('div', 'col');
-    // The tasks, as the old Console's Tasks view showed them.
+    var left = el('div', 'col');
+    // The tasks, as the old Console's Tasks view showed them. A quick note sits under them: it becomes a
+    // task or is removed (owner, 2026-11-25: notes and tasks side by side were confusing).
     left.appendChild(put(el('section', 'o1'), tasksBoard()));
 
     // What Cogby recorded as promised to others, under the to-dos, only when there is something.
@@ -1353,7 +1586,7 @@
       }))));
     }
 
-    var notesBox = section(2, 'Notes · ' + noteList().length);
+    var notesBox = section(4, 'Quick notes · ' + noteList().length, 'turn one into a task, or remove it');
     var add = el('button', 'btn small', 'Add a note'); add.type = 'button'; add.dataset.fk = 'open:note'; add.addEventListener('click', notePopup);
     notesBox.firstChild.appendChild(add);
     var search = el('input', 'field'); search.type = 'search'; search.placeholder = 'Search these notes'; search.setAttribute('aria-label', 'Search notes'); search.value = noteQuery; search.dataset.fk = 'notes:search';
@@ -1376,40 +1609,320 @@
     };
     search.addEventListener('input', function () { noteQuery = search.value; fill(); });
     fill();
-    right.appendChild(put(notesBox, search, stack));
-
-    view.appendChild(put(el('div', 'cols'), left, right));
+    search.hidden = noteList().length < 7;
+    left.appendChild(put(notesBox, search, stack));
+    view.appendChild(put(el('div', 'narrow'), left));
   };
   // The old address of the notes tab shows the same view.
   views.notes = views.todos;
 
+  // Today's tasks, as the Console's Home had them: what is due today or late, what was done today, and a
+  // field that adds a task for today. A task opens on a click, to change it (owner, 2026-11-24: "tasks
+  // can stay where they were").
+  function todayTasks() {
+    var mine = todoList().filter(function (t) { return t.done || (t.due && t.due <= today); });
+    var open = mine.filter(function (t) { return !t.done; });
+    var box = section(2, 'Today\'s tasks', open.length ? open.length + ' yours' : '');
+    box.firstChild.appendChild(link('#/todos', 'more', 'All tasks →'));
+    var rows = open.map(function (t) { return taskLine(t, { home: true }); })
+      .concat(mine.filter(function (t) { return t.done; }).map(function (t) { return taskLine(t, { at: true }); }));
+    if (!rows.length) rows.push(put(el('div', 'trow'), el('span', 'm', 'Nothing due today.')));
+    var f = el('form', 'compose tadd');
+    var words = el('input', 'bare'); words.placeholder = 'Add a task for today…'; words.setAttribute('aria-label', 'New task for today'); words.maxLength = 200; words.dataset.fk = 'form:today';
+    words.value = drafts.today || '';
+    words.addEventListener('input', function () { drafts.today = words.value; });
+    var add = el('button', 'btn', 'Add'); add.type = 'submit'; add.dataset.fk = 'form:today';
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); var text = words.value.trim(); if (!text) return;
+      drafts.today = ''; change({ kind: 'todo-add', client_id: newKey(), text: text.slice(0, 200), due: today, project: '' });
+    });
+    rows.push(put(f, el('span', 'cmark'), words, add));
+    return put(box, card(rows, 'tcard'));
+  }
+
+  function splitList(text) {
+    var parts = []; var depth = 0; var cur = '';
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (ch === '(') depth++; else if (ch === ')') depth = Math.max(0, depth - 1);
+      if (ch === ',' && depth === 0 && !/\d/.test(text.charAt(i + 1))) { parts.push(cur); cur = ''; } else cur += ch;
+    }
+    parts.push(cur);
+    return parts.map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function resultLines(text) {
+    var out = []; var grouped = false;
+    String(text || '').split(/\s*;\s*|\s*\n\s*/).filter(Boolean).forEach(function (part) {
+      var m = /^([^:,()]{2,40}):\s*(.+)$/.exec(part);
+      var items = splitList(m ? m[2] : part);
+      if (m && items.length > 1) { out.push({ label: m[1] }); items.forEach(function (one) { out.push({ text: one }); }); grouped = true; return; }
+      // A part after a labelled list starts a block of its own, so it does not read as one more item.
+      if (!m && items.length > 2) items.forEach(function (one, i) { out.push({ text: one, gap: grouped && !i }); });
+      else out.push({ text: part, gap: grouped });
+      grouped = false;
+    });
+    return out;
+  }
+  function resultList(text) {
+    var list = el('ul', 'rres');
+    resultLines(text).forEach(function (one) { list.appendChild(one.label ? el('li', 'rlbl', one.label) : el('li', one.gap ? 'rgap' : null, one.text)); });
+    return list;
+  }
+  var ranOn = function (day) { return !day ? 'has not run yet' : day === today ? 'ran today' : day === yesterday ? 'ran yesterday' : 'last ran ' + niceDay(day); };
+  function routineFlags(r) {
+    var box = el('span', 'badges');
+    if (r.state === 'overdue') box.appendChild(tag(plural(r.days_overdue || 1, 'day') + ' late', 'tag-needs'));
+    if (!r.scheduled) box.appendChild(tag('not scheduled', 'tag-warn'));
+    return box.childNodes.length ? box : null;
+  }
+  // Something the owner asks Cogby to do, from anywhere on the page: saved as a request, and in Copy prompt.
+  function addRequest(text, label, said_) {
+    var key = 'request:' + newKey();
+    pending.comments[key] = { kind: 'request', id: key.slice(8), label: String(label || text).slice(0, 80), text: String(text).slice(0, 1000), ready: true };
+    said = ''; keep(); sendOut(); render();
+    toast(said_ || 'Added. Press Copy prompt at the top to have it done now.');
+  }
+  var routineLate = function (r) { return r.state === 'overdue' || !r.scheduled; };
+
+  // ---- My Cogby (owner, 2026-11-25: "a view with brain, that shows my personal skills, my routines") ----
+  // Every routine, each opening on what it found, and a line to set up a new one; the skills; the
+  // brain's sources. Routine results also reach the inbox.
+  function routineRow(r, i) {
+    var b = el('button', 'row rowbtn'); b.type = 'button'; b.dataset.fk = 'routine:' + i; b.setAttribute('aria-haspopup', 'dialog');
+    var first = resultLines(r.last_result).filter(function (one) { return one.text; }).slice(0, 3).map(function (one) { return one.text; }).join(' · ');
+    var main = put(el('div', 'main'), el('div', 't', r.title), el('div', 'm', [r.rhythm, ranOn(r.last_date), r.scheduled ? '' : 'not scheduled in Claude'].filter(Boolean).join(' · ')), first ? el('div', 'm clamp', first) : null);
+    put(b, put(el('div', 'line'), dot(r.state === 'overdue' ? 'var(--st-needs)' : 'var(--st-scheduled)'), main, routineFlags(r), el('span', 'plink', 'Open')));
+    b.addEventListener('click', function () { showRoutine(i); });
+    return b;
+  }
+  function newRoutine() {
+    var f = el('form', 'compose tadd');
+    var words = el('input', 'bare'); words.placeholder = 'A new routine: what should Cogby do, and when?'; words.setAttribute('aria-label', 'A new routine: what should Cogby do, and when?'); words.maxLength = 600; words.dataset.fk = 'form:routine';
+    words.value = drafts.routine || '';
+    words.addEventListener('input', function () { drafts.routine = words.value; });
+    var add = el('button', 'btn', 'Add'); add.type = 'submit'; add.dataset.fk = 'form:routine';
+    f.addEventListener('submit', function (e) {
+      e.preventDefault(); var text = words.value.trim(); if (!text) return;
+      drafts.routine = '';
+      addRequest('Set up a new routine for me: ' + text + '. Write its page in my brain and schedule it in Claude.', 'New routine: ' + text, 'Added. Press Copy prompt at the top to have it set up.');
+    });
+    return put(f, el('span', 'cmark'), words, add);
+  }
+  // One routine, opened over the page: what it runs and when, what the last run found in full, the chat
+  // its scheduled task last ran in (when Claude's scheduler said so), the runs before, and Run it now.
+  function showRoutine(i) {
+    var r = routineRuns[i]; if (!r) return;
+    var d = overlay(function (x) { gone(x); var from = $('view').querySelector('[data-fk="routine:' + i + '"]'); if (from) from.focus({ preventScroll: true }); });
+    var x = el('button', 'btn quiet bubble x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.addEventListener('click', function () { d.close(); });
+    put(d, put(el('div', 'mhead'), el('span', 'kicker', 'Routine'), routineFlags(r), x), el('h2', 'mtitle', r.title));
+    d.appendChild(el('div', 'm', [r.rhythm, ranOn(r.last_date), r.scheduled_as ? 'scheduled in Claude as ' + r.scheduled_as : 'not scheduled in Claude'].filter(Boolean).join(' · ')));
+    if (r.runs) d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'What it runs'), el('p', null, r.runs)));
+    var last = (r.history || [])[0];
+    d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', r.last_date ? 'What it found, ' + (r.last_date === today ? 'today' : niceDay(r.last_date)) : 'What it found'),
+      r.last_result ? resultList(r.last_result) : el('p', 'soft', 'Nothing recorded yet.'), last && last.source ? el('p', 'soft', 'From ' + last.source) : null));
+    if (r.chat || r.chat_summary) {
+      d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Its last scheduled run' + (r.chat_at ? ', ' + r.chat_at : '')), r.chat_summary ? el('p', null, r.chat_summary) : null,
+        r.chat ? put(el('div', 'options'), outside(link(r.chat, 'btn', 'Open the chat that ran it'))) : null));
+    }
+    var before = (r.history || []).slice(1);
+    if (before.length) {
+      var older = put(el('div', 'mblock'), el('span', 'kicker', 'Runs before'));
+      before.forEach(function (h) { older.appendChild(put(el('div', 'mblock'), el('span', 'soft', niceDay(h.date) + (h.source ? ' · from ' + h.source : '')), h.result ? resultList(h.result) : null)); });
+      d.appendChild(older);
+    }
+    // Change it: the owner's words on what should be different, as a request for Claude to set up.
+    var change_ = el('textarea'); change_.placeholder = 'What should change? Its time, what it checks, where it reports…'; change_.setAttribute('aria-label', 'What should change in this routine');
+    var ask = el('button', 'btn', 'Change it'); ask.type = 'button'; ask.disabled = true;
+    change_.addEventListener('input', function () { ask.disabled = !change_.value.trim(); });
+    ask.addEventListener('click', function () {
+      var words = change_.value.trim(); if (!words) return;
+      d.close(); addRequest('Change my routine "' + r.title + '": ' + words + '. Update its page and its schedule in Claude.', 'Change ' + r.title);
+    });
+    d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Change it'), change_));
+    var run = el('button', 'btn accent', 'Run it now'); run.type = 'button';
+    run.addEventListener('click', function () {
+      d.close(); addRequest('Run my routine "' + r.title + '" now, then record the run in Cogby.', 'Run ' + r.title, 'Added. Press Copy prompt at the top to have it run now.');
+    });
+    d.appendChild(put(el('div', 'tfoot'), run, ask));
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+    x.focus();
+  }
+
+  // ---- Routine results in the inbox: the latest run of each routine, from today or yesterday, and a
+  // routine that is late. Clear marks a result seen in this browser (the brain keeps every run anyway).
+  var SEEN_KEY = 'cogby-seen-runs';
+  var seenRuns = {};
+  try { seenRuns = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { seenRuns = {}; }
+  var runKey = function (r) { return r.title + '|' + (r.last_date || '') + '|' + r.state; };
+  var keepSeen = function () { try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenRuns)); } catch (e) { /* fine */ } };
+  function routineInbox() {
+    return routineRuns.map(function (r, i) { return { r: r, i: i }; }).filter(function (o) {
+      var fresh = o.r.last_date && o.r.last_result && gapDays(o.r.last_date) >= -1;
+      return (fresh || o.r.state === 'overdue') && !seenRuns[runKey(o.r)];
+    });
+  }
+  // A routine's result is an inbox item like any other (owner, 2026-11-25: "the same design as Inbox, just a
+  // tag to say Routine"): the same row, tagged Routine, its first lines under its name, the rest inside.
+  function resultRow(o) {
+    var r = o.r; var late = r.state === 'overdue';
+    var open = el('button', 'noteopen t', r.title); open.type = 'button'; open.dataset.fk = 'routine:' + o.i; open.setAttribute('aria-haspopup', 'dialog');
+    open.addEventListener('click', function () { showRoutine(o.i); });
+    var first = resultLines(r.last_result).filter(function (one) { return one.text; }).map(function (one) { return one.text; }).join(' · ');
+    var meta = el('div', 'm clamp', late ? plural(r.days_overdue || 1, 'day') + ' late' + (r.rhythm ? ' · ' + r.rhythm : '') : ranOn(r.last_date) + (first ? ' · ' + first : ''));
+    var clear = el('button', 'btn quiet', 'Clear'); clear.type = 'button'; clear.dataset.fk = 'seen:' + o.i;
+    clear.addEventListener('click', function () {
+      var k = runKey(r); seenRuns[k] = today; keepSeen(); render();
+      toast('Cleared: ' + r.title, function () { delete seenRuns[k]; keepSeen(); render(); });
+    });
+    var run = late ? el('button', 'btn small', 'Run it now') : null;
+    if (run) { run.type = 'button'; run.addEventListener('click', function () { addRequest('Run my routine "' + r.title + '" now, then record the run in Cogby.', 'Run ' + r.title, 'Added. Press Copy prompt at the top to have it run now.'); }); }
+    return put(el('div', 'row notif'), put(el('div', 'line'), dot(late ? 'var(--st-needs)' : 'var(--st-scheduled)'), tag('Routine'), put(el('div', 'main'), open, meta), put(el('div', 'acts'), run, clear)));
+  }
+
+
+  // ---- Sessions: the owner's open chats, by who has to act next (owner, 2026-11-25: "here is what is
+  // happening in your sessions now, because we tend to lose track"). Read from the Claude app by a session
+  // on each refresh: null says they were not read for this page.
+  var SGROUPS = [['needs', 'Needs you', '--st-needs'], ['working', 'Working', '--st-accent'], ['finished', 'Finished, not yet seen', '--st-running'], ['idle', 'Open, nothing pending', '--st-scheduled']];
+  var sessionsIn = function (state) { return (sessions || []).filter(function (x) { return x.state === state; }); };
+  var SLABEL = { needs: 'Needs you', working: 'Working', finished: 'Finished', idle: 'Open' };
+  var SRANK = { needs: 0, working: 1, finished: 2, idle: 3 };
+  var stateOf = function (x) { return SGROUPS.filter(function (o) { return o[0] === x.state; })[0] || SGROUPS[3]; };
+  // One chat as a row. Its title opens it on this page (owner, 2026-11-25: "when I click on a session it
+  // leads to nothing"): what it is about, what it asks, where it stopped, and the way into the chat itself.
+  function sessionRow(x, how) {
+    how = how || {};
+    var g = stateOf(x);
+    var p = x.project_name ? byName(x.project_name) : null;
+    var open = el('button', 'noteopen t', x.title); open.type = 'button'; open.dataset.fk = 'chat:' + x.id; open.setAttribute('aria-haspopup', 'dialog');
+    open.addEventListener('click', function () { showSession(x); });
+    var meta = el('div', 'm');
+    if (how.grouped) meta.appendChild(el('span', null, SLABEL[g[0]]));
+    else if (p && !only) put(meta, plink(p)); else if (x.project) meta.appendChild(el('span', null, x.project));
+    if (x.at) { if (meta.childNodes.length) meta.appendChild(sep()); meta.appendChild(el('span', null, x.at)); }
+    var main = put(el('div', 'main'), open, x.state === 'needs' && x.needs ? el('div', 'm clamp', x.needs) : null, x.where ? el('div', 'm clamp', x.where) : null, meta.childNodes.length ? meta : null);
+    var go = x.link ? outside(link(x.link, 'btn small', 'Open chat')) : null;
+    return put(el('div', 'row notif'), put(el('div', 'line'), dot('var(' + g[2] + ')'), how.tagged ? tag('Chat') : null, main, go ? put(el('div', 'acts'), go) : null));
+  }
+  function showSession(x) {
+    var g = stateOf(x); var p = x.project_name ? byName(x.project_name) : null;
+    var d = overlay(function (o) { gone(o); var from = $('view').querySelector('[data-fk="chat:' + String(x.id).replace(/["\\]/g, '\\$&') + '"]'); if (from) from.focus({ preventScroll: true }); });
+    var close = el('button', 'btn quiet bubble x', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Close'); close.addEventListener('click', function () { d.close(); });
+    put(d, put(el('div', 'mhead'), el('span', 'kicker', 'Chat'), tag(SLABEL[g[0]], g[0] === 'needs' ? 'tag-needs' : g[0] === 'finished' ? 'tag-ok' : null), close), el('h2', 'mtitle', x.title));
+    var facts = el('div', 'm');
+    if (p && !only) { var pl = plink(p); pl.addEventListener('click', function () { d.close(); }); facts.appendChild(pl); } else if (x.project) facts.appendChild(el('span', null, x.project));
+    if (x.at) { if (facts.childNodes.length) facts.appendChild(sep()); facts.appendChild(el('span', null, 'last active ' + x.at)); }
+    if (facts.childNodes.length) d.appendChild(facts);
+    if (x.needs) d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'What it asks you'), el('p', null, x.needs)));
+    if (x.where) d.appendChild(put(el('div', 'mblock'), el('span', 'kicker', 'Where it stopped'), el('p', null, x.where)));
+    if (!x.needs && !x.where) d.appendChild(put(el('div', 'mblock'), el('p', 'soft', g[0] === 'working' ? 'It is working now.' : 'Nothing is waiting for you in this chat.')));
+    if (x.link) d.appendChild(put(el('div', 'tfoot'), outside(link(x.link, 'btn accent', 'Open chat'))));
+    d.appendChild(el('p', 'soft srcnote', x.link ? 'If the chat does not open from here, look for it by this name in the Claude app.' : 'Look for it by this name in the Claude app.'));
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+    close.focus();
+  }
+  var sby = 'project';
+  views.sessions = function (view) {
+    view.appendChild(title('Sessions'));
+    if (!sessions) {
+      view.appendChild(el('p', 'lede', 'Your open chats with Claude, by project.'));
+      view.appendChild(put(el('div', 'narrow'), el('div', 'empty', 'Your chats were not read for this page. They are read each time Cogby refreshes it from the Claude desktop app.')));
+      return;
+    }
+    var n = sessionsIn('needs').length; var w = sessionsIn('working').length; var f = sessionsIn('finished').length;
+    view.appendChild(el('p', 'lede', (n ? plural(n, 'chat needs you', 'chats need you') : 'No chat needs you') + ' · ' + w + ' working · ' + f + ' finished, not yet seen.'));
+    var box = el('div', 'narrow');
+    var bar = el('div', 'filters');
+    [['project', 'By project'], ['state', 'By who acts next']].forEach(function (o) {
+      var b = el('button', 'chip', o[1]); b.type = 'button'; b.dataset.fk = 'sby:' + o[0]; b.setAttribute('aria-pressed', String(sby === o[0]));
+      b.addEventListener('click', function () { sby = o[0]; render(); }); bar.appendChild(b);
+    });
+    box.appendChild(bar);
+    if (sby === 'state') {
+      SGROUPS.forEach(function (g, i) {
+        var list = sessionsIn(g[0]);
+        if (!list.length && g[0] !== 'needs') return;
+        box.appendChild(put(section(i + 1, g[1] + ' · ' + list.length), list.length ? card(list.map(function (x) { return sessionRow(x); })) : el('div', 'empty', 'Nothing is waiting for you in a chat.')));
+      });
+    } else {
+      // By project (owner, 2026-11-25: "group them by project or goal"): a project's chats together, the one
+      // that needs you first. Projects with a chat that waits come first, chats on no project last.
+      var groups = {}; var order = [];
+      sessions.forEach(function (x) { var k = x.project_name || (x.project ? 'other:' + x.project : ''); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); });
+      var rankOf = function (x) { return SRANK[x.state] == null ? 3 : SRANK[x.state]; };
+      var best = function (k) { return Math.min.apply(null, groups[k].map(rankOf)); };
+      var projectAt = function (k) { return k && k.indexOf('other:') !== 0 ? byName(k) : null; };
+      var label = function (k) { var p = projectAt(k); return !k ? 'Not on a project' : p ? named(p) : k.replace(/^other:/, ''); };
+      order.sort(function (a, b) { return (a ? 0 : 1) - (b ? 0 : 1) || best(a) - best(b) || label(a).localeCompare(label(b)); });
+      order.forEach(function (k, i) {
+        var list = groups[k].slice().sort(function (a, b) { return rankOf(a) - rankOf(b); });
+        var waits = list.filter(function (x) { return x.state === 'needs'; }).length;
+        var s = section(Math.min(i + 1, 8), label(k) + ' · ' + list.length, waits ? plural(waits, 'needs you', 'need you') : '');
+        var p = projectAt(k);
+        if (p && !only) s.firstChild.appendChild(link(address(p), 'more', 'Open project →'));
+        box.appendChild(put(s, card(list.map(function (x) { return sessionRow(x, { grouped: true }); }))));
+      });
+    }
+    box.appendChild(el('p', 'soft srcnote', 'As of ' + (when || 'the last refresh') + '. This list is a snapshot: it is read again each time Cogby refreshes the page.'));
+    view.appendChild(box);
+  };
+
+  var OLD_DAYS = 14; var olderOpen = false;
+  var needsCount = function () { return liveOnly(notes.waiting).length + routineInbox().length + sessionsIn('needs').length; };
   views.today = function (view) {
     var hour = new Date().getHours();
     view.appendChild(title((hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening') + (data.owner ? ', ' + data.owner : '') + '.'));
-    var total = needsCount();
-    var oldest = routines.reduce(function (n, r) { return Math.max(n, r.days_overdue || 0); }, notes.oldest_days || 0);
+    var live = liveOnly(notes.waiting); var results = routineInbox();
+    var chats = sessionsIn('needs');
+    var total = live.length + results.length + chats.length;
     var parts = [];
-    if (total) parts.push(plural(total, 'thing needs you', 'things need you') + (oldest ? ', the oldest for ' + days(oldest) : ''));
+    if (live.length) parts.push(plural(live.length, 'thing needs you', 'things need you') + (notes.oldest_days ? ', the oldest for ' + days(notes.oldest_days) : ''));
     else parts.push('Nothing needs you');
+    if (chats.length) parts.push(plural(chats.length, 'chat waits', 'chats wait') + ' for you');
+    if (results.length) parts.push(plural(results.length, 'routine result'));
     if (meetings && age === 0) parts.push(meetings.length ? plural(meetings.length, 'meeting') + ' today' : 'no meetings today');
     var due = dueTodos();
     var lede = el('p', 'lede', parts.join(' · '));
     if (due.length) put(lede, sep(), link('#/todos', null, plural(due.length, 'to-do') + ' due'));
     lede.appendChild(document.createTextNode('.'));
     view.appendChild(lede);
+    // One line on the chats, which opens Sessions.
+    if (sessions) {
+      var strip = link('#/sessions', 'sstrip', plural(chats.length, 'session needs you', 'sessions need you') + ' · ' + sessionsIn('working').length + ' working · ' + sessionsIn('finished').length + ' finished, not yet seen →');
+      strip.dataset.fk = 'strip:sessions'; view.appendChild(strip);
+    }
 
     var left = el('div', 'col'); var right = el('div', 'col');
-    // 1. What waits for you: what Cogby left you, the routines that are due, and what it wrote that you
-    // have not confirmed.
-    var needs = section(1, 'Needs you · ' + total);
-    var rows = notes.waiting.map(function (n) { return notifRow(n); }).concat(routines.map(routineRow));
-    needs.appendChild(rows.length ? card(rows) : el('div', 'empty', 'Nothing is waiting for you.'));
-    left.appendChild(needs);
+    // 1. The inbox (owner, 2026-11-24: "I like inbox, I still want them"), one list: what Cogby left you,
+    // each with the answer it already thought of, the chats that wait for you, and your routines' latest
+    // results ("what I will see in inbox: a category of inbox which are routine results"), tagged Routine.
+    // What was left more than two weeks ago is folded under "Older"; what is marked high stays in sight
+    // however old it is. Clear takes an item off at once.
+    var inbox = section(1, 'Inbox · ' + total);
+    var old = function (n) { return n.priority !== 'high' && n.days_old != null && n.days_old > OLD_DAYS; };
+    var older = live.filter(old);
+    var waiting = live.filter(function (n) { return !old(n); });
+    var high = waiting.filter(function (n) { return n.priority === 'high'; }); var rest = waiting.filter(function (n) { return n.priority !== 'high'; });
+    // One list: what is marked high, the chats that wait, the rest, then the routines' results.
+    var rows = high.map(function (n) { return notifRow(n); }).concat(chats.map(function (x) { return sessionRow(x, { tagged: true }); }), rest.map(function (n) { return notifRow(n); }), results.map(resultRow));
+    if (!rows.length) rows.push(put(el('div', 'row'), el('div', 'm', 'Nothing is waiting for you.')));
+    inbox.appendChild(card(rows));
+    if (older.length) {
+      var fold = el('button', 'tfold'); fold.type = 'button'; fold.dataset.fk = 'fold:older'; fold.setAttribute('aria-expanded', String(olderOpen));
+      put(fold, el('span', 'car', '▸'), el('span', 'slug', 'Older'));
+      fold.addEventListener('click', function () { olderOpen = !olderOpen; render(); });
+      var foldRow = put(el('div', 'tplanned'), fold, el('span', 'tpcount', older.length + ' left more than ' + OLD_DAYS + ' days ago'));
+      foldRow.style.borderTop = '0';
+      inbox.appendChild(foldRow);
+      if (olderOpen) inbox.appendChild(card(older.map(function (n) { return notifRow(n); })));
+    }
+    inbox.appendChild(el('p', 'soft srcnote', db ? HOW : OFFLINE));
+    left.appendChild(inbox);
 
     // 2. Just below: today's tasks (owner, 2026-11-18: "show notification, below it tasks for today").
     left.appendChild(todayTasks());
 
-    // 2. Done without you: what, why, and the way back.
+    // 3. Done without you: what, why, and the way back.
     if (notes.acted.length) {
       var done = section(4, 'Done without you · ' + notes.acted.length);
       done.appendChild(card(notes.acted.map(function (n) {
@@ -1422,7 +1935,7 @@
       left.appendChild(done);
     }
 
-    // 3. The day's meetings, where they were, only when a calendar was read for this page. With no
+    // 4. The day's meetings, where they were, only when a calendar was read for this page. With no
     // calendar, the one column keeps a readable width.
     put(right, meetingSection(3, meetings, false));
     view.appendChild(meetings ? put(el('div', 'cols'), left, right) : put(el('div', 'narrow'), left));
@@ -1438,12 +1951,32 @@
   // ---- projects, as the old Console showed them (owner, 2026-11-18: "the same one we had before") ----
   // The Console's four statuses. A card with no status is active; a word the Console did not know shows as written.
   var STATUSES = [['planning', 'Planning', '--st-scheduled'], ['active', 'Active', '--st-accent'], ['on-hold', 'On hold', '--st-needs'], ['done', 'Done', '--st-running']];
+  // A status changed on this page shows at once; a session writes it on the project's card.
+  var statusChange = function (p) { var last = null; pending.changes.forEach(function (c) { if (c.kind === 'project-status' && c.project === p.name) last = c; }); return last; };
   var statusOf = function (p) {
-    var id = String(p.status || '').toLowerCase() || 'active';
+    var set = statusChange(p);
+    var id = (set ? set.status : String(p.status || '').toLowerCase()) || 'active';
     var known = STATUSES.filter(function (s) { return s[0] === id; })[0];
     return { id: id, label: known ? known[1] : id.replace(/[-_]/g, ' '), known: !!known };
   };
   var pill = function (p) { var s = statusOf(p); return el('span', 'spill ' + (s.known ? s.id : 'other'), s.label); };
+  // The same pill as a menu, on the project's own view (owner, 2026-11-25: "I can change their status from
+  // the view"). Choosing what the card already says, before the change has left this browser, takes it back.
+  function statusPicker(p) {
+    var s = statusOf(p);
+    var pick = el('select', 'spick spill ' + (s.known ? s.id : 'other')); pick.dataset.fk = 'pstatus:' + p.slug; pick.setAttribute('aria-label', 'Status of ' + named(p)); pick.title = 'Change the status';
+    STATUSES.forEach(function (o) { var opt = el('option', null, o[1]); opt.value = o[0]; pick.appendChild(opt); });
+    if (!s.known) { var own = el('option', null, s.label); own.value = s.id; pick.appendChild(own); }
+    pick.value = s.id;
+    pick.addEventListener('change', function () {
+      var was = String(p.status || '').toLowerCase() || 'active';
+      var last = statusChange(p);
+      if (last && !last.saved && !last.sending && pick.value === was) { pending.changes.splice(pending.changes.indexOf(last), 1); said = ''; keep(); render(); return; }
+      change({ kind: 'project-status', project: p.name, status: pick.value });
+      toast('Status of ' + named(p) + ': ' + statusOf(p).label);
+    });
+    return pick;
+  }
   // A project whose card has no title of its own shows its folder name as words: "hiring-autumn-2026" reads "Hiring autumn 2026".
   var named = function (p) { var t = String(p.title || p.name || ''); return /^[a-z0-9]+(-[a-z0-9]+)+$/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1).replace(/-/g, ' ') : t; };
   var byWords = function (a, b) { return named(a).localeCompare(named(b)); };
@@ -1510,9 +2043,14 @@
     put(view, search, bar, list);
   };
 
-  // One project, inside this page, with the old Console's header and tabs: Tasks, Sub-projects, Documents
-  // (the files in its folder) and Project context. It is also the whole of a project's own dashboard page.
+  // One project, inside this page, with the old Console's header and tabs. It opens on Where it stands
+  // (owner, 2026-11-23: "when I click a project, I would like to see where the project is ongoing"): what
+  // waits for the owner there, Now and Next from its card when written, where work stopped, the chats on it,
+  // its open tasks, and beside them its newest documents, what was promised and its notes. Then Tasks,
+  // Documents and Sub-projects. No timeline (owner, 2026-11-25). It is also a project's own dashboard page.
   var bytes = function (n) { return n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; };
+  var docRow = function (f) { return put(el('div', 'row docrow'), el('span', 'docpath', f.path), el('span', 'docmeta', bytes(f.size || 0) + ' · ' + moved(f.modified))); };
+  var LAST = 5;                                     // how many open tasks and documents Where it stands shows
   views.project = function (view, name) {
     var p = byName(name);
     if (!p) {
@@ -1524,26 +2062,55 @@
     var top = el('div', 'projtop');
     top.appendChild(title(named(p)));
     var open = openCount(p);
-    top.appendChild(put(el('div', 'pfacts'), pill(p), el('span', 'opentag', plural(open, 'open task')), p.updated ? el('span', null, 'last moved ' + moved(p.updated)) : null, waitsTag(p)));
+    top.appendChild(put(el('div', 'pfacts'), statusPicker(p), el('span', 'opentag', plural(open, 'open task')), p.updated ? el('span', null, 'last moved ' + moved(p.updated)) : null, waitsTag(p)));
     if (summaryOf(p)) top.appendChild(el('p', 'ptruth', summaryOf(p)));
     if (p.dashboard && !only) top.appendChild(put(el('div', 'headacts'), outside(link(p.dashboard, 'btn', 'Open dashboard ↗'))));
     view.appendChild(top);
 
     var kids = childrenOf(p).sort(byWords);
     var files = p.files || { count: 0, items: [] };
-    var tab = ptabs[p.key] || 'tasks';
+    var tab = ptabs[p.key] || 'stands'; if (tab === 'context' || (tab === 'subs' && !childrenOf(p).length)) tab = 'stands';
+    var go = function (to) { ptabs[p.key] = to; render(); };
     var bar = el('div', 'ptabs'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', named(p));
-    [['tasks', 'Tasks'], ['subs', 'Sub-projects' + (kids.length ? ' · ' + kids.length : '')], ['docs', 'Documents' + (files.count ? ' · ' + files.count : '')], ['context', 'Project context']].forEach(function (t) {
+    [['stands', 'Where it stands'], ['tasks', 'Tasks'], ['docs', 'Documents' + (files.count ? ' · ' + files.count : '')], ['subs', 'Sub-projects' + (kids.length ? ' · ' + kids.length : '')]].filter(function (t) { return t[0] !== 'subs' || kids.length; }).forEach(function (t) {
       var b = el('button', null, t[1]); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(tab === t[0])); b.dataset.fk = 'ptab:' + t[0];
-      b.addEventListener('click', function () { ptabs[p.key] = t[0]; render(); });
+      b.addEventListener('click', function () { go(t[0]); });
       bar.appendChild(b);
     });
     view.appendChild(bar);
+    // A small button at a section's head that opens another tab; the focus lands on that tab.
+    var more = function (label, to) { var b = el('button', 'btn quiet small', label); b.type = 'button'; b.dataset.fk = 'ptab:' + to; b.addEventListener('click', function () { go(to); }); return b; };
 
+    if (tab === 'stands') {
+      var here = el('div', 'col'); var beside = el('div', 'col');
+      var waits = liveOnly(notes.waiting).filter(function (n) { return isAbout(n.context, p); });
+      if (waits.length) here.appendChild(put(section(1, 'Needs you here · ' + waits.length), card(waits.map(function (n) { return notifRow(n, true); }))));
+      // Now and Next, as the card has them. Most cards have neither yet: one plain line says so, and what fills them.
+      var half = function (label, text) { return put(el('div'), el('span', 'kicker', label), text ? el('p', null, text) : put(el('p'), el('span', 'soft', 'Nothing written.'))); };
+      if (p.now || p.next) here.appendChild(put(section(2, 'Now and next'), put(el('div', 'card pair'), half('Now', p.now), half('Next', p.next))));
+      var chatsHere = (sessions || []).filter(function (x) { return x.project_name === p.name && x.state !== 'idle'; });
+      if (chatsHere.length) here.appendChild(put(section(2, 'Chats on it · ' + chatsHere.length), card(chatsHere.map(function (x) { return sessionRow(x); }))));
+      var spot = p.parking_spot && p.parking_spot[0];
+      var stopped = el('div', 'card stopcard');
+      if (spot) put(stopped, el('p', null, spot.summary), el('div', 'm', niceDay(spot.date) + (spot.source ? ' · ' + spot.source : '')));
+      else stopped.appendChild(el('div', 'm', 'Nothing written yet.'));
+      here.appendChild(put(section(3, 'Where you stopped'), stopped));
+      if (files.count) {
+        var newest = section(5, 'Documents · ' + files.count, files.count > LAST ? 'the newest ' + LAST : '');
+        if (files.count > LAST) newest.firstChild.appendChild(more('See all', 'docs'));
+        beside.appendChild(put(newest, card(files.items.slice(0, LAST).map(docRow))));
+      }
+      var openHere = todoList().filter(function (t) { return t.project === p.key && !t.done; });
+      if (openHere.length) { var ot = section(4, 'Open tasks · ' + openHere.length); if (openHere.length > LAST) ot.firstChild.appendChild(more('See all', 'tasks')); here.appendChild(put(ot, card(openHere.slice(0, LAST).map(function (t) { return taskLine(t); }), 'tcard'))); }
+      var owed = p.commitments || [];
+      if (owed.length) beside.appendChild(put(section(6, 'Promised · ' + owed.length), card(owed.map(function (fact) { return put(el('div', 'row'), el('div', 't', fact.claim), fact.source ? el('div', 'm', 'from ' + fact.source) : null); }))));
+      var about = noteList().filter(function (n) { return n.project === p.key; });
+      if (about.length) { var stack = el('div', 'notestack'); about.forEach(function (n) { stack.appendChild(noteCard(n, true)); }); beside.appendChild(put(section(8, 'Notes about it'), stack)); }
+      view.appendChild(beside.childNodes.length ? put(el('div', 'cols'), here, beside) : put(el('div', 'narrow'), here));
+      return;
+    }
     if (tab === 'tasks') {
       var box = el('div', 'narrow');
-      var waits = notes.waiting.filter(function (n) { return isAbout(n.context, p); });
-      if (waits.length) box.appendChild(put(section(3, 'Needs you here · ' + waits.length), card(waits.map(function (n) { return notifRow(n, true); }))));
       var mineTodos = todoList().filter(function (t) { return t.project === p.key; });
       box.appendChild(put(section(5, 'To-dos · ' + mineTodos.filter(function (t) { return !t.done; }).length), card([todoCompose(p)].concat(todoGroups(mineTodos, true)))));
       var meets = (meetings || []).filter(function (m) { return m.project_name && m.project_name === p.name; });
@@ -1560,42 +2127,27 @@
       var docs = el('div', 'narrow');
       if (!files.count) docs.appendChild(el('div', 'empty', 'No files in this project\'s folder besides its card.'));
       else {
-        var more = files.count > files.items.length ? ', the newest ' + files.items.length + ' shown' : '';
-        docs.appendChild(put(section(0, plural(files.count, 'file') + more), card(files.items.map(function (f) {
-          return put(el('div', 'row docrow'), el('span', 'docpath', f.path), el('span', 'docmeta', bytes(f.size || 0) + ' · ' + moved(f.modified)));
-        }))));
+        var shown = files.count > files.items.length ? ', the newest ' + files.items.length + ' shown' : '';
+        docs.appendChild(put(section(0, plural(files.count, 'file') + shown), card(files.items.map(docRow))));
         docs.appendChild(el('p', 'soft srcnote', 'In the project\'s folder in your brain. Ask Claude to open or use one.'));
       }
       view.appendChild(docs);
       return;
     }
-
-    var left = el('div', 'col'); var right = el('div', 'col');
-    var spot = p.parking_spot && p.parking_spot[0];
-    var stopped = el('div', 'card stopcard');
-    if (spot) put(stopped, el('p', null, spot.summary), el('div', 'm', niceDay(spot.date) + (spot.source ? ' · ' + spot.source : '')));
-    else stopped.appendChild(el('div', 'm', 'Nothing written yet.'));
-    left.appendChild(put(section(1, 'Where you stopped'), stopped));
-
-    var half = function (label, text, none) { return put(el('div'), el('span', 'kicker', label), text ? el('p', null, text) : put(el('p'), el('span', 'soft', none))); };
-    left.appendChild(put(section(2, 'Now and next'), put(el('div', 'card pair'), half('Now', p.now, 'Nothing in flight.'), half('Next', p.next, 'Nothing written.'))));
-
-    // Project context: where work stopped, Now and Next from the card, the timeline, what it owes, its notes.
-    var lines = p.timeline || [];
-    left.appendChild(put(section(7, 'Timeline'),
-      lines.length ? card(timelineRows(lines, false, p.slug)) : el('div', 'empty', 'Nothing written yet.')));
-
-    var owed = p.commitments || [];
-    right.appendChild(put(section(6, 'Promised · ' + owed.length),
-      owed.length ? card(owed.map(function (fact) { return put(el('div', 'row'), el('div', 't', fact.claim), fact.source ? el('div', 'm', 'from ' + fact.source) : null); })) : el('div', 'empty', 'Nothing promised.')));
-    var about = noteList().filter(function (n) { return n.project === p.key; });
-    if (about.length) { var stack = el('div', 'notestack'); about.forEach(function (n) { stack.appendChild(noteCard(n, true)); }); right.appendChild(put(section(8, 'Notes about it'), stack)); }
-    view.appendChild(put(el('div', 'cols'), left, right));
   };
 
-  views.brain = function (view) {
-    var top = title('Your brain'); top.style.marginBottom = '24px';
-    view.appendChild(top);
+  views.cogby = function (view) {
+    view.appendChild(title('My Cogby'));
+    view.appendChild(el('p', 'lede', 'What Cogby does for you on a rhythm, what it knows how to do, and where it reads from.'));
+    var rbox = section(0, 'Routines · ' + routineRuns.length, 'open one to see what it found');
+    rbox.appendChild(card(routineRuns.map(routineRow).concat(routineRuns.length ? [] : [put(el('div', 'row'), el('div', 'm', 'No routines yet. Describe one below.'))], [newRoutine()])));
+    rbox.appendChild(el('p', 'soft srcnote', 'A new routine, a change or Run it now goes into Copy prompt at the top: paste it into a new chat and Claude sets it up.'));
+    view.appendChild(rbox);
+    if (skills.length) {
+      var yours = skills.filter(function (k) { return k.own; }); var builtin = skills.filter(function (k) { return !k.own; });
+      var skillRow = function (k) { return put(el('div', 'row'), put(el('div', 'line'), put(el('div', 'main'), el('div', 't', k.name.replace(/-/g, ' ')), k.about ? el('div', 'm clamp', k.about) : null), k.own ? tag('yours') : null)); };
+      view.appendChild(put(section(0, 'Skills · ' + skills.length, yours.length ? yours.length + ' yours' : 'ask for one by name in a chat'), card(yours.concat(builtin).map(skillRow))));
+    }
 
     // The owner's own folders first, a missing one at the top; the brain itself and its day log last.
     var builtIn = function (s) { return s.builtin || s.id === 'brain' || s.id === 'log'; };
@@ -1624,9 +2176,10 @@
     }
     view.appendChild(src);
 
-    view.appendChild(put(section(0, 'Latest in your brain'),
-      recent.length ? card(timelineRows(recent, true)) : el('div', 'empty', 'Nothing written yet.')));
   };
+
+  // The old addresses of what moved still open the right view.
+  views.routines = views.brain = views.cogby; views.inbox = views.today;
 
   // ---- tabs, header, what has not left the page ----
   function route() {
@@ -1639,76 +2192,54 @@
   function chrome(r) {
     var tabs = $('tabs'); tabs.textContent = ''; tabs.parentNode.hidden = !!only;
     var missing = sources.filter(function (s) { return s.missing; }).length;
-    [['today', 'Today', needsCount(), true], ['todos', 'Tasks & notes', dueTodos().length, true], ['projects', 'Projects', projects.length, false], ['brain', 'Brain', missing, true]].forEach(function (t) {
+    [['today', 'Inbox', needsCount(), true], ['todos', 'Tasks', dueTodos().length, true], ['sessions', 'Sessions', sessionsIn('working').length, false], ['projects', 'Projects', projects.length, false]].forEach(function (t) {
       var a = link('#/' + t[0], null, t[1]);
-      if (r.name === t[0] || (t[0] === 'projects' && r.name === 'project') || (t[0] === 'todos' && r.name === 'notes')) a.setAttribute('aria-current', 'page');
+      if (r.name === t[0] || (t[0] === 'projects' && r.name === 'project') || (t[0] === 'todos' && r.name === 'notes') || (t[0] === 'today' && r.name === 'inbox')) a.setAttribute('aria-current', 'page');
       if (t[2]) a.appendChild(el('span', 'count' + (t[3] ? ' hot' : ''), String(t[2])));
       tabs.appendChild(a);
     });
+    // Routines, skills and sources are one link in the corner; a count shows when one needs a look.
+    var mine = $('mycogby'); var off = routineRuns.filter(routineLate).length + missing; mine.hidden = !!only; mine.textContent = 'My Cogby';
+    if (off) mine.appendChild(el('span', 'count hot', String(off)));
+    if (r.name === 'cogby' || r.name === 'routines' || r.name === 'brain') mine.setAttribute('aria-current', 'page'); else mine.removeAttribute('aria-current');
     $('asof').textContent = when ? 'As of ' + when : 'Snapshot';
   }
-  // What cannot leave on its own: everything chosen on a file opened from disk, and what the store refused.
-  function loose() {
-    var n = unsaved().filter(function (c) { return !c.sending; }).length;
-    Object.keys(pending.actions).forEach(function (k) { if (!db || pending.actions[k].failed) n++; });
-    Object.keys(pending.comments).forEach(function (k) { if (!db || pending.comments[k].failed) n++; });
-    return n;
-  }
-  // The header says what left the page and is not in the brain yet, and offers Copy only while something
-  // cannot leave on its own.
+  // The header holds the handoff: Copy prompt, with how many things it carries, as soon as there is one.
   function header() {
-    var out = Object.keys(pending.sent).length + Object.keys(pending.sentComments).length + pending.changes.length;
-    $('outbox').hidden = !out; $('outbox').textContent = out + ' sent'; $('outbox').title = LATER;
-    var copy = $('copy'); var n = loose();
-    copy.hidden = !n && !said; copy.textContent = said || 'Copy my answers';
-    copy.title = n ? plural(n, 'thing') + ' to paste to Claude: this page cannot send ' + (n === 1 ? 'it' : 'them') + ' on its own' : '';
+    $('outbox').hidden = true;
+    var copy = $('copy'); var n = handoffItems().length;
+    copy.className = 'btn small accent'; copy.hidden = !n;
+    copy.dataset.label = 'Copy prompt · ' + n;
+    if (!copy.classList.contains('copied')) copy.textContent = copy.dataset.label;
+    copy.title = 'One request for Claude with everything you chose and asked on this page. Paste it into a new chat: it starts a session that handles it all.';
   }
   function render(moved) {
     var r = route(); var view = $('view');
     var active = document.activeElement; var fk = active && active.dataset ? active.dataset.fk : '';
     view.textContent = '';
     views[r.name](view, r.arg);
-    chrome(r); header(); keep(); drawMeeting(); drawNote(); drawTask();
+    chrome(r); header(); keep(); drawMeeting(); drawNote(); drawTask(); drawNotif();
     var p = r.name === 'project' ? byName(r.arg) : null;
     document.title = only ? only.title + ' dashboard' : (p ? p.title + ' · ' : '') + 'Cogby command center';
     if (moved) { window.scrollTo(0, 0); var h = view.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
     else if (fk) { var all = view.querySelectorAll('[data-fk]'); for (var i = 0; i < all.length; i++) if (all[i].dataset.fk === fk) { all[i].focus({ preventScroll: true }); break; } }
   }
 
-  // What Copy carries: what was chosen and not sent, the comments, and the changes to the lists not saved.
-  function asText() {
-    var lines = ['From my Cogby command center (the page made ' + (when || 'earlier') + '). Apply these:'];
-    Object.keys(pending.actions).forEach(function (k) {
-      var a = pending.actions[k];
-      lines.push('- ' + (a.kind === 'answer' ? 'answer "' + a.option + '" on' : a.kind === 'dismiss' ? 'clear' : a.kind === 'later' ? 'put off' : 'prepare me for') + ' ' + a.id + ' (' + a.label + ')');
-    });
-    Object.keys(pending.comments).forEach(function (k) {
-      var c = pending.comments[k];
-      if (c.kind === 'line') lines.push('- fix the line of ' + ((c.extra && c.extra.date) || '') + ' on ' + c.id + ' ("' + c.label + '"): ' + c.text);
-      else lines.push('- my comment on ' + c.kind + ' ' + c.id + ' (' + c.label + '): ' + c.text);
-    });
-    unsaved().forEach(function (c) {
-      if (c.kind === 'todo-add') lines.push('- add to-do: ' + c.text + (c.project ? ' (project ' + c.project + ')' : '') + (c.due ? ' (due ' + c.due + ')' : '') + (c.body ? ' (details: ' + c.body + ')' : ''));
-      else if (c.kind === 'todo-edit') lines.push('- edit to-do ' + (c.id || c.client_id) + ':' + [c.text ? ' text "' + c.text + '"' : '', c.due ? ' due ' + c.due : '', c.project ? ' project ' + c.project : '', c.body ? ' details "' + c.body + '"' : ''].filter(Boolean).join(';'));
-      else if (c.kind === 'note-add') lines.push('- note' + (c.project ? ' on ' + c.project : '') + ': ' + c.text + (c.body ? ' (more: ' + c.body + ')' : ''));
-      else if (c.id && c.kind === 'note-dismiss') lines.push('- remove note ' + c.id);
-      else if (c.id) lines.push('- ' + (c.kind === 'todo-done' ? 'tick' : c.kind === 'todo-drop' ? 'remove' : 'reopen') + ' to-do ' + c.id);
-    });
-    return lines.join('\n');
-  }
-  $('copy').addEventListener('click', function () {
-    var text = asText(); var box = $('copybox');
-    var shown = function () { box.hidden = false; box.value = text; box.focus(); box.select(); };
-    try { navigator.clipboard.writeText(text).then(function () { said = 'Copied. Paste it to Claude.'; box.hidden = true; header(); }, shown); } catch (e) { shown(); }
-  });
+  // Copy prompt at the top: the handoff, with everything chosen and asked on this page.
+  $('copy').addEventListener('click', function () { copyPrompt(handoffText(), $('copy')); });
 
   window.addEventListener('hashchange', function () {
-    said = ''; openMeeting = null; shownNote = null; shownTask = null; taskDraft = null;
+    said = ''; openMeeting = null; shownNote = null; shownTask = null; taskDraft = null; shownNotif = null;
     if (meetBox) { var d = meetBox; meetBox = null; gone(d); }
     if (noteBox) { var n = noteBox; noteBox = null; gone(n); }
     if (taskBox) { var k = taskBox; taskBox = null; gone(k); }
+    if (notifBox) { var w = notifBox; notifBox = null; gone(w); }
     render(true);
   });
+  // The foot names the Cogby that made the page (its plugin.json version, as written), for a person
+  // with more than one copy. It sits outside the view, so it stays on every view and on a dashboard.
+  function showVersion(version) { var v = $('version'); v.textContent = version ? 'Cogby ' + version : ''; v.hidden = !version; }
+  showVersion(typeof data.version === 'string' ? data.version : '');
   render();
   // The store is there only on the published page; a file opened from disk keeps Copy alone.
   if (window.claude && typeof window.claude.use === 'function') {

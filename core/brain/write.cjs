@@ -119,6 +119,9 @@ function commitFile(brain, rel, message) {
     return { committed: false, why: own.prefix ? 'the brain sits inside another git repository, so its history is that repository\'s' : 'the brain is not a git repository (run `git init` in it, or `cogby init`)' };
   }
   const git = gitIn(brain);
+  // A lock a stopped git left behind is cleared first, only when it is old and no git is running
+  // (core/lib/index-lock.cjs). With the lock still there, git says so below and the write stands.
+  try { require('../lib/index-lock.cjs').clearLeftover(brain); } catch { /* the commit reports it */ }
   const add = git('add', '--', rel);
   if (!add.ok) return { committed: false, why: `git add: ${add.err || 'failed'}` };
   const identity = git('config', 'user.name').out && git('config', 'user.email').out ? [] : ['-c', 'user.name=Cogby', '-c', 'user.email=cogby@localhost'];
@@ -321,7 +324,9 @@ function commitDayLogs(brain, logDir = path.join(brain, ...LOG_DIR)) {
   if (!ownRepository(brain).repo) return [];
   const rel = path.relative(brain, logDir).split(path.sep).join('/');
   if (!rel || rel.startsWith('..')) return [];
-  const status = gitIn(brain)('status', '--porcelain', '--untracked-files=all', '--', rel);
+  // A look, not a change: `--no-optional-locks` keeps git from taking its index lock for it. A git
+  // stopped while it holds that lock leaves it behind, and every later save is then refused.
+  const status = gitIn(brain)('--no-optional-locks', 'status', '--porcelain', '--untracked-files=all', '--', rel);
   if (!status.ok || !status.out) return [];
   // The path is read from where the log folder starts in the line, not from a fixed column: the
   // first line of the output reaches here with its leading space trimmed.

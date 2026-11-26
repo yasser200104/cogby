@@ -16,6 +16,9 @@
 //                         most, never under `cogby proactive quiet`)
 //   no brain at all       one line, on a fresh start only: Cogby is installed, and how to make a brain
 //
+// Wherever it speaks, one line names this copy's version and folder (core/lib/version.cjs): a
+// computer can hold more than one Cogby, and the onboarding hello ends on the version.
+//
 // It reads the brain's index when there is one and its files when there is not, and never makes an
 // index itself: a session starting is not what decides that. It writes two things: this machine's
 // count of sessions per unlinked folder, in .cogby/local.json, and the brain's AGENTS.md when the
@@ -33,7 +36,8 @@ let payload = {};
 try { payload = JSON.parse(require('fs').readFileSync(0, 'utf8') || '{}'); } catch { /* no payload: treat as a start */ }
 
 // The wrap-up commit is scoped to what this session dirtied, worked out against a snapshot of the
-// brain taken now. A session that will not be wrapped up needs none.
+// brain taken now. A session that will not be wrapped up needs none. The snapshot is a `git status`
+// that takes no index lock (wrapup-scope.cjs dirtyPaths): this hook can be stopped at any moment.
 function recordBaseline(brain) {
   try {
     if (!require('../../core/lib/headless.cjs').flagsFrom(process.env).wrapup) return;
@@ -57,6 +61,15 @@ function scriptsLine() {
     + (shadow
       ? `The brain's commands: \`node "${path.join(bin, 'cogby')}" <command>\`.\n${shadow}`
       : `The brain's commands are also \`cogby <command>\` in this shell, or \`node "${path.join(bin, 'cogby')}" <command>\` anywhere (\`cogby help\`).`);
+}
+
+// Which Cogby this is, from its own plugin.json, and where it runs from. Nothing when the manifest
+// cannot be read.
+function versionLine() {
+  try {
+    const version = require('../../core/lib/version.cjs').pluginVersion(ENGINE);
+    return version ? `This is Cogby version ${version}, from "${ENGINE}".` : '';
+  } catch { return ''; }
 }
 
 // What waits on the owner, in one line, so a session opens knowing it without a tool call.
@@ -87,7 +100,8 @@ try {
   if (!brain) {
     // Once, when the session begins: not again on resume, clear or compaction.
     // The scripts line goes with it: onboarding runs them before any brain exists to say where they are.
-    if (!payload.source || payload.source === 'startup') process.stdout.write(`${NO_BRAIN}\n${scriptsLine()}\n`);
+    // So does the version: the hello's last line says it.
+    if (!payload.source || payload.source === 'startup') process.stdout.write(`${[NO_BRAIN, versionLine(), scriptsLine()].filter(Boolean).join('\n')}\n`);
   } else {
     const inside = brainLib.isInside(cwd, brain);
     if (inside) recordBaseline(brain);
@@ -106,7 +120,8 @@ try {
     if (oldMap) lines.push(...(inside ? ['', oldMap] : [oldMap]));
     const waiting = waitingLine(brain);
     if (waiting) lines.push(...(inside ? ['', waiting] : [waiting]));
-    lines.push(...(inside ? [''] : []), scriptsLine());
+    const version = versionLine();
+    lines.push(...(inside ? [''] : []), ...(version ? [version] : []), scriptsLine());
     // The wrap-up skill scopes its commit to this session, and a model is not told its own id.
     const session = String(payload.session_id || '').trim();
     if (inside && /^[A-Za-z0-9._-]{1,120}$/.test(session)) lines.push(`This session's id is ${session}: the wrap-up skill scopes its commit with it.`);

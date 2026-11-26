@@ -10,9 +10,14 @@ The same reading at three sizes. Pick by what the owner said, or by the clock wh
 
 ## Step 1: Read, in this order
 
+First, quietly, the health check of the routines skill ("Health check: keep them running"): are
+the scheduled routines still scheduled, and did any miss a run. It speaks only when one did.
+
 1. `view` tool (`snapshot`): projects and where each stopped, the last lines written, stale pages,
    notifications.
-2. `todo` (`list`): open to-dos, with due dates.
+2. `todo` (`list`): open to-dos, with due dates. When a fact on `areas/work/card` names the tool the
+   owner keeps their to-dos in and this session can reach it, read the open ones there too: that list
+   comes first, and a to-do is ticked, dropped or added where it lives.
 3. `notify` (`list`): what waits on the owner.
 4. **Morning only:** today's calendar, if a calendar connector is in this session. Titles, times,
    who. No calendar: say so in one line and carry on.
@@ -28,6 +33,11 @@ The same reading at three sizes. Pick by what the owner said, or by the clock wh
    prints one more line under its counts: how each kind of call turned out ("Overrode Claude 4
    times: 3 as expected, 1 not."). Take it from a command run without `--since`, where it covers
    every decision: one made this week has rarely been reviewed yet.
+8. **Weekly only:** `cogby routines --json`. Each routine's `week` holds the runs of the last seven
+   days with what each found (`ran`) and the days no run covered (`missed`). For each run, look at
+   what followed within two days in the to-dos and notifications: a to-do added or ticked, a
+   notification answered or cleared, a line logged on what the run named. Something followed: the
+   result was acted on. The same item named by three runs in a row with nothing following: ignored.
 
 Read those `card.md` files directly. Do not open every page in the brain.
 
@@ -83,6 +93,9 @@ Decisions
 - <how the calls turned out, over every decision: that line as printed, in one sentence; left out when it is not there>
 Unconfirmed
 - <N lines and facts an agent wrote that you have not confirmed: the count the snapshot gives; left out at zero>
+Routines
+- <each routine in one line: ran N times, missed which days; how many results you acted on, how many nothing followed>
+- <at most ONE proposal, with the numbers behind it: move its time, change what it runs, or pause it; none when all is well>
 Drop?
 - <the one or two items stale longest that are worth closing or archiving>
 ```
@@ -105,6 +118,12 @@ One line of offers, only those that apply. Do each only on a yes.
   (a decision in the day's log: the page is `log:<date>`). The decision's line is never edited, and
   a line with a wrong id is refused. No answer, or "I don't remember": leave it not recorded and do
   not ask again; older ones are asked about only when the owner says so. Never fill it in yourself.
+- Weekly, the one routine proposal: on a yes, `cogby routines edit` or `cogby routines pause`, and
+  the scheduled task too, through the routines skill. Missed on most of its days: another time.
+  Results nothing followed, three weeks running: change what it runs, or pause it.
+- Weekly, when the brain shows a repeated need no routine covers (the same ask on a rhythm, a note
+  that something came too late again): one new routine, through `keeping.md` of the
+  routines skill, whose gate refuses a second ask in a week.
 - Weekly, with several things to keep or drop: `plan-page`, so the owner decides by clicking.
 - Weekly: mark an area reviewed by setting `last-reviewed:` on its card to today, after the owner
   has actually looked at it.
@@ -128,6 +147,8 @@ and the report as its `body`.
   sentence, with no advice and no conclusion drawn from them.
 - Read only, but for the run's own line. Never close a project, drop a to-do, archive a page or touch `last-reviewed:` on your own.
 - Naming what to drop is the job. Dropping it is the owner's.
+- Routines by exception: morning and evening name a routine only when it is late or no longer
+  scheduled, as one "Needs you" line. Acted on and ignored are counts, never a verdict.
 - A source that is empty or unreadable is said so in one line; the report is built from the rest.
 - Nothing leaves the machine: no message, no email.
 - Do not read calendar descriptions, and leave out personal-looking events.

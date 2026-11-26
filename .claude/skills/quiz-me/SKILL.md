@@ -1,6 +1,6 @@
 ---
 name: quiz-me
-description: Quiz the owner on what their own brain holds. One card, one question to a page, the answer and its page shown as soon as they commit, a second try at what they missed. MANUAL ONLY. Fires on "quiz me", "quiz me on <project or topic>", "test me on…", "what do I still remember about…", the "Quiz me on this" button of a picture, or /quiz-me (the old /quiz). Also fires on the return leg, when the owner sends back "My quiz on…" with how it went. Never on your own judgement that the owner should be tested. Reads only; it writes nothing unless the owner says a fact has changed or asks to be quizzed again later. NOT a general-knowledge quiz on something the brain does not hold, NOT for what needs the owner (check-in), and NOT for filing one thing (capture).
+description: Quiz the owner on what their own brain holds. One card, one question to a page, the answer and its page shown as soon as they commit, a second try at what they missed. MANUAL ONLY. Fires on "quiz me", "quiz me on [project or topic]", "test me on…", "what do I still remember about…", the "Quiz me on this" button of a picture, or /quiz-me (the old /quiz). Also fires on the return leg, when the owner sends back "My quiz on…" with how it went. Never on your own judgement that the owner should be tested. Reads only; it writes nothing unless the owner says a fact has changed or asks to be quizzed again later. NOT a general-knowledge quiz on something the brain does not hold, NOT for what needs the owner (check-in), and NOT for filing one thing (capture).
 ---
 
 # Quiz me: keep what your brain knows in your own head
@@ -63,8 +63,9 @@ once with the name `quiz` and show the `html` it returns, exactly as returned. I
 
 One to seven `questions`. With `options` (two to four), exactly one must be the same text as
 `answer`, or the card is refused. Leave `options` out for an answer recalled unaided. The card runs the whole quiz:
-the owner answers, says how sure they are, sees the answer and its page, presses Continue, gets a
-second try at what they missed, and presses Finish. Add no text after the card, and no answers.
+the owner picks an answer, says how sure they are, sees the answer, why, and its page, presses
+Continue, gets a second try at what they missed, sees every question with how it went, and presses
+Finish. A line at the top shows how far along they are. Add no text after the card, and no answers.
 
 **Where it cannot,** run it in chat, one question to a message: ask, wait, ask how sure they are,
 then give the answer, the one-line why and the page. Ask the missed ones again at the end.

@@ -152,6 +152,31 @@ test('the command center page is built from the brain', (t) => {
   assert.match(html, /function drawTask\(\)/, 'a to-do opens in a panel over the page');
 });
 
+test('My view names the Cogby that made it at its foot: plugin.json\'s version, as written, in a quiet line', (t) => {
+  // Since 2026-11-25: the owner could not tell which of the three copies of Cogby on their computer they were running.
+  const box = newBrain(t);
+  const version = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8')).version;
+  const built = json(box, ['view', '--html', '--brain', box.brain]);
+  assert.equal(built.code, 0, built.err);
+  const data = (file) => JSON.parse(/<script type="application\/json" id="cogby-data">([\s\S]*?)<\/script>/.exec(fs.readFileSync(file, 'utf8'))[1]);
+  assert.equal(data(built.data.file).version, version, 'the page opened from disk does not carry the version');
+  assert.equal(data(built.data.publish).version, version, 'the published page does not carry the version');
+  // A static line after the view, in the page's quiet small text: no mark, no frame. Not the footer the owner's
+  // review of 18 Nov took off (the next test keeps it off): the version only.
+  const html = fs.readFileSync(require('../core/brain/center.cjs').TEMPLATE, 'utf8');
+  assert.match(html, /<main id="view"><\/main>\n  <p class="soft version" id="version" hidden><\/p>\n<\/div>/, 'the version is not one quiet line under the view');
+  // It prints the string as it is: a test version stays a test version, and no version shows nothing.
+  const source = /\n  function showVersion\(version\) \{[^\n]*\}/.exec(html)[0];
+  const shown = { textContent: '', hidden: true };
+  const run = (value) => new Function('$', `${source}\nshowVersion(${JSON.stringify(value)});`)(() => shown);
+  run('0.4.0-rc1');
+  assert.deepEqual(shown, { textContent: 'Cogby 0.4.0-rc1', hidden: false });
+  run(version);
+  assert.equal(shown.textContent, `Cogby ${version}`);
+  run('');
+  assert.equal(shown.hidden, true);
+});
+
 test('the Brain tab lists the sources, the owner\'s own apart from the built-in ones, and the published page carries no local path', (t) => {
   const box = newBrain(t);
   const base = ['--brain', box.brain];
@@ -180,11 +205,11 @@ test('the Brain tab lists the sources, the owner\'s own apart from the built-in 
   // No Send bar: each choice is written to the page's store as a send of its own when it is pressed.
   assert.doesNotMatch(html, /Send my answers|id="tray"/);
   assert.match(html, /db\.collection\('sends'\)\.add\(doc\)/);
-  assert.match(html, /<button class="btn small" id="copy" type="button" hidden>Copy my answers<\/button>/, 'a file opened from disk offers Copy at the top');
+  assert.match(html, /<button class="btn small accent" id="copy" type="button" hidden>Copy prompt<\/button>/, 'every page offers one Copy prompt at the top');
   assert.doesNotMatch(html, /suggested: true/, 'Cogby\'s suggested answer is never chosen for the owner');
   assert.doesNotMatch(html, /(Send to|Copy for) Cogby/);
   // What the owner's review took off the page.
-  for (const gone of ['Copy resume line', 'Moving this week', 'Gone quiet', 'Your folders', 'days old', 'id="foot"', 'No calendar was connected']) {
+  for (const gone of ['Copy resume line', 'Moving this week', 'Gone quiet', 'Your folders', 'days old', 'id="foot"', 'This page is a snapshot', 'No calendar was connected']) {
     assert.ok(!html.includes(gone), `the page still has "${gone}"`);
   }
 });
@@ -214,8 +239,40 @@ test('the command center\'s "Needs you" gets the routines that are due; the page
   // The data still says it; the page does not draw it (owner, 2026-11-18): nobody confirms lines one by one.
   const html = fs.readFileSync(require('../core/brain/center.cjs').TEMPLATE, 'utf8');
   assert.doesNotMatch(html, /unconfirmed|wait for your confirmation/i, 'the page draws nothing about confirming');
-  assert.match(html, /commentable\('line', page, entry\.summary, \{ fix: true/, 'each line on a timeline has a Fix');
-  assert.doesNotMatch(html, /not applied yet|not in your brain yet/, 'what left the page says "sent", with the when in its tooltip');
+  assert.doesNotMatch(html, /function timelineRows?\(|Latest in your brain|What happened last/, 'the page draws no timeline of last changes (owner, 2026-11-25)');
+  assert.doesNotMatch(html, /not applied yet|not in your brain yet/, 'nothing says a press is waiting row by row');
+  // No row says "sent" (owner, 2026-11-24: "it shows sent everywhere even when it does not make sense"): a
+  // press shows as pressed, and the header carries Copy prompt with how many things it holds.
+  assert.match(html, /function sentMark\(\) \{ return null; \}/);
+  assert.doesNotMatch(html, /tag\('sent'|tag\('sending'/);
+  assert.ok(html.includes('copy.dataset.label = \'Copy prompt · \' + n;'), 'the header counts what Copy prompt carries');
+  // Every active routine reaches the page with its last five runs, so a routine opens on what it found.
+  assert.deepEqual(data.routine_runs, [{
+    title: 'Weekly review', runs: 'check-in, weekly', rhythm: 'weekly on friday', scheduled: false, scheduled_as: '', state: 'overdue', days_overdue: data.routines[0].days_overdue,
+    last_date: '2020-01-10', last_result: 'r', history: [{ date: '2020-01-10', source: 's', result: 'r' }], chat: '', chat_at: '', chat_summary: '',
+  }]);
+});
+
+test('a routine scheduled in Claude links to the chat its last run happened in, when a session passes it', () => {
+  const { runOf } = require('../core/brain/center.cjs');
+  const link = 'claude://claude.ai/epitaxy/local_28cedabc-6528-4c33-8948-6d3e3b48c8be';
+  assert.deepEqual(runOf({ 'Work-Morning-Check-In': { link, at: 'Tue 08:13', summary: 'Done' } }, 'work-morning-check-in'), { link, at: 'Tue 08:13', summary: 'Done' }, 'the task is found by its name, in any case');
+  assert.equal(runOf({ x: { link: 'javascript:alert(1)' } }, 'x').link, '', 'only Claude\'s own address for a chat, or a claude.ai page, is a link');
+  assert.equal(runOf({ x: { link: 'claude://claude.ai/epitaxy/local_not-a-session!' } }, 'x').link, '');
+  assert.equal(runOf({ x: { link } }, ''), null, 'a routine not scheduled in Claude has no run to show');
+  assert.equal(runOf(null, 'x'), null);
+});
+
+test('a routine\'s result is broken into short lines on the page: one per part, a "Label: a, b, c" part into its items', () => {
+  const html = fs.readFileSync(require('../core/brain/center.cjs').TEMPLATE, 'utf8');
+  const grab = (name) => new RegExp(`function ${name}\\(text\\) \\{[\\s\\S]*?\\n  \\}`).exec(html)[0];
+  // eslint-disable-next-line no-new-func
+  const resultLines = new Function(`${grab('splitList')}\n${grab('resultLines')}\nreturn resultLines;`)();
+  assert.deepEqual(resultLines('Rest of day: send the message to the leads, survey to Sam (due today, at noon), Acme 20:00; 3 overdue to-dos'), [
+    { label: 'Rest of day' }, { text: 'send the message to the leads' }, { text: 'survey to Sam (due today, at noon)' }, { text: 'Acme 20:00' }, { text: '3 overdue to-dos', gap: true },
+  ], 'a comma inside brackets stays in its item, and what follows the list starts a block of its own');
+  assert.deepEqual(resultLines('2 stale pages named'), [{ text: '2 stale pages named', gap: false }], 'a short result stays one line');
+  assert.deepEqual(resultLines('Paid 1,200 to Sara'), [{ text: 'Paid 1,200 to Sara', gap: false }], 'a comma inside a number is not a break');
 });
 
 test('a meeting\'s start and end are read for the day\'s calendar, from start/end or from the time as shown', () => {
@@ -262,7 +319,9 @@ test('a project dashboard is a page of its own, linked from the command center o
 
   const html = fs.readFileSync(after.data.publish, 'utf8');
   assert.match(html, /views\.notes = views\.todos;/, 'notes share one tab with the to-dos, and their old address still works');
-  assert.match(html, /\['todos', 'Tasks & notes', /, 'the tabs are Today, Tasks & notes, Projects and Brain');
+  assert.match(html, /\[\['today', 'Inbox', needsCount\(\), true\], \['todos', 'Tasks', dueTodos\(\)\.length, true\], \['sessions', 'Sessions', sessionsIn\('working'\)\.length, false\], \['projects', 'Projects', projects\.length, false\]\]/, 'the tabs are Inbox, Tasks, Sessions and Projects (owner, 2026-11-25)');
+  assert.match(html, /<a class="btn small quiet" id="mycogby" href="#\/cogby">My Cogby<\/a>/, 'routines, skills and sources are one link in the corner');
+  assert.match(html, /views\.routines = views\.brain = views\.cogby; views\.inbox = views\.today;/, 'the old addresses still open the right view');
   // No page Cogby builds asks the network for anything: no font, no stylesheet, no script, no image.
   for (const file of [after.data.publish, after.data.file, own.data.publish, own.data.file]) {
     assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /<link\b|@import|@font-face|fonts\.googleapis|fonts\.gstatic|<script[^>]*\bsrc=|<img\b|url\(\s*['"]?https?:/i, `${path.basename(file)} loads something`);
@@ -275,7 +334,7 @@ test('the Projects tab lists projects as the old Console did: status and parent 
   const base = ['--brain', box.brain];
   cogby(box, ['log', 'projects/harbor/card', 'Kickoff held', '--source', 'call', '--create', ...base]);
   const card = path.join(box.brain, 'projects', 'harbor', 'card.md');
-  fs.writeFileSync(card, fs.readFileSync(card, 'utf8').replace(/^---\r?\n/, '---\nstatus: On hold\nparent: projects/platform\n'));
+  fs.writeFileSync(card, fs.readFileSync(card, 'utf8').replace(/^---\r?\n/, '---\nstatus: On hold\nparent: projects/platform\n').replace('<!-- timeline -->', '## Now\n\nBuilding the import.\n\n<!-- timeline -->'));
   fs.mkdirSync(path.join(box.brain, 'projects', 'harbor', 'output'), { recursive: true });
   fs.writeFileSync(path.join(box.brain, 'projects', 'harbor', 'output', 'quote.md'), '# Quote\n');
   assert.equal(cogby(box, ['sync', ...base]).code, 0, 'the hand edit reaches the index');
@@ -286,9 +345,113 @@ test('the Projects tab lists projects as the old Console did: status and parent 
   assert.deepEqual([listed.status, listed.parent, listed.files.count, listed.files.items[0].path], ['on-hold', 'platform', 1, 'output/quote.md'], 'the card itself is not one of its files');
   assert.doesNotMatch(JSON.stringify(listed.files), /[A-Za-z]:[\\/]|\/Users\/|\\\\/, 'a file is named inside its folder, never where the brain sits');
   assert.match(html, /\['__open', 'Anything not done'\]/, 'the Console\'s status chips, "Anything not done" first');
-  // The Tasks tab is the Console's tasks view, and Today puts today's tasks under what waits for the owner.
+  // The Tasks tab is the Console's tasks view. Today keeps the inbox, with a line under it to ask Cogby for
+  // something, and today's tasks just below (owner, 2026-11-24: "I like inbox... tasks can stay where they
+  // were"). The inbox has two categories: what waits for the owner, and the routines' latest results.
   assert.match(html, /function tasksBoard\(\)/);
-  assert.match(html, /left\.appendChild\(needs\);\s+\/\/ 2\. Just below: today's tasks/);
+  assert.match(html, /var inbox = section\(1, 'Inbox · ' \+ total\);/);
+  // One list (owner, 2026-11-25: routines have "the same design as Inbox, just a tag to say Routine").
+  assert.ok(html.includes("var rows = high.map(function (n) { return notifRow(n); }).concat(chats.map(function (x) { return sessionRow(x, { tagged: true }); }), rest.map(function (n) { return notifRow(n); }), results.map(resultRow));"), 'ranked: what is marked high, the chats that wait, the rest, then the routines\' results');
+  assert.doesNotMatch(html, /ghead\('Routine results'|ghead\('Waiting for you'/, 'the inbox is one list, with no category heads');
+  assert.ok(html.includes("return put(el('div', 'row notif'), put(el('div', 'line'), dot(late ? 'var(--st-needs)' : 'var(--st-scheduled)'), tag('Routine'), put(el('div', 'main'), open, meta), put(el('div', 'acts'), run, clear)));"), 'a routine result is an inbox row, tagged Routine');
+  assert.ok(html.includes('inbox.appendChild(card(rows));'));
+  assert.doesNotMatch(html, /Ask Cogby to do something|function askCompose/, 'the inbox has no line to ask Cogby for things (owner, 2026-11-25)');
+  // Sessions: the owner's open chats by who has to act next, and one line on the inbox that opens them.
+  assert.match(html, /views\.sessions = function \(view\)/);
+  assert.ok(html.includes("[['needs', 'Needs you', '--st-needs'], ['working', 'Working', '--st-accent'], ['finished', 'Finished, not yet seen', '--st-running']"));
+  assert.ok(html.includes("link('#/sessions', 'sstrip',"));
+  // A task is handed to Cogby, or to a chat with Claude, from its own window; its notes are its details.
+  assert.ok(html.includes("[['', 'Me'], ['cogby', 'Cogby']].forEach"), 'a task is assigned to me or to Cogby');
+  assert.ok(html.includes("if ((d.by || '') !== (t.by || '')) c.by = d.by || 'me';"));
+  assert.ok(html.includes("el('span', 'kicker', 'Cogby\\'s plan')"), 'Cogby\'s plan shows on the task');
+  assert.ok(html.includes("hand = el('button', 'btn', 'Hand to Claude');"));
+  assert.ok(html.includes("var top = title('Tasks'); top.style.marginBottom = '24px';"));
+  assert.ok(html.includes("section(4, 'Quick notes · ' + noteList().length, 'turn one into a task, or remove it')"), 'quick notes sit under the tasks');
+  assert.match(html, /left\.appendChild\(inbox\);\s+\/\/ 2\. Just below: today's tasks[^\n]*\n\s+left\.appendChild\(todayTasks\(\)\);/);
+  // Clear takes a notification off at once, and leaves after a few seconds while Undo is offered.
+  assert.ok(html.includes('if (away) made.hold = Date.now() + UNDO_MS;'));
+  assert.ok(html.includes('if (a.sending || a.failed || (a.hold && Date.now() < a.hold)) return;'), 'nothing leaves before its Undo is over');
+  assert.match(html, /var older = live\.filter\(old\);\s+var waiting = live\.filter/, 'what was cleared or put off is gone from the inbox');
+  // Routines live in My Cogby, with the skills and the sources (owner, 2026-11-25): each opens on what
+  // it found and the chat that ran it; a new routine, a change or Run it now goes into Copy prompt.
+  assert.match(html, /views\.cogby = function \(view\)/);
+  assert.ok(html.includes("section(0, 'Routines · ' + routineRuns.length, 'open one to see what it found')"));
+  assert.ok(html.includes("'Skills · ' + skills.length"));
+  assert.match(html, /b\.addEventListener\('click', function \(\) \{ showRoutine\(i\); \}\);/, 'a routine opens');
+  assert.ok(html.includes('\'Open the chat that ran it\''), 'and links to the chat that ran it');
+  assert.ok(html.includes('addRequest(\'Run my routine "\' + r.title + \'" now, then record the run in Cogby.\''), 'Run it now goes into Copy prompt');
+  assert.ok(html.includes('addRequest(\'Set up a new routine for me: \' + text'), 'so does a new routine');
+  // A project's page opens on where it stands (owner, 2026-11-23): Now and Next from its card, where work
+  // stopped, the chats on it, its open tasks and its documents. No timeline, and no line about wrapping up.
+  assert.deepEqual([listed.now, listed.next, listed.parking_spot.length, listed.timeline[0].summary], ['Building the import.', '', 1, 'Kickoff held'], 'the page has what Where it stands shows');
+  assert.match(html, /var tab = ptabs\[p\.key\] \|\| 'stands';/, 'a project opens on Where it stands');
+  assert.ok(html.includes("'Chats on it · ' + chatsHere.length"));
+  assert.match(html, /\[\['stands', 'Where it stands'\], \['tasks', 'Tasks'\], \['docs', 'Documents'[^\]]*\], \['subs', 'Sub-projects'[^\]]*\]\]/, 'then Tasks, then Documents');
+  assert.doesNotMatch(html, /Project context/);
+  assert.match(html, /var LAST = 5;/);
+  assert.ok(html.includes('p.now || p.next'), 'Now and Next are drawn only when one of them is written');
+  assert.doesNotMatch(html, /Say "wrap up"/, 'nothing on a project tells the owner to wrap up (owner, 2026-11-25)');
+});
+
+test('a notification opens on the page and can be acted on: its answers, Copy prompt, Later, Clear, and the owner\'s own words', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  assert.equal(cogby(box, ['log', 'projects/harbor/card', 'Kickoff held', '--source', 'call', '--create', ...base]).code, 0);
+  // One that asks a question, about a project and a thread of it; one with one thing to go ahead with.
+  const asked = json(box, ['notify', 'add', '--title', 'Approve the scope?', '--context', 'harbor · scope', '--option', 'yes', '--option', 'no', '--recommend', 'yes', '--if-ignored', 'The quote waits.', ...base]);
+  assert.equal(asked.code, 0, asked.err);
+  const todo = json(box, ['notify', 'add', '--title', 'Two fields have no home', '--recommend', 'Keep both as text fields.', ...base]);
+  assert.equal(todo.code, 0, todo.err);
+
+  const built = json(box, ['view', '--html', ...base]);
+  assert.equal(built.code, 0, built.err);
+  const html = fs.readFileSync(built.data.publish, 'utf8');
+  const data = JSON.parse(/<script type="application\/json" id="cogby-data">([\s\S]*?)<\/script>/.exec(html)[1]);
+  const waiting = data.notifications.waiting;
+  assert.deepEqual(waiting.map((n) => n.title), ['Two fields have no home', 'Approve the scope?'], 'the newest first');
+  assert.deepEqual([waiting[0].options, waiting[0].recommend, waiting[0].if_ignored], [[], 'Keep both as text fields.', ''], 'with no answers, what Cogby suggests is a sentence');
+  assert.deepEqual([waiting[1].options, waiting[1].recommend, waiting[1].if_ignored], [['yes', 'no'], 'yes', 'The quote waits.']);
+  assert.ok(waiting.every((n) => n.days_old === 0 && /^\d{4}-\d{2}-\d{2} /.test(n.created)), 'each one says when it was left');
+  assert.equal(data.projects.find((p) => p.name === 'harbor').waiting, 1, '"<project> · <thread>" is about that project');
+
+  // It opens the way a to-do does, with everything it carries and every way to answer it.
+  assert.match(html, /function drawNotif\(\)/, 'a notification opens in a panel over the page');
+  assert.match(html, /open\.addEventListener\('click', function \(\) \{ showNotif\(n\.id\); \}\);/, 'its title opens it');
+  for (const part of ['\'What Cogby suggests\'', '\'If nothing is done\'', '\'Your answer\'', '\'Or in your own words\'']) assert.ok(html.includes(part), `the opened notification has no ${part}`);
+  assert.match(html, /commentable\('notification', n\.id, n\.title, \{ say: REPLY/, 'the owner\'s own words leave as a comment on it');
+  // The answer Cogby already thought of is on the row, with one press to take it (owner, 2026-11-24).
+  assert.match(html, /var sug = suggestion\(n\);\s+if \(sug\) row\.appendChild\(sug\);/);
+  assert.ok(html.includes('el(\'span\', \'kicker\', \'Cogby suggests\')'));
+  assert.ok(html.includes('choice(n.id, n.title, \'Yes, do that\', \'do\', \'chip\')'), 'one press takes the suggestion');
+  // The page cannot start Claude: what is pressed is saved, and one Copy prompt at the top hands all of it
+  // over, asking for a session of its own (owner, 2026-11-24: "my copy prompt tells the AI ... create a
+  // subsession to handle this").
+  assert.ok(html.includes('Start a new session for this and let it handle everything below on its own, end to end'));
+  assert.ok(html.includes('out.push(\'Cogby asked \' + name + \'. My answer: \' + quote(a.option) + \'. Carry it out.\');'), 'the prompt carries the answer pressed on the page');
+  assert.ok(html.includes('if (kind === \'request\') out.push(\'Do this for me: \' + text);'), 'and what was asked under the inbox');
+  assert.ok(html.includes('choice(id, m.title, \'Prepare me\', \'prepare\', \'btn\')'), 'Prepare me is saved like any press and goes into the prompt');
+  assert.ok(html.includes('if (copyOld(text)) { done(); return; }'), 'the copy works in a frame with no clipboard permission');
+  assert.ok(html.includes('function promptBox(text)'), 'and shows the prompt to copy by hand when nothing else works');
+  // Older than two weeks: folded under "Older" with its count, never dropped. What is marked high stays in sight.
+  assert.match(html, /var OLD_DAYS = 14;/);
+  assert.match(html, /n\.priority !== 'high' && n\.days_old != null && n\.days_old > OLD_DAYS/);
+  assert.match(html, /el\('span', 'slug', 'Older'\)/);
+  const later = require('../core/brain/notify.cjs').forView(box.brain, new Date(Date.now() + 20 * 86400000));
+  assert.deepEqual(later.waiting.map((n) => n.days_old), [20, 20], 'an old one is still in the list the page gets');
+  assert.doesNotMatch(html.replace(/<script type="application\/json"[\s\S]*?<\/script>/, ''), /[—–]/, 'a long dash on the page');
+
+  // Whoever writes a notification is told what one is, where they write it; a session is told what a press means.
+  const tool = require('../core/brain/mcp.cjs').TOOLS.find((one) => one.name === 'notify');
+  assert.match(tool.description, /a notification carries a question and its answers \(options, recommend\) or one thing to do \(recommend alone\), or it is not one/);
+  assert.match(tool.description, /what needs nothing from the owner is added with status "acted"/);
+  const help = require('../core/brain/cli.cjs').HELP.replace(/\s+/g, ' ');
+  assert.ok(help.includes('A notification carries a question and its answers') && help.includes('or it is not a notification') && help.includes('shown under "Done without you"'), 'the help does not say what a notification is');
+  const skill = path.join(ROOT, '.claude', 'skills', 'my-view');
+  assert.match(fs.readFileSync(path.join(skill, 'SKILL.md'), 'utf8'), /\| action `do`, an id \(the owner pressed \*\*Yes, do that\*\*, once \*\*Do this\*\*\) \| carry out what that notification suggests, as `from-the-page\.md` beside this file says\. Still ask first/);
+  const side = fs.readFileSync(path.join(skill, 'from-the-page.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.ok(side.includes('Ask first, in chat, before any part of it that sends a message, deletes something, spends money, pushes or deploys code, or touches anything outside the brain.'));
+  assert.ok(side.includes('It is the owner\'s reply to that notification'), 'an answer in the owner\'s own words is their reply');
+  assert.ok(side.includes('If its status is no longer `unread`, the owner settled it already'), 'a press is not carried out twice');
 });
 
 // ---- notes and notifications travel with the brain (owner, 2026-11-13) --------------------------
@@ -406,4 +569,145 @@ test('the two rules are taken out by the first write to a store too, around the 
   assert.equal(git(box.brain, ['show', '--name-only', '--format=', 'HEAD']), '.cogby/notes/store.json');
   const status = spawnSync('git', ['-C', box.brain, 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' }).stdout;
   assert.equal(status, ' M .gitignore\n');
+});
+
+test('the 25 Nov notes: chats by project that open, a status changed from the page, tasks that say where they live', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  cogby(box, ['log', 'projects/harbor/card', 'Kickoff held', '--source', 'call', '--create', ...base]);
+  cogby(box, ['todo', 'add', 'Call the port', '--project', 'harbor', ...base]);
+
+  // A project's status is changed with one command: the card's own line, and the old one in its timeline.
+  const set = json(box, ['project', 'status', 'harbor', 'On hold', '--source', 'command center', ...base]);
+  assert.equal(set.code, 0, set.err);
+  assert.deepEqual([set.data.status, set.data.was, set.data.now], ['changed', 'active', 'on-hold']);
+  const card = fs.readFileSync(path.join(box.brain, 'projects', 'harbor', 'card.md'), 'utf8');
+  assert.match(card, /^status: on-hold$/m);
+  assert.match(card, /\| command center — status: active → on-hold \[[^\]]*record\]/, 'the change is a record on the card, with the old status');
+  assert.equal(json(box, ['project', 'status', 'harbor', 'on-hold', ...base]).data.status, 'unchanged', 'the same status again writes nothing');
+  assert.equal(cogby(box, ['project', 'status', 'nowhere', 'done', ...base]).code, 1, 'a project that is not there is refused');
+  assert.equal(cogby(box, ['project', 'status', 'harbor', ...base]).code, 2, 'a status must be named');
+
+  // Tasks read from the owner's own tool reach the page with where they live; nothing is copied into the brain.
+  const tasks = path.join(box.dir, 'tasks.json');
+  fs.writeFileSync(tasks, JSON.stringify([
+    { id: 'n-1', text: 'Renew the berth', due: '2026-12-01', tool: 'Notion', link: 'https://www.notion.so/berth', project: 'harbor' },
+    { id: 'g 2', title: 'Pay the pilot', tool: 'Google Tasks', link: 'javascript:alert(1)', done: true },
+    { id: 'x', text: 'No tool named' }, 'not a task',
+  ]));
+  const built = json(box, ['view', '--html', '--tasks', tasks, ...base]);
+  assert.equal(built.code, 0, built.err);
+  const html = fs.readFileSync(built.data.publish, 'utf8');
+  const data = JSON.parse(/<script type="application\/json" id="cogby-data">([\s\S]*?)<\/script>/.exec(html)[1]);
+  assert.deepEqual(data.tasks, [
+    { id: 'ext:n-1', text: 'Renew the berth', due: '2026-12-01', done: false, tool: 'Notion', link: 'https://www.notion.so/berth', project: 'harbor' },
+    { id: 'ext:g-2', text: 'Pay the pilot', due: '', done: true, tool: 'Google Tasks', link: '', project: '' },
+  ], 'a task keeps its tool and an https link only; one with no tool is left out');
+  assert.equal(data.projects.find((p) => p.name === 'harbor').status, 'on-hold');
+  assert.equal(json(box, ['todo', ...base]).data.todos.length, 1, 'the brain\'s own list is untouched');
+  assert.equal(cogby(box, ['view', '--html', '--tasks', path.join(box.dir, 'none.json'), ...base]).code, 1, 'a file that is not there is an error');
+  assert.ok(html.includes("var sourceTag = function (t) {"), 'a task says where it lives');
+  assert.ok(html.includes("put(row, check, mark, name, mixedTasks() ? sourceTag(t) : null, t.changed ? notYet() : null);"), 'on its row when tasks come from more than one place');
+  assert.ok(html.includes("var words = t.link ? outside(link(t.link, 'tname', t.text)) : el('span', 'tname', t.text);"), 'a task from a tool opens there');
+
+  // The page: a status menu on a project's view, saved as a change a session applies.
+  assert.ok(html.includes("top.appendChild(put(el('div', 'pfacts'), statusPicker(p),"), 'a project\'s status is a menu on its view');
+  assert.ok(html.includes("change({ kind: 'project-status', project: p.name, status: pick.value });"));
+  assert.ok(html.includes("['id', 'client_id', 'text', 'due', 'project', 'body', 'by', 'status'].forEach"), 'the store keeps the status, and who a task is for');
+  // Chats: grouped by project first, and a chat's title opens it on the page.
+  assert.ok(html.includes("var sby = 'project';"), 'Sessions open grouped by project');
+  assert.ok(html.includes("[['project', 'By project'], ['state', 'By who acts next']]"));
+  assert.ok(html.includes("open.addEventListener('click', function () { showSession(x); });"), 'a chat\'s title opens it');
+  assert.match(html, /function showSession\(x\) \{/);
+});
+
+test('a to-do handed to Cogby keeps who it is for and its plan; the chats, the scheduled runs and the skills read for the page reach it as text only', (t) => {
+  const box = newBrain(t);
+  const base = ['--brain', box.brain];
+  cogby(box, ['log', 'projects/harbor/card', 'Kickoff held', '--source', 'call', '--create', ...base]);
+
+  // Whose a to-do is, and the plan Cogby wrote on it: two fields of the to-do, set and taken off by `cogby todo`.
+  const added = json(box, ['todo', 'add', 'Draft the berth letter', '--project', 'harbor', '--by', 'Cogby', ...base]);
+  assert.equal(added.code, 0, added.err);
+  assert.deepEqual([added.data.todo.by, added.data.todo.plan], ['cogby', '']);
+  const id = added.data.todo.id;
+  const planned = json(box, ['todo', 'edit', id, '--plan', '1. Read the card\n2. Draft it', ...base]);
+  assert.deepEqual([planned.data.todo.by, planned.data.todo.plan], ['cogby', '1. Read the card\n2. Draft it'], 'the plan keeps its lines');
+  const back = json(box, ['todo', 'edit', id, '--by', 'me', '--plan', 'none', ...base]);
+  assert.deepEqual([back.data.todo.by, back.data.todo.plan], ['', ''], 'given back to the owner, with the plan taken off');
+  assert.equal(json(box, ['todo', 'add', 'Mine', '--by', 'someone', ...base]).data.todo.by, '', 'anyone but Cogby is the owner');
+  assert.equal(json(box, ['todo', 'edit', id, '--by', 'cogby', '--plan', 'Draft it', ...base]).code, 0);
+  const help = require('../core/brain/cli.cjs').HELP.replace(/\s+/g, ' ');
+  assert.ok(help.includes('[--by cogby|me] [--plan "…"|none]') && help.includes('view --html [--meetings FILE] [--runs FILE] [--sessions FILE] [--tasks FILE]'), 'the help names every option the page and the skill use');
+
+  // A routine scheduled in Claude, a skill of the brain's own, and what a session read from the Claude app.
+  assert.equal(cogby(box, ['routines', 'add', 'Morning check-in', '--run', 'check-in, morning', '--rhythm', 'daily', '--scheduled', 'work-morning-check-in', ...base]).code, 0);
+  assert.equal(cogby(box, ['routines', 'ran', 'morning-check-in', '--source', 'scheduled task', '--result', 'Nothing waits', ...base]).code, 0);
+  const own = path.join(box.brain, '.claude', 'skills', 'berth-letters');
+  fs.mkdirSync(own, { recursive: true });
+  fs.writeFileSync(path.join(own, 'SKILL.md'), '---\nname: berth-letters\ndescription: Write a berth letter. Use when the port asks.\n---\n');
+  const link = 'claude://claude.ai/epitaxy/local_28cedabc-6528-4c33-8948-6d3e3b48c8be';
+  const file = (name, data) => { const where = path.join(box.dir, name); fs.writeFileSync(where, JSON.stringify(data)); return where; };
+  const runs = file('runs.json', { 'Work-Morning-Check-In': { link, at: 'Tue 08:13', summary: 'Done' } });
+  const sessions = file('sessions.json', [
+    { id: 's 1', title: 'Berth letter', state: 'needs', needs: 'Approve the draft?', where: 'Draft written', project: 'harbor', at: '10:02', link },
+    { id: 's2', title: 'Loose chat', state: 'asleep', project: 'Not in the brain', link: 'javascript:alert(1)' },
+    { id: 's3', state: 'working' }, 'not a chat',
+  ]);
+  const built = json(box, ['view', '--html', '--runs', runs, '--sessions', sessions, ...base]);
+  assert.equal(built.code, 0, built.err);
+  const read = (from) => JSON.parse(/<script type="application\/json" id="cogby-data">([\s\S]*?)<\/script>/.exec(fs.readFileSync(from, 'utf8'))[1]);
+  const data = read(built.data.publish);
+  const harbor = data.projects.find((p) => p.name === 'harbor');
+  assert.deepEqual(data.sessions, [
+    { id: 's-1', title: 'Berth letter', state: 'needs', where: 'Draft written', needs: 'Approve the draft?', at: '10:02', link, project: harbor.title, project_name: 'harbor' },
+    { id: 's2', title: 'Loose chat', state: 'idle', where: '', needs: '', at: '', link: '', project: 'Not in the brain', project_name: '' },
+  ], 'a chat keeps its title, who acts next and Claude\'s own link; one with no title is left out');
+  const routine = data.routine_runs.find((r) => r.title === 'Morning check-in');
+  assert.deepEqual([routine.scheduled, routine.scheduled_as, routine.last_result, routine.chat, routine.chat_at, routine.chat_summary], [true, 'work-morning-check-in', 'Nothing waits', link, 'Tue 08:13', 'Done'], 'the routine links to the chat its scheduled task last ran in');
+  const mine = data.todos.find((one) => one.id === id);
+  assert.deepEqual([mine.by, mine.plan], ['cogby', 'Draft it'], 'the page has who the to-do is for, and the plan');
+  assert.deepEqual(data.skills[0], { name: 'berth-letters', about: 'Write a berth letter.', own: true }, 'the brain\'s own skills come first, each with its first sentence');
+  const builtIn = data.skills.find((skill) => skill.name === 'my-view');
+  assert.ok(builtIn && builtIn.own === false && builtIn.about.length > 10, 'Cogby\'s own skills follow');
+  assert.ok(!data.skills.some((skill) => skill.name === 'notion-mirror'), 'an extra Claude is not told of, started only by typing its name, is not listed');
+  // Nothing read for the page: the chats are null (not read), not an empty list (none open).
+  const bare = read(json(box, ['view', '--html', ...base]).data.publish);
+  assert.deepEqual([bare.sessions, bare.tasks, bare.routine_runs[0].chat], [null, [], '']);
+  assert.equal(cogby(box, ['view', '--html', '--sessions', path.join(box.dir, 'none.json'), ...base]).code, 1, 'a sessions file that is not there is an error');
+  assert.equal(cogby(box, ['view', '--html', '--runs', path.join(box.dir, 'none.json'), ...base]).code, 1, 'and so is a runs file');
+});
+
+test('Copy prompt names a to-do or a note made on the page by its words, never by the page\'s own key', () => {
+  const html = fs.readFileSync(require('../core/brain/center.cjs').TEMPLATE, 'utf8');
+  const grab = (name) => new RegExp(`\\n  var ${name} = function [^\\n]*`).exec(html)[0];
+  const source = `${['quote', 'flat', 'notifById', 'meetById', 'todoById'].map(grab).join('')}${/\n  function handoffItems\(\) \{[\s\S]*?\n  \}/.exec(html)[0]}\nreturn handoffItems();`;
+  // eslint-disable-next-line no-new-func
+  const items = (changes, todos) => new Function('pending', 'notes', 'meetings', 'baseTodos', source)({ actions: {}, sent: {}, comments: {}, sentComments: {}, changes }, { waiting: [] }, [], todos || []);
+  assert.deepEqual(items([
+    { kind: 'todo-add', client_id: 'page-1', text: 'Call the port', due: '2026-12-01' },
+    { kind: 'todo-done', client_id: 'page-1' },
+    { kind: 'todo-edit', client_id: 'page-1', text: 'Call the harbour' },
+    { kind: 'todo-drop', client_id: 'page-1' },
+    { kind: 'todo-done', id: 'todo-9' },
+    { kind: 'note-add', client_id: 'page-2', text: 'A thought' },
+    { kind: 'note-dismiss', client_id: 'page-2' },
+    { kind: 'note-dismiss', id: 'note-3' },
+    { kind: 'project-status', project: 'harbor', status: 'on-hold' },
+  ], [{ id: 'todo-9', text: 'Renew the berth' }]), [
+    'Add a to-do: "Call the port", due 2026-12-01.',
+    'Tick off the to-do "Call the port", the one I added on this page.',
+    'Change the to-do "Call the port", the one I added on this page: its words to "Call the harbour".',
+    'Remove the to-do "Call the port", the one I added on this page.',
+    'Tick off the to-do "Renew the berth" (todo-9).',
+    'Keep a note: A thought.',
+    'Remove the note "A thought", the one I added on this page.',
+    'Remove the note note-3.',
+    'Set the status of my project "harbor" to "on-hold" (cogby project status).',
+  ]);
+  // The owner's notes and Cogby's plan end on a full stop inside "Hand to Claude", so the next sentence stands apart.
+  assert.ok(html.includes("(notes_ ? ' My notes: ' + ended(flat(notes_)) : '') + (t.plan ? ' Cogby\\'s plan: ' + ended(flat(t.plan)) : '') + ' Read the project in my brain first"));
+  const side = fs.readFileSync(path.join(ROOT, '.claude', 'skills', 'my-view', 'from-the-page.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.ok(side.includes('A to-do or a note named as "the one I added on this page" has no id yet: add it first, from its own line, then apply the line to it.'), 'the skill says how to apply such a line');
+  assert.ok(side.includes('## The prompt pasted into a chat') && side.includes('`Do this for me: <text>` | a comment on a `request`'), 'and reads the lines of Copy prompt, which replaced the one line per notification');
 });

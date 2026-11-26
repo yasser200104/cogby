@@ -22,6 +22,9 @@ function sandbox(t, name = 'Cogby Brain') {
     COGBY_NO_SOURCES: '1',
     // No test leaves a detached sync behind: the ones that test it turn it back on and wait for it.
     COGBY_NO_BACKGROUND_SYNC: '1',
+    // The session-end hook does its work itself instead of handing it to a detached helper, so a
+    // test reads the result at once. The test of the helper turns this off and waits for it.
+    COGBY_SESSION_END_INLINE: '1',
   };
   // CLAUDECODE too: a test is a person at their own terminal unless it says otherwise, also when the
   // suite itself is run from a Claude session. A test that is an agent passes `env: { CLAUDECODE: '1' }`.

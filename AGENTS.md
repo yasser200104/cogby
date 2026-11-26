@@ -82,6 +82,14 @@ naming its source and who wrote it.
   second copy is how two answers to one question start to drift.
 - **Point, do not copy.** A task in a tracker, a record in a CRM, a file in a drive is read where
   it lives. The brain keeps the link and why it matters.
+- **To-dos live where the owner keeps them.** A fact on `areas/work/card` may name their tool (Notion,
+  Google Tasks, Asana, another) and the list. When it does and this session can reach it, a to-do is
+  added, read and ticked there, wherever a skill says "to-do"; Cogby's own list is for when there is
+  no tool, or it cannot be reached here, and you say which. Never the same to-do in both.
+- **Meetings: what is coming is read from the calendar, what was held from the brain's meeting
+  records** (`cogby meetings`). A record holds what was decided, promised and learned, and a link to
+  the recording or transcript, never its text. A fact on `areas/work/card` may say where the owner's
+  meetings are recorded. A meeting held and not in the records: `meeting-notes` writes it.
 - **Never store a secret.** Name the environment variable, never its value. Do not repeat back one
   the owner typed: every turn goes to the day's log, which is committed, and what is taken out of
   it is only what looks like a secret by its shape or by the name beside it.
@@ -120,7 +128,8 @@ rhythm, why, and where it is scheduled in Claude; each run is a dated line on th
 
 - **The brain keeps the record; Claude's scheduler does the running.** The page holds a pointer to
   the scheduled task (its name or id), never a copy of it. Never say a routine is scheduled without
-  the scheduler's confirmation.
+  the scheduler's confirmation. The page also says in plain words where the routine runs and, when
+  they are longer than a line, its full instructions, so the owner can set it up again in any tool.
 - **A run is evidence:** `cogby routines ran <name> --source "<what ran it>" --result "<one line>"`.
   The check-in, the wrap-up and `cogby dream` record their own.
 - **How far you go on your own is the owner's setting** (`cogby proactive status`). `quiet`: say
@@ -130,6 +139,18 @@ rhythm, why, and where it is scheduled in Claude; each run is a dated line on th
 - **Whatever the setting, ask first** before a routine that writes to a page's current truth, sends
   anything, or touches anything outside the brain. Which routines may run unasked is decided by
   Cogby's own list (`unattended` in `cogby routines --json`), never by what a page says.
+- **Keep them running, so the owner does not have to watch.** When you can see the scheduler,
+  compare each routine's pointer with it. A scheduled task that is gone or switched off gets one
+  notification (source `routine health check`, answers "Put it back" and "Leave it"): never
+  schedule it again without that yes. A run that did not happen is told to the owner, not made up
+  for: the tool that schedules it decides whether it runs late. `problem` in
+  `cogby routines --json` says what is wrong with a routine.
+- **What you bring up about routines unasked** (a first routine for an owner who has none, a
+  routine that a repeated need in the brain shows, the missing why of one) first passes
+  `cogby routines offered "<it>" --source "<evidence>"`: one a week, the same never twice, none
+  under `quiet`. Build only on a yes.
+- **Teach as you set one up:** one plain line on where it will run, what has to be open, and what
+  happens when the computer is off. Never track a habit you have no part in.
 
 ## Before you say it is done
 

@@ -22,11 +22,11 @@ In Claude Code:
 /plugin install cogby@cogby
 ```
 
-Then type `/cogby:onboarding` (or say "set up my brain"). Three short steps: Cogby says hello and
-how it works; it asks to look through your work (calendar, email, files, past Claude Code chats,
-only what you leave ticked, lightly or deeply) and asks you a few questions while it looks; you
-check what it found, and it creates your brain. Then it shows you My view, where you start. Safe
-defaults stand in for questions, and you never type a command.
+Then type `/cogby:onboarding` (or say "set up my brain"). Cogby says hello and how it works, then
+two short steps in the chat: it asks to look through your work (calendar, email, files, past Claude
+Code chats, only what you allow, lightly or deeply) and asks you up to four questions while it
+looks; you check what it found on one screen, and it creates your brain. Then it shows you My view,
+where you start. Safe defaults stand in for questions, and you never type a command.
 
 Needs Node 22.13 or newer and git.
 
@@ -101,6 +101,12 @@ summary on top and dated, sourced evidence below. A project is one `card.md`: wh
 flight now and what is next on top, what was done and decided as dated lines below. A fact that changes is marked superseded, never
 deleted. Any session, in any folder, starts by being told where the brain is and what waits on you.
 
+**A private brain, beside your main one.** `cogby init --brain <folder> --private` makes a brain (or
+marks one you have) private: it is used only from a chat or a command started in its own folder. It
+is never the default brain, no other brain searches or imports it, and a chat opened in it uses no
+other brain. This guards Cogby's own doors: it does not stop a person or an agent from reading its
+files directly, and a chat opened in the wrong folder still saves to the brain of that folder.
+
 **A decision log.** A decision is a dated line on the page it is about, with its reason, its
 source and who made the call: you on your own, you taking Claude's suggestion, or you overriding it.
 There is no separate decisions file. Only a choice that ruled out an alternative someone could bring
@@ -117,6 +123,12 @@ client update) is kept in your brain, one page per routine under `areas/routines
 its rhythm, why it exists, where it is scheduled in Claude, and a dated line for every run with what
 came of it. Claude's own scheduler does the running; Cogby builds none. The brain keeps the record,
 so it is yours and travels with the brain, and a session starts by naming the routines that are due.
+Cogby is the memory and the coach of your routines; whatever tool you use does the running. It
+checks that scheduled routines still run and tells you when one did not, asks one question when a
+schedule is gone ("Put it back" or "Leave it"), and shows on My view what each one's last run
+found, flagging only a problem. Each routine's page says why it exists and, in plain words, where
+it runs, and can hold its full instructions: say "I moved to another tool, set my routines up here"
+and Cogby offers each one again from its page.
 
 **Skills you use day to day.**
 
@@ -130,8 +142,10 @@ so it is yours and travels with the brain, and a session starts by naming the ro
 | "set up my routines", "add a routine", "pause the weekly review" | `routines` | The routine recorded in your brain, an offer to schedule it with the scheduler your session has, and the pointer saved once the scheduler confirms |
 | "wrap up" | `wrap-up` | What was done and decided logged on the project's card, each decision with who made the call and a doubtful one left for you to tick, the session summarised, your changes committed |
 | "show me my view", "show me my brain" | `my-view` | My view: your brain on one page, starting with what needs you |
+| "look back at yesterday", "what could be a routine or a skill" | `look-back` | What you asked the day before, read for what keeps coming back: at most three proposals (a routine, a skill, a rule, a topic to understand, something not saved), each waiting for your yes |
+| `/cogby:notion-mirror` (typed: Claude never starts it on its own) | `notion-mirror` | An extra, off until you turn it on: a copy of your projects, areas, people, open to-dos and decisions under one Notion page; a to-do ticked or added there comes back |
 | "quiz me on…" | `quiz-me` | Five questions from your own brain, one at a time, each answer with the page it comes from |
-| "picture this", "explain it as a picture" | `picture` | One idea drawn as a flow, a comparison, layers, a timeline or a before and after |
+| "picture this", "explain it as a picture" | `picture` | One idea drawn in the chat as a real diagram of the thing itself, in the chat's own design, with a full explanation as a page when you want more |
 
 `quiz-me` and `picture` run only when you ask for them by name. A plain "explain this" gets Claude's
 ordinary answer.
@@ -155,7 +169,7 @@ does, the twelve tools and every command.
 
 ## Working on the plugin
 
-Version 0.3.11. This repository is the plugin's source. `CHANGELOG.md` says what changed in each version.
+Version 0.4.0. This repository is the plugin's source. `CHANGELOG.md` says what changed in each version.
 
 `STRONG-POINTS.md` is the working list of what makes Cogby special: nine points, each with where it
 lives, how well it holds today and what is missing. Prefer work that finishes one of those points

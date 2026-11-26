@@ -218,7 +218,11 @@ function brainOf(engineRoot) {
       // Not in a brain: the person's default one (brains.json, core/brain/brain.cjs defaultBrain).
       try {
         const named = JSON.parse(fs.readFileSync(path.join(configDir(), 'brains.json'), 'utf8').replace(/^\uFEFF/, '')).default;
-        if (typeof named === 'string' && path.isAbsolute(named) && isBrainBase(named)) return path.resolve(named);
+        // Never a private brain (core/brain/brain.cjs isPrivate): it is used only from its own folder.
+        // A marker that cannot be read says nothing, so any other brain is picked exactly as before.
+        let marked = false;
+        try { marked = JSON.parse(fs.readFileSync(path.join(named, BRAIN_RUNTIME, BRAIN_MARKER), 'utf8').replace(/^\uFEFF/, '')).private === true; } catch { /* not marked */ }
+        if (typeof named === 'string' && path.isAbsolute(named) && isBrainBase(named) && !marked) return path.resolve(named);
       } catch { /* none recorded */ }
     }
     return root;

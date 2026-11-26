@@ -57,6 +57,9 @@ const KNOWN_AGENTS = Object.freeze([
   '0e6876fd8cfe56c8f2f7b8e901992d1cd7743c205d570d4c4662fa823f59a1d9',   // 0.3.3: `cogby map` in place of context-index.md
   '9e817c9461b6a8ff0c9feb4ed319ff2ba0525ef3c54def627875768ef277eb24',   // main, after 0.3.6: the information border, `claude` as who made a call
   'e8b970516258b8b7c6436dfc0f46f957c08f0eeb29c05743e9eb809d9fd2d2c2',   // main, after 0.3.6: `agent` as who made a call, a line names its agent
+  '616db52a01d6ae59469484f5aceb712711c8939b8403d4c5f5c3257706da5d20',   // after 0.3.11: to-dos in the owner's own tool, meetings from the calendar and the records
+  '889e2c502abe4c2c154b632726678f0601f5df7aaf41c04ee180acb9be92d951',   // main, after 0.3.11: routines told when not running, what is brought up unasked, where a routine runs
+  'ff5c93dadda928722d1024b30f231c606f6c5db6400605d5d910b146ae30bf66',   // the combined 0.4.0: both of the above joined
 ]);
 
 const samePath = (a, b) => {

@@ -28,6 +28,10 @@ const TITLE_MAX = 140;
 const TEXT_MAX = 2000;
 const OPTIONS_MAX = 6;
 const ACTED_DAYS = 7;
+// A notification asks something of the owner: a question with its answers (`options`, and `recommend`
+// for the one Cogby suggests), or one thing to go ahead with (`recommend` alone: what Cogby suggests
+// doing, in a sentence). `if_ignored` says what happens if nothing is done. What needs nothing from
+// the owner is not a notification: it is added as `acted` and shown under "Done without you".
 
 const storeFile = (brain) => path.join(brain, ...STORE);
 const pad = (n) => String(n).padStart(2, '0');
@@ -108,15 +112,16 @@ function add(brain, fields = {}) {
   const priority = fields.priority === undefined ? 'normal' : String(fields.priority);
   if (!PRIORITIES.includes(priority)) throw new BrainError('BAD_PRIORITY', `Priority is normal or high, not "${priority}".`, '');
   const options = (Array.isArray(fields.options) ? fields.options : []).map((option) => line(option, 80)).filter(Boolean).slice(0, OPTIONS_MAX);
-  const recommend = line(fields.recommend, 80);
-  if (recommend && !options.includes(recommend)) throw new BrainError('BAD_RECOMMEND', `The recommended answer "${recommend}" is not one of the options.`, 'Pass it as an --option too.');
+  // With answers, the suggestion is one of them. With none, it is what Cogby suggests doing, in a sentence.
+  const recommend = line(fields.recommend, options.length ? 80 : 200);
+  if (recommend && options.length && !options.includes(recommend)) throw new BrainError('BAD_RECOMMEND', `The recommended answer "${recommend}" is not one of the options.`, 'Pass it as an --option too.');
   const source = line(fields.source, 60) || 'manual';
   const context = line(fields.context, 200);
 
   return locked(brain, (store) => {
     const record = {
       title, body: text(fields.body), source, context, priority, status, type: 'info',
-      ...(options.length ? { options, recommend } : {}),
+      ...(options.length ? { options, recommend } : recommend ? { recommend } : {}),
       ...(fields.ifIgnored ? { if_ignored: line(fields.ifIgnored, 200) } : {}),
       ...(fields.reason ? { reason: line(fields.reason, 200) } : {}),
       ...(fields.undo ? { undo: line(fields.undo, 200) } : {}),
@@ -125,6 +130,8 @@ function add(brain, fields = {}) {
     // what keeps a wrap-up per session from filling the list. Only an entry still waiting is reused.
     const open = context ? store.items.find((item) => item.status === 'unread' && item.source === source && item.context === context && status === 'unread') : null;
     if (open) {
+      // Refreshed as one thing to go ahead with: the answers it had before are not its answers any more.
+      if (!options.length && recommend) delete open.options;
       Object.assign(open, record, { updated: stamp() });
       const commit = write(brain, store, subject('notify refresh', title));
       return { notification: shown(open), refreshed: true, commit };
@@ -186,13 +193,15 @@ function list(brain, options = {}) {
   return { notifications: items.map((item) => shown(item, now)), all: !!options.all, ...(store.unreadable ? { unreadable: store.unreadable } : {}) };
 }
 
-// What the command center page needs, in the order it shows it.
+// What the command center page needs, in the order it shows it: what is marked high first, then the
+// newest first. The page folds the old ones away itself (each entry says how many days old it is).
 function forView(brain, now = new Date()) {
   const store = read(brain);
   const all = store.items.filter((item) => STATUSES.includes(item.status)).map((item) => shown(item, now));
   const rank = (item) => (item.priority === 'high' ? 0 : 1);
-  const waiting = all.filter((item) => item.status === 'unread')
-    .sort((a, b) => rank(a) - rank(b) || (a.created < b.created ? -1 : a.created > b.created ? 1 : 0));
+  // Two left in the same second keep the order they were written in, the later one first.
+  const waiting = all.filter((item) => item.status === 'unread').reverse()
+    .sort((a, b) => rank(a) - rank(b) || (a.created < b.created ? 1 : a.created > b.created ? -1 : 0));
   const acted = all.filter((item) => item.status === 'acted' && item.days_old !== null && item.days_old <= ACTED_DAYS)
     .sort((a, b) => (a.created < b.created ? 1 : -1)).slice(0, 8);
   const oldest = waiting.reduce((max, item) => (item.days_old !== null && item.days_old > max ? item.days_old : max), 0);

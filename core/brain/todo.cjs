@@ -110,7 +110,11 @@ const projectName = (value) => line(value, 80).toLowerCase().replace(/\\/g, '/')
 const shownTodo = (item) => ({
   id: item.id, text: item.text || '', body: item.body || '', due: item.due || '', project: item.project || '', status: TODO_STATUSES.includes(item.status) ? item.status : 'open',
   created: item.created || '', done_at: item.done_at || '', source: item.source || '',
+  // `by`: 'cogby' when the owner handed the to-do to Cogby; `plan`: what Cogby proposes to do about it.
+  by: item.by === 'cogby' ? 'cogby' : '', plan: item.plan || '',
 });
+// Whose a to-do is: Cogby's, or (anything else, "me", "none") the owner's.
+const whose = (value) => (/^cogby$/i.test(String(value == null ? '' : value).trim()) ? 'cogby' : '');
 // Details are kept as they were written, lines and all; "none" takes them off.
 const details = (value) => (String(value).trim() === 'none' ? '' : String(value == null ? '' : value).replace(/\r\n?/g, '\n').trim().slice(0, BODY_MAX));
 
@@ -127,6 +131,7 @@ function addTodo(brain, fields = {}) {
   const done = change(brain, 'todo', (items) => {
     const item = { id: newId('todo'), text, due, project: projectName(fields.project), status: 'open', created: stamp(), done_at: '', source: line(fields.source, 60) || 'session' };
     if (fields.body !== undefined && fields.body !== null && details(fields.body)) item.body = details(fields.body);
+    if (whose(fields.by)) item.by = 'cogby';
     items.push(item);
     return { item, message: subject('todo', text) };
   });
@@ -150,12 +155,14 @@ function setTodo(brain, id, action) {
 }
 
 function editTodo(brain, id, fields = {}) {
-  if (fields.text === undefined && fields.due === undefined && fields.project === undefined && fields.body === undefined) throw new BrainError('USAGE', 'Nothing to change.', 'cogby todo edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none] [--body "…"|none]');
+  if (fields.text === undefined && fields.due === undefined && fields.project === undefined && fields.body === undefined && fields.by === undefined && fields.plan === undefined) throw new BrainError('USAGE', 'Nothing to change.', 'cogby todo edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none] [--body "…"|none] [--by cogby|me] [--plan "…"|none]');
   return changeTodo(brain, id, 'edit', (item) => {
     if (fields.text !== undefined) { const text = line(fields.text, TEXT_MAX); if (!text) throw new BrainError('NO_TEXT', 'A to-do needs words.', ''); item.text = text; }
     if (fields.due !== undefined) item.due = day(fields.due);
     if (fields.project !== undefined) item.project = fields.project === 'none' ? '' : projectName(fields.project);
     if (fields.body !== undefined) { const body = details(fields.body); if (body) item.body = body; else delete item.body; }
+    if (fields.by !== undefined) { if (whose(fields.by)) item.by = 'cogby'; else delete item.by; }
+    if (fields.plan !== undefined) { const plan = details(fields.plan); if (plan) item.plan = plan; else delete item.plan; }
   });
 }
 

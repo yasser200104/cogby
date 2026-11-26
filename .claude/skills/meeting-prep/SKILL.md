@@ -1,6 +1,6 @@
 ---
 name: meeting-prep
-description: Prepare the owner for one meeting from what the brain already knows. Use on "prep me for my meeting with…", "meeting prep", "what do I need to know before the call with…", "brief me on <person or company>", "I have a 1-on-1 with…", or "prep my next meeting" / "prep today's meetings" when a calendar is connected. Produces a one-page brief: who, where things stand, what was promised, what to ask, read from the brain and the last meeting records. Reads only; it writes nothing unless the owner asks for the brief to be kept. NOT for what happened in a meeting (meeting-notes), and NOT a general project status (search the brain and read the page).
+description: Prepare the owner for one meeting from what the brain already knows. Use on "prep me for my meeting with…", "meeting prep", "what do I need to know before the call with…", "brief me on [person or company]", "I have a 1-on-1 with…", or "prep my next meeting" / "prep today's meetings" when a calendar is connected. Produces a one-page brief: who, where things stand, what was promised, what to ask, read from the brain and the last meeting records. Reads only; it writes nothing unless the owner asks for the brief to be kept. NOT for what happened in a meeting (meeting-notes), and NOT a general project status (search the brain and read the page).
 ---
 
 # Meeting prep: walk in knowing what the brain knows

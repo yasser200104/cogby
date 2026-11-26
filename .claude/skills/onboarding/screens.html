@@ -3,35 +3,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cogby onboarding screens</title>
 <!--
-  The onboarding's screens, fixed. Open this file in a browser to see all four.
+  The onboarding's one screen, fixed: Check it. Hello, Get to know you and You're set are said in the
+  chat, from screens-text.md. Open this file in a browser to see the screen.
 
-  To show one in the chat, copy three blocks exactly and nothing else: <style id="cogby-style">, the
-  screen's <section class="cg" id="…">, and <script id="cogby-script">. In the section:
-  - data-fill: replace the element's text (and, on a link, its href) with the person's own.
-  - data-each: repeat the element once per item, or remove it; the sample ones are never kept.
+  Its button shows the reply as text every time, as well as sending it: in some chats the click
+  reaches nothing, and the person must be able to send the words themselves.
+
+  To show it in the chat, copy three blocks exactly and nothing else: <style id="cogby-style">, the
+  <section class="cg" id="check-it">, and <script id="cogby-script">. In the section, change only:
+  - data-fill: replace the element's text (on an input, its value) with the person's own.
   - data-if: keep the element only when what it names is true; otherwise remove it.
-  Nothing else changes: no colour, size, class or word outside those three.
+  - data-map: the list of what was found. Replace the sample lines, one short line per item:
+        name | where it came from | kind
+    The kind is Project, Ongoing, Done or Person (a person or an organization), always in English.
+    Keep each group's lines together. Write & as &amp; and < as &lt;, and no | inside a name.
+    Never write a row's markup: the script draws every row and the count from this
+    list. That is what makes the screen appear quickly.
+  Nothing else changes: no colour, size, class or attribute.
 
-  The colours are Cogby's design system (.claude/skills/design/systems/main.md), light and dark; the
-  selected tint is the command center's. The mark is the one in core/templates/command-center.html.
-  Everything above the first section and below the script is for this preview only.
+  Another language: the person reads every word in theirs. Say the same thing, in the same order,
+  in the section's text and in its placeholder, aria-label, data-name, data-send and data-say
+  values. Leave as they are: class, value, data-list, data-act, and the kind
+  that ends a map line. A right-to-left language (Arabic, Hebrew, Persian, Urdu): set dir="rtl" on
+  the section, and the layout follows it.
+
+  The colours are Cogby's design system (.claude/skills/design/systems/main.md); the selected tint
+  is the command center's. The mark is the one in core/templates/command-center.html.
+  Everything above the section and below the script is for this preview only.
 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
   body{max-width:680px;margin:32px auto;padding:0 16px;font-family:'Anthropic Sans',system-ui,-apple-system,'Segoe UI',sans-serif;background:#faf9f5}
   @media (prefers-color-scheme:dark){body{background:#262624}}
-  section.cg + section.cg{margin-top:64px;padding-top:32px;border-top:1px dashed #b4b2a9}
 </style>
 <style id="cogby-style">
-.cg{--card:#ffffff;--soft:#f7f7f5;--tint:#e9e3f6;--ink:#191634;--body:#3d3663;--muted:#5c5486;--primary:#372476;--accent:#5940a4;--on-primary:#ffffff;--line:rgba(55,36,118,.16);--line2:rgba(55,36,118,.28);--ok:#16a34a;color-scheme:light;color:var(--body);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px 22px;font-size:15px;line-height:1.55}
+.cg{--card:#ffffff;--soft:#f7f7f5;--tint:#e9e3f6;--ink:#191634;--body:#3d3663;--muted:#5c5486;--primary:#372476;--accent:#5940a4;--on-primary:#ffffff;--line:rgba(55,36,118,.16);--line2:rgba(55,36,118,.28);--danger:#b42318;color-scheme:light;color:var(--body);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px 22px;font-size:15px;line-height:1.55}
 .cg *{box-sizing:border-box}
 .cg .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .cg .top{display:flex;align-items:center;gap:9px;margin-bottom:14px}
 .cg .mark{width:30px;height:30px;flex:none}
-.cg .mark.big{width:44px;height:44px}
 .cg .word{font-size:20px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
-.cg .where{margin-left:auto;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 10px}
-.cg .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 22px;padding:0}
+.cg .where{margin-inline-start:auto;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 10px}
+.cg .steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;list-style:none;margin:0 0 22px;padding:0}
 .cg .steps li{border-top:4px solid var(--line);padding-top:7px;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:baseline;min-width:0}
 .cg .steps li.done{border-top-color:var(--primary)}
 .cg .steps li.now{border-top-color:var(--primary);color:var(--ink);font-weight:500}
@@ -42,29 +55,11 @@
 .cg .label{font-size:15px;font-weight:500;color:var(--ink);margin:20px 0 8px}
 .cg .m{font-size:14px;color:var(--muted)}
 .cg .t{font-size:15px;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
-.cg .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.cg .grid.wide{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-.cg .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 16px}
+.cg .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 16px}
 .cg .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
-.cg .card .ic{font-size:20px;color:var(--accent);display:block;margin-bottom:6px}
-.cg .hero{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:20px;border-color:var(--primary);margin-top:16px}
-.cg .hero .ic{font-size:22px;margin:0}
-.cg .hero .main{flex:1 1 260px;min-width:0}
-.cg .hero .t{font-size:18px}
-.cg .chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.cg .chip{font:inherit;font-size:14px;color:var(--body);background:var(--card);border:1px solid var(--line2);border-radius:6px;padding:6px 14px;cursor:pointer}
-.cg .chip[aria-pressed=true]{background:var(--tint);border-color:var(--primary);color:var(--ink);font-weight:500}
-.cg .chip[aria-pressed=true]::before{content:"\2713";margin-right:6px}
-.cg .tag{display:inline-flex;font-size:14px;color:var(--ink);background:var(--tint);border-radius:6px;padding:3px 12px}
-.cg .pick{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;width:100%;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px 14px;cursor:pointer;color:var(--body)}
-.cg .pick[aria-pressed=true]{border-color:var(--primary);background:var(--tint)}
-.cg .box{flex:none;width:18px;height:18px;margin-top:2px;border-radius:4px;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:12px;line-height:1;color:var(--on-primary)}
-.cg .pick[aria-pressed=true] .box{background:var(--primary);border-color:var(--primary)}
-.cg .pick[aria-pressed=true] .box::after{content:"\2713"}
-.cg [data-one] .box{border-radius:50%}
-.cg .pick .ti{flex:none;font-size:20px;color:var(--accent);margin-top:1px}
+.cg .map{font:inherit;font-size:14px;color:var(--muted);white-space:pre-line;margin:14px 0 0}
 .cg .rows{display:grid;gap:8px}
-.cg .row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 8px 8px 12px}
+.cg .row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;padding-inline-start:12px}
 .cg .row .main{flex:1;min-width:0}
 .cg .row.off{background:transparent;border-style:dashed}
 .cg .row.off .t{text-decoration:line-through;color:var(--muted)}
@@ -72,112 +67,67 @@
 .cg .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--tint);color:var(--primary);font-size:12.5px;font-weight:500;display:grid;place-items:center}
 .cg .ib{flex:none;width:30px;height:30px;display:grid;place-items:center;padding:0;background:none;border:0;border-radius:6px;color:var(--muted);font-size:17px;cursor:pointer}
 .cg .ib:hover{background:var(--tint);color:var(--ink)}
+.cg .ib.bin{width:34px;height:34px;font-size:19px;color:var(--danger);background:var(--card);border:1px solid var(--line2)}
+.cg .ib.bin:hover{color:var(--danger);border-color:var(--danger)}
+.cg .row.off .ib.bin{color:var(--ink)}
 .cg .t[contenteditable=true]{outline:2px solid var(--accent);border-radius:4px;padding:0 4px;cursor:text}
 .cg input[type=text]{font:inherit;font-size:14px;color:var(--ink);background:var(--soft);border:1px solid var(--line2);border-radius:4px;padding:7px 10px;min-width:0;flex:1;height:auto}
 .cg input[type=text]::placeholder{color:var(--muted);opacity:1}
 .cg .addrow{display:flex;gap:8px;margin-top:8px}
 .cg .btn{font:inherit;font-size:15px;font-weight:500;background:var(--primary);color:var(--on-primary);border:0;border-radius:6px;padding:9px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.cg .quiet{font:inherit;font-size:14px;background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:7px 13px;cursor:pointer;text-align:left}
-.cg .link{font:inherit;font-size:14px;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.cg .note{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border-left:3px solid var(--accent);border-radius:0;padding:10px 14px;font-size:14px;color:var(--body);margin-top:20px}
+.cg .quiet{font:inherit;font-size:14px;background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:7px 13px;cursor:pointer;text-align:start}
+.cg .note{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border-inline-start:3px solid var(--accent);border-radius:0;padding:10px 14px;font-size:14px;color:var(--body);margin-top:20px}
 .cg .note .ti{color:var(--accent);font-size:18px;margin-top:1px}
 .cg .foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
 .cg .privacy{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--muted);flex:1 1 260px}
 .cg .privacy .ti{font-size:17px;margin-top:1px}
-.cg .acts{display:flex;align-items:center;gap:16px;margin-left:auto}
+.cg .acts{display:flex;align-items:center;gap:16px;margin-inline-start:auto}
 .cg .av{flex:none;width:44px;height:44px;border-radius:50%;background:var(--tint);color:var(--primary);display:grid;place-items:center;font-weight:500;font-size:17px}
 .cg .head{display:flex;align-items:center;gap:12px}
 .cg .head .main{flex:1;min-width:0}
-.cg dl{display:grid;gap:12px;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
-.cg dt{font-size:14px;color:var(--muted)}
-.cg dd{margin:3px 0 0;font-size:15px;color:var(--ink)}
-.cg .ready{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
-.cg .ready li{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--ink)}
-.cg .ready .ti{color:var(--ok);font-size:18px;margin-top:2px}
-.cg .tries{display:grid;gap:8px;margin-top:8px}
-.cg .said{white-space:pre-wrap;font-size:13px;background:var(--soft);border:1px dashed var(--line2);border-radius:6px;padding:8px 10px;margin-top:12px;color:var(--body)}
+.cg .said{white-space:pre-wrap;user-select:all;font-size:13px;background:var(--soft);border:1px dashed var(--line2);border-radius:6px;padding:8px 10px;margin-top:12px;color:var(--body)}
 .cg :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .cg [hidden]{display:none!important}
 </style>
 
-<section class="cg" id="welcome">
-<h2 class="sr">Step 1 of 3, hello: Cogby's four folders, and the three steps.</h2>
-<div class="top"><svg class="mark big" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.2115)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle cx="0" cy="0" r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg><span class="word">cogby</span></div>
-<h1>Meet Cogby</h1>
-<div class="label">Your brain has four folders. Cogby does the filing.</div>
-<div class="grid">
-<div class="card"><i class="ti ti-rocket ic" aria-hidden="true"></i><div class="t">Projects</div><div class="m">With an end</div></div>
-<div class="card"><i class="ti ti-refresh ic" aria-hidden="true"></i><div class="t">Areas</div><div class="m">No end date</div></div>
-<div class="card"><i class="ti ti-books ic" aria-hidden="true"></i><div class="t">Resources</div><div class="m">To look up</div></div>
-<div class="card"><i class="ti ti-archive ic" aria-hidden="true"></i><div class="t">Archive</div><div class="m">Finished</div></div>
-</div>
-<div class="label">How this goes</div>
-<ol class="steps" aria-label="Step 1 of 3"><li class="now"><b>1</b>Hello</li><li><b>2</b>Get to know you</li><li><b>3</b>Check it</li></ol>
-<div class="foot"><span class="acts"><button class="btn" data-say="Let's start">Let's start</button></span></div>
-<p class="said" hidden></p>
-</section>
-
-<section class="cg" id="get-to-know">
-<h2 class="sr">Step 2 of 3, get to know you: Cogby asks to look through your work, lightly or deeply, and asks you a few questions while it looks.</h2>
-<div class="top"><svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.2115)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle cx="0" cy="0" r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg><span class="word">cogby</span><span class="where">Step 2 of 3</span></div>
-<ol class="steps" aria-label="Step 2 of 3"><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Hello</li><li class="now"><b>2</b>Get to know you</li><li><b>3</b>Check it</li></ol>
-<h1>Can I get to know your work?</h1>
-<p class="lede">I'll look through <span data-fill="what you will look through">your emails, calendar and files</span> to find your projects, your priorities and the people you work with.</p>
-<div class="label">What I look at <span class="m">Untick anything you'd rather I skip.</span></div>
-<div class="grid wide" data-q data-name="Look at">
-<button class="pick" aria-pressed="true" data-if="a calendar is connected"><span class="box"></span><i class="ti ti-calendar" aria-hidden="true"></i><span><span class="t">Calendar</span><br><span class="m">Your meetings: titles and dates.</span></span></button>
-<button class="pick" aria-pressed="true" data-if="an email account is connected"><span class="box"></span><i class="ti ti-mail" aria-hidden="true"></i><span><span class="t">Email</span><br><span class="m">Who you write to, and about what.</span></span></button>
-<button class="pick" aria-pressed="true" data-if="a file store is connected"><span class="box"></span><i class="ti ti-file" aria-hidden="true"></i><span><span class="t">Files</span><br><span class="m">Your documents.</span></span></button>
-<button class="pick" aria-pressed="true"><span class="box"></span><i class="ti ti-device-laptop" aria-hidden="true"></i><span><span class="t">Your computer</span><br><span class="m">Documents, Desktop and past Claude Code chats. Never the whole disk.</span></span></button>
-</div>
-<div class="addrow"><input type="text" data-name="Also look at" placeholder="Another folder to look at (optional)"></div>
-<div class="label">How closely should I look?</div>
-<div class="grid wide" data-q data-one data-name="How closely">
-<button class="pick" aria-pressed="true"><span class="box"></span><i class="ti ti-eye" aria-hidden="true"></i><span><span class="t">Light</span><br><span class="m">Who your emails are with and their subjects, calendar titles and dates, file names. Quick, and light on your Claude allowance.</span></span></button>
-<button class="pick" aria-pressed="false"><span class="box"></span><i class="ti ti-zoom-in" aria-hidden="true"></i><span><span class="t">Deep</span><br><span class="m">Also reads your email messages and what's inside your files. A fuller map, but it uses much more of your Claude allowance.</span></span></button>
-</div>
-<div class="note"><i class="ti ti-message-circle" aria-hidden="true"></i><span>It takes a minute or two. While I look, I'll ask you a few quick questions.</span></div>
-<div class="foot"><span class="privacy"><i class="ti ti-lock" aria-hidden="true"></i>Saved on your computer, in a folder you own. Nothing is shared with anyone unless you ask.</span><span class="acts"><button class="quiet" data-say="I'll tell you myself">I'll tell you myself</button><button class="btn" data-send="Yes, take a look">Yes, take a look</button></span></div>
-<p class="said" hidden></p>
-</section>
-
-<section class="cg" id="check-it">
-<h2 class="sr">Step 3 of 3, check it: how Cogby sees you and your work, to fix before it creates your brain.</h2>
-<div class="top"><svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.2115)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle cx="0" cy="0" r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg><span class="word">cogby</span><span class="where">Step 3 of 3</span></div>
-<ol class="steps" aria-label="Step 3 of 3"><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Hello</li><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Get to know you</li><li class="now"><b>3</b>Check it</li></ol>
+<section class="cg" id="check-it" dir="ltr">
+<h2 class="sr">Step 2 of 2, check it: how Cogby sees you and your work, to fix before it creates your brain.</h2>
+<div class="top"><svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.2115)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle cx="0" cy="0" r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg><span class="word">cogby</span><span class="where">Step 2 of 2</span></div>
+<ol class="steps" aria-label="Step 2 of 2"><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Get to know you</li><li class="now"><b>2</b>Check it</li></ol>
 <h1>Here's how I see you</h1>
 <p class="lede">Fix anything that's wrong: pick what each one is, rename with the pencil, remove with the bin. You can change all of this later.</p>
 <div class="card">
 <div class="head"><span class="av" data-fill="their initials">SR</span><div class="main addrow" style="margin:0"><input type="text" data-name="My name" value="Sam Rivera" data-fill="their name" aria-label="Your name"><input type="text" data-name="What I do" value="Operations lead at Northwind" data-fill="what they do" aria-label="What you do"></div></div>
 <p class="m" style="margin:10px 0 0" data-if="they said what matters most"><span class="t">What matters most:</span> <span data-fill="what matters most to them">Q4 close · Hiring a designer</span></p>
 </div>
-<div data-list="Projects" data-kind="Project">
+<pre class="map" data-map>
+Website relaunch | Calendar · weekly call | Project
+Q4 close | Email subjects · due Dec 15 | Project
+Hiring a designer | Calendar · interviews this week | Project
+Team | Calendar · one-on-ones | Ongoing
+Finance | Files · monthly reports | Ongoing
+Acme Corp | Client · email, calendar | Person
+Priya Shah | Your manager · weekly one-on-one | Person
+</pre>
+<span data-say hidden data-remove="Remove" data-back="Bring back" data-rename="Rename" data-change="Change" data-done="Done, to the Archive" data-add="Add" data-none="none" data-to="to" data-added="Added by you" data-kept="{n} of {m} kept" data-person="person or organization" data-sent="Sent to the chat. If nothing happens there, copy this and send it yourself:"></span>
+<div data-row hidden><div class="row"><span class="num"></span><div class="main"><div class="t"></div><div class="m"></div></div><select class="kind" aria-label="What this is"><option value="Project">Project</option><option value="Ongoing">Ongoing</option><option value="Done">Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib bin" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div></div>
+<div data-list="Project">
 <div class="label">Projects <span class="m" data-fill="a project from their map">· they have an end, like Q4 close</span></div>
-<div class="rows">
-<div class="row" data-each="project" data-kind="Project"><span class="num">1</span><div class="main"><div class="t">Website relaunch</div><div class="m">Calendar · weekly call</div></div><select class="kind" aria-label="What this is"><option selected>Project</option><option>Ongoing</option><option>Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-<div class="row" data-each="project" data-kind="Project"><span class="num">2</span><div class="main"><div class="t">Q4 close</div><div class="m">Email subjects · due Dec 15</div></div><select class="kind" aria-label="What this is"><option selected>Project</option><option>Ongoing</option><option>Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-<div class="row" data-each="project" data-kind="Project"><span class="num">3</span><div class="main"><div class="t">Hiring a designer</div><div class="m">Calendar · interviews this week</div></div><select class="kind" aria-label="What this is"><option selected>Project</option><option>Ongoing</option><option>Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-</div>
+<div class="rows"></div>
 <div class="addrow"><input type="text" placeholder="Add a project" aria-label="Add a project"><button class="quiet" data-add>Add</button></div>
 </div>
-<div data-list="Ongoing" data-kind="Ongoing">
+<div data-list="Ongoing">
 <div class="label">Ongoing <span class="m" data-fill="an ongoing area from their map">· no end date, like Team</span></div>
-<div class="rows">
-<div class="row" data-each="ongoing area" data-kind="Ongoing"><span class="num">4</span><div class="main"><div class="t">Team</div><div class="m">Calendar · one-on-ones</div></div><select class="kind" aria-label="What this is"><option>Project</option><option selected>Ongoing</option><option>Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-<div class="row" data-each="ongoing area" data-kind="Ongoing"><span class="num">5</span><div class="main"><div class="t">Finance</div><div class="m">Files · monthly reports</div></div><select class="kind" aria-label="What this is"><option>Project</option><option selected>Ongoing</option><option>Done</option></select><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-</div>
+<div class="rows"></div>
 <div class="addrow"><input type="text" placeholder="Add something ongoing" aria-label="Add something ongoing"><button class="quiet" data-add>Add</button></div>
 </div>
-<div data-list="Done" data-kind="Done" hidden>
+<div data-list="Done" hidden>
 <div class="label">Done <span class="m">· finished, so it goes to the Archive</span></div>
 <div class="rows"></div>
 </div>
-<div data-list="People and organizations">
+<div data-list="Person">
 <div class="label">People and organizations</div>
-<div class="rows cols" style="gap:8px 16px">
-<div class="row" data-each="person or organization" data-kind="Person"><span class="num">6</span><div class="main"><div class="t">Acme Corp</div><div class="m">Client · email, calendar</div></div><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-<div class="row" data-each="person or organization" data-kind="Person"><span class="num">7</span><div class="main"><div class="t">Priya Shah</div><div class="m">Your manager · weekly one-on-one</div></div><button class="ib" data-act="rename" aria-label="Rename"><i class="ti ti-pencil" aria-hidden="true"></i></button><button class="ib" data-act="remove" aria-label="Remove"><i class="ti ti-trash" aria-hidden="true"></i></button></div>
-</div>
+<div class="rows cols"></div>
 <div class="addrow"><input type="text" placeholder="Add a person or an organization" aria-label="Add a person or an organization"><button class="quiet" data-add>Add</button></div>
 </div>
 <div class="note"><i class="ti ti-info-circle" aria-hidden="true"></i><span data-fill="the defaults">I'll always ask before I send a message, delete anything or spend money, and I'll answer first, in plain words. Your brain lives in a folder called Cogby Brain in your home folder, saved whenever you say "wrap up". Want any of that different? Just say so.</span></div>
@@ -185,60 +135,46 @@
 <p class="said" hidden></p>
 </section>
 
-<section class="cg" id="youre-set">
-<h2 class="sr">Onboarding done: My view, where you and Cogby keep track of everything, and what to try first.</h2>
-<div class="top"><svg class="mark" viewBox="0 0 32 32" role="img" aria-label="Cogby"><g transform="translate(16 16) scale(0.2115)"><g fill="#9670E0"><rect x="-11" y="-59" width="22" height="26" rx="9"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(45)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(90)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(135)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(180)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(225)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(270)"/><rect x="-11" y="-59" width="22" height="26" rx="9" transform="rotate(315)"/><circle cx="0" cy="0" r="41"/></g><rect x="-24" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><rect x="10" y="-12" width="14" height="22" rx="7" fill="#1D1430"/><circle cx="-19.6" cy="-6.4" r="2.9" fill="#FFFFFF"/><circle cx="14.4" cy="-6.4" r="2.9" fill="#FFFFFF"/><path d="M -9 20 q 9 9 18 0" fill="none" stroke="#1D1430" stroke-width="4" stroke-linecap="round"/></g></svg><span class="word">cogby</span><span class="where">Done</span></div>
-<ol class="steps" aria-label="All three steps done"><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Hello</li><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Get to know you</li><li class="done"><i class="ti ti-check" aria-hidden="true"></i>Check it</li></ol>
-<h1 data-fill="their first name">You're set, Sam.</h1>
-<p class="lede" data-fill="what was created">Your brain is ready: 3 projects, 2 ongoing areas and 2 people and organizations.</p>
-<div class="card hero"><i class="ti ti-layout-dashboard ic" aria-hidden="true"></i><div class="main"><div class="t">My view: where you and I keep track of everything</div><div class="m">What needs you, your projects and your to-dos, on one page. Come back to it any time.</div></div><a class="btn" href="#" data-fill="the page's link">Open My view</a></div>
-<ul class="ready">
-<li data-if="the scheduler confirmed a morning check-in"><i class="ti ti-check" aria-hidden="true"></i><span>Morning check-in is on, weekdays at 8:00</span></li>
-<li data-if="a task tool holds their to-dos"><i class="ti ti-check" aria-hidden="true"></i><span data-fill="where their to-dos stay">Your to-dos stay in Notion: that's the list to trust</span></li>
-</ul>
-<div class="label">Try this first</div>
-<div class="chips">
-<button class="quiet" data-say>What needs me today?</button>
-<button class="quiet" data-say data-if="a calendar is connected">Prep me for my next meeting</button>
-<button class="quiet" data-say data-fill="one of their projects">Where is Q4 close at?</button>
-</div>
-<div class="note"><i class="ti ti-message-plus" aria-hidden="true"></i><span>One last thing: start a new chat, from anywhere. That's where Cogby is fully switched on.</span></div>
-<p class="said" hidden></p>
-</section>
-
 <script id="cogby-script">
 (function () {
-  var LIST = { Project: 'Projects', Ongoing: 'Ongoing', Done: 'Done' };
-  function on(el) { return el.getAttribute('aria-pressed') === 'true'; }
-  function label(el) { var t = el.querySelector('.t'); return (t || el).textContent.trim(); }
+  var KINDS = [[/^proj/i, 'Project'], [/^ong/i, 'Ongoing'], [/^done/i, 'Done']];
   function wire(cg) {
-    var said = cg.querySelector('.said');
+    var said = cg.querySelector('.said'), words = (cg.querySelector('[data-say]') || cg).dataset;
+    var model = cg.querySelector('[data-row] .row'), n = 0;
+    function say(key) { return words[key] || key; }
+    function all(more) { return cg.querySelectorAll('[data-list] .row' + (more || '')); }
     function send(message) {
-      if (typeof sendPrompt === 'function') sendPrompt(message);
-      else if (said) { said.hidden = false; said.textContent = message; }
+      if (said) { said.hidden = false; said.textContent = say('sent') + '\n\n' + message; }
+      try { if (typeof sendPrompt === 'function') sendPrompt(message); } catch (e) {}
     }
-    function count() {
-      var out = cg.querySelector('[data-count]');
-      if (!out) return;
-      var rows = cg.querySelectorAll('[data-list] .row');
-      out.textContent = cg.querySelectorAll('[data-list] .row:not(.off)').length + ' of ' + rows.length + ' kept';
-    }
-    function showDone() {
-      var done = cg.querySelector('[data-list="Done"]');
+    function refresh() {
+      var done = cg.querySelector('[data-list="Done"]'), out = cg.querySelector('[data-count]');
       if (done) done.hidden = !done.querySelector('.row');
+      if (out) out.textContent = say('kept').replace('{n}', all(':not(.off)').length).replace('{m}', all().length);
     }
-    function pick(el) {
-      var group = el.closest('[data-q]');
-      if (!group) return;
-      var all = [].slice.call(group.querySelectorAll('.chip, .pick'));
-      if (group.hasAttribute('data-one')) { all.forEach(function (c) { c.setAttribute('aria-pressed', String(c === el)); }); return; }
-      var turnOn = !on(el);
-      if (turnOn) {
-        all.forEach(function (c) { if (el.hasAttribute('data-alone') ? c !== el : c.hasAttribute('data-alone')) c.setAttribute('aria-pressed', 'false'); });
-        var max = +group.getAttribute('data-max') || 0;
-        if (max && all.filter(on).length >= max) return;
-      }
-      el.setAttribute('aria-pressed', String(turnOn));
+    function make(name, from, kind, added) {
+      var group = cg.querySelector('[data-list="' + kind + '"]');
+      if (!group || !model || !name) return;
+      var row = model.cloneNode(true), select = row.querySelector('select.kind');
+      row.setAttribute('data-kind', kind);
+      if (added) row.setAttribute('data-added', '');
+      if (kind === 'Person') select.remove(); else select.value = kind;
+      row.querySelector('.t').textContent = name;
+      row.querySelector('.m').textContent = from;
+      row.querySelector('.num').textContent = added ? '+' : ++n;
+      group.querySelector('.rows').appendChild(row);
+    }
+    function draw() {
+      var map = cg.querySelector('[data-map]');
+      if (!map || !model) return;
+      map.textContent.split('\n').forEach(function (line) {
+        var parts = line.split('|').map(function (part) { return part.trim(); });
+        if (parts.length < 2) return;
+        var last = parts.pop(), kind = 'Person';
+        KINDS.forEach(function (k) { if (k[0].test(last)) kind = k[1]; });
+        make(parts.shift(), parts.join(' | '), kind);
+      });
+      map.hidden = true;
     }
     function act(btn) {
       var row = btn.closest('.row'), t = row.querySelector('.t');
@@ -251,67 +187,45 @@
         return;
       }
       var off = row.classList.toggle('off');
-      btn.setAttribute('aria-label', off ? 'Bring back' : 'Remove');
-      count();
+      btn.setAttribute('aria-label', say(off ? 'back' : 'remove'));
+      btn.firstElementChild.className = 'ti ' + (off ? 'ti-arrow-back-up' : 'ti-trash');
+      refresh();
     }
     function sort(select) {
-      var to = cg.querySelector('[data-list="' + LIST[select.value] + '"] .rows');
+      var to = cg.querySelector('[data-list="' + select.value + '"] .rows');
       if (to) to.appendChild(select.closest('.row'));
-      showDone();
+      refresh();
     }
     function add(btn) {
-      var group = btn.closest('[data-list]'), input = btn.parentNode.querySelector('input');
-      var name = input.value.trim();
+      var input = btn.parentNode.querySelector('input'), name = input.value.trim();
       if (!name) { input.focus(); return; }
-      var kind = group.getAttribute('data-kind');
-      var model = group.querySelector('.row') || (kind ? (cg.querySelector('[data-list] .row select.kind') || {}).parentNode : cg.querySelector('[data-list] .row:not([data-kind="Project"]):not([data-kind="Ongoing"])'));
-      if (!model) return;
-      var row = model.cloneNode(true);
-      row.classList.remove('off');
-      row.setAttribute('data-added', group.getAttribute('data-list'));
-      if (kind) { row.setAttribute('data-kind', kind); row.querySelector('select.kind').value = kind; }
-      var t = row.querySelector('.t');
-      t.removeAttribute('data-was');
-      t.textContent = name;
-      row.querySelector('.m').textContent = 'Added by you';
-      row.querySelector('.num').textContent = '+';
-      group.querySelector('.rows').appendChild(row);
+      make(name, say('added'), btn.closest('[data-list]').getAttribute('data-list'), true);
       input.value = '';
-      count();
+      refresh();
     }
     function compose(head) {
       var lines = [head];
-      cg.querySelectorAll('[data-q][data-name]').forEach(function (g) {
-        var picked = [].slice.call(g.querySelectorAll('.chip, .pick')).filter(on).map(label);
-        lines.push(g.getAttribute('data-name') + ': ' + (picked.length ? picked.join(', ') : 'none'));
-      });
       cg.querySelectorAll('input[data-name]').forEach(function (i) {
         if (i.value.trim()) lines.push(i.getAttribute('data-name') + ': ' + i.value.trim());
       });
-      var removed = [], rename = [], change = [], done = [], added = [];
-      cg.querySelectorAll('[data-list] .row').forEach(function (row) {
+      var out = { remove: [], rename: [], change: [], done: [], add: [] };
+      all().forEach(function (row) {
         var t = row.querySelector('.t'), name = t.textContent.trim(), was = t.getAttribute('data-was') || name;
         var select = row.querySelector('select.kind'), now = select ? select.value : '';
-        if (row.classList.contains('off')) { if (!row.hasAttribute('data-added')) removed.push(was); return; }
-        if (row.hasAttribute('data-added')) { added.push(name + ' (' + (now || row.getAttribute('data-added')) + ')'); return; }
-        if (was !== name) rename.push(was + ' to ' + name);
-        if (now && now !== row.getAttribute('data-kind')) { if (now === 'Done') done.push(name); else change.push(name + ' to ' + now); }
+        var label = select ? select.options[select.selectedIndex].text : say('person');
+        if (row.classList.contains('off')) { if (!row.hasAttribute('data-added')) out.remove.push(was); return; }
+        if (row.hasAttribute('data-added')) { out.add.push(name + ' (' + label + ')'); return; }
+        if (was !== name) out.rename.push(was + ' ' + say('to') + ' ' + name);
+        if (now && now !== row.getAttribute('data-kind')) (now === 'Done' ? out.done : out.change).push(now === 'Done' ? name : name + ' ' + say('to') + ' ' + label);
       });
-      if (cg.querySelector('[data-list]')) {
-        lines.push('Remove: ' + (removed.join(', ') || 'none'));
-        if (rename.length) lines.push('Rename: ' + rename.join(', '));
-        if (change.length) lines.push('Change: ' + change.join(', '));
-        if (done.length) lines.push('Done, to the Archive: ' + done.join(', '));
-        if (added.length) lines.push('Add: ' + added.join(', '));
-      }
+      Object.keys(out).forEach(function (key) {
+        if (out[key].length || key === 'remove') lines.push(say(key) + ': ' + (out[key].join(', ') || say('none')));
+      });
       return lines.join('\n');
     }
     cg.addEventListener('click', function (e) {
       var el = e.target.closest('button');
       if (!el || !cg.contains(el)) return;
-      if (el.matches('.chip, .pick')) return pick(el);
-      if (el.hasAttribute('data-say')) return send(el.getAttribute('data-say') || el.textContent.trim());
-      if (el.hasAttribute('data-reveal')) { var panel = cg.querySelector('[data-panel="' + el.getAttribute('data-reveal') + '"]'); if (panel) panel.hidden = !panel.hidden; return; }
       if (el.hasAttribute('data-act')) return act(el);
       if (el.hasAttribute('data-add')) return add(el);
       if (el.hasAttribute('data-send')) return send(compose(el.getAttribute('data-send')));
@@ -322,7 +236,8 @@
       var b = e.target.parentNode.querySelector('[data-add]');
       if (b) { e.preventDefault(); add(b); }
     });
-    count();
+    draw();
+    refresh();
   }
   document.querySelectorAll('.cg').forEach(wire);
 })();

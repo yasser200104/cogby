@@ -5,7 +5,7 @@ const path = require('path');
 const { redact } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'redact.cjs'));
 const { forRoot: R } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'paths.cjs'));
 const { flagsFrom } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'headless.cjs'));
-const { rootsFrom } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'locate.cjs'));
+const { rootsFrom, crossesPrivate } = require(path.join(__dirname, '..', '..', 'core', 'lib', 'locate.cjs'));
 
 // How much of a turn is kept. Measured on 2,200 turns of real sessions (2026-11-15): 95% of asks are
 // under 1,000 characters and 97% of answers under 4,000, so nearly every turn is kept whole, and the
@@ -168,6 +168,9 @@ process.stdin.on('end', () => {
     if (!msg) process.exit(0);
 
     const cwd = data.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    // A private brain is sealed both ways: a turn whose folder is in another brain than the one the
+    // session was opened in, with a private brain among them, is logged nowhere (locate.cjs crossesPrivate).
+    if (crossesPrivate(cwd)) process.exit(0);
 
     function dateStr(d) {
       const yyyy = d.getFullYear();

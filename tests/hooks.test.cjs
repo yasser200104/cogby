@@ -97,6 +97,62 @@ test('with no brain, session start says so once and other hooks stay silent', (t
   }
 });
 
+// Since 2026-11-25: the owner ran an onboarding and could not tell which of the three copies of Cogby on their
+// computer the chat ran. Every session start names this copy's version, from its own plugin.json, and its folder.
+const MANIFEST_VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8')).version;
+
+test('session start names this copy\'s version from its plugin.json: with no brain, in the brain and outside it', (t) => {
+  const line = `This is Cogby version ${MANIFEST_VERSION}, from "${ROOT}".`;
+  const lines = (run) => { assert.equal(run.code, 0, run.err); return run.out.split('\n'); };
+  const none = sandbox(t);
+  fs.mkdirSync(none.brain);
+  const fresh = lines(hook(none, 'brain-context', { session_id: 's1', source: 'startup' }));
+  assert.ok(fresh.includes(line), `no version line before any brain exists:\n${fresh.join('\n')}`);
+  assert.match(fresh[0], /no brain yet/, '"no brain yet" is no longer the first line');
+  const box = newBrain(t);
+  assert.ok(lines(hook(box, 'brain-context', { session_id: 's1', source: 'startup' })).includes(line), 'no version line in the brain');
+  const repo = path.join(box.dir, 'some-repo');
+  fs.mkdirSync(repo);
+  assert.ok(lines(hook(box, 'brain-context', { session_id: 's1', source: 'startup' }, { cwd: repo })).includes(line), 'no version line outside the brain');
+});
+
+test('a test version such as 0.4.0-rc1 is shown as written: by the session start, cogby --version and My view', (t) => {
+  // A copy of the program whose plugin.json says 0.4.0-rc1, run from where it is.
+  const box = newBrain(t);
+  const copy = path.join(box.dir, 'program-rc');
+  for (const part of ['core', path.join('.claude', 'hooks')]) fs.cpSync(path.join(ROOT, part), path.join(copy, part), { recursive: true });
+  fs.mkdirSync(path.join(copy, '.claude-plugin'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
+  fs.writeFileSync(path.join(copy, '.claude-plugin', 'plugin.json'), JSON.stringify({ ...manifest, version: '0.4.0-rc1' }, null, 2));
+  assert.equal(require(path.join(copy, 'core', 'lib', 'version.cjs')).pluginVersion(), '0.4.0-rc1');
+
+  const nowhere = path.join(box.dir, 'nowhere');
+  fs.mkdirSync(nowhere);
+  const empty = { ...box.env, COGBY_CONFIG_DIR: path.join(box.dir, 'no-config'), CLAUDE_PROJECT_DIR: nowhere };
+  const started = spawnSync(process.execPath, [path.join(copy, '.claude', 'hooks', 'brain-context.cjs')], { env: empty, cwd: nowhere, encoding: 'utf8', input: JSON.stringify({ source: 'startup', cwd: nowhere }) });
+  assert.match(started.stdout, /no brain yet/, started.stderr);
+  assert.ok(started.stdout.split('\n').includes(`This is Cogby version 0.4.0-rc1, from "${copy}".`), started.stdout);
+
+  const cli = path.join(copy, 'core', 'brain', 'cli.cjs');
+  assert.equal(spawnSync(process.execPath, [cli, '--version'], { env: box.env, encoding: 'utf8' }).stdout.trim(), 'cogby 0.4.0-rc1');
+  const built = spawnSync(process.execPath, [cli, 'view', '--html', '--json', '--brain', box.brain], { env: box.env, cwd: box.dir, encoding: 'utf8' });
+  assert.equal(built.status, 0, built.stderr);
+  const html = fs.readFileSync(JSON.parse(built.stdout).file, 'utf8');
+  assert.equal(JSON.parse(/<script type="application\/json" id="cogby-data">([\s\S]*?)<\/script>/.exec(html)[1]).version, '0.4.0-rc1');
+});
+
+test('a manifest with no version, or something that is not one, shows nothing', (t) => {
+  const box = sandbox(t);
+  const { pluginVersion } = require(path.join(ROOT, 'core', 'lib', 'version.cjs'));
+  assert.equal(pluginVersion(), MANIFEST_VERSION, 'the program\'s own version is not its plugin.json\'s');
+  assert.equal(pluginVersion(box.dir), '', 'no manifest');
+  fs.mkdirSync(path.join(box.dir, '.claude-plugin'));
+  for (const [written, shown] of [['{"version":" 0.4.0-rc1 "}', '0.4.0-rc1'], ['{"version":"<b>1</b>"}', ''], ['{"version":3}', ''], ['{}', ''], ['not json', '']]) {
+    fs.writeFileSync(path.join(box.dir, '.claude-plugin', 'plugin.json'), written);
+    assert.equal(pluginVersion(box.dir), shown, written);
+  }
+});
+
 test('every hook exits 0 inside a brain', (t) => {
   const box = newBrain(t);
   for (const name of ['brain-context', 'prompt-pointers', 'capture-log']) {

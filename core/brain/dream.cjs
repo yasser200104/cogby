@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const brainLib = require('./brain.cjs');
+const { BrainError } = require('./db.cjs');
 const { gitIn } = require('../lib/brain-repo.cjs');
 
 const STALE_DAYS = 14;
@@ -98,9 +99,56 @@ function rewriteTruth(db, since) {
   return { built: false, rewritten: 0, candidates, note: 'No page was changed: the summary at the top of a page changes with the owner.' };
 }
 
+// ---- what the owner asked, day by day ---------------------------------------------------------------
+// What the look-back reads. A day's log runs to hundreds of kilobytes, far more than a session should
+// read whole, so the cut is made here, with no model: only the owner's own asks, each shortened, with
+// the card the turn was about. An entry with no ask is a run nobody typed (a scheduled task); it is
+// counted and not listed. An ask the app wrote (it opens with a tag) is not the owner's either.
+// Nothing here judges: what repeats, and what it is worth, is the reader's to say and the owner's to
+// confirm. The log was redacted when it was written.
+const LOG_DIR = ['.cogby', 'self', 'log'];
+const ASK_SHOWN = 240;
+const ASKS_A_DAY = 80;
+const DAYS_MOST = 7;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function askedOn(brain, day) {
+  let text;
+  try { text = fs.readFileSync(path.join(brain, ...LOG_DIR, `${day}.md`), 'utf8'); } catch { return null; }
+  const entries = text.split(/^(?=### \d{2}:\d{2} )/m).filter((part) => /^### \d{2}:\d{2} /.test(part));
+  const asks = [];
+  for (const entry of entries) {
+    // The heading, then at most a place line and a card line, then the ask as one quoted line.
+    const lines = entry.split('\n').slice(0, 5);
+    const ask = (lines.slice(1).find((line) => line.startsWith('> ')) || '').slice(2).trim();
+    if (!ask || /^<[a-z][a-z-]*>/i.test(ask)) continue;
+    const card = (lines.slice(1).find((line) => line.startsWith('Card: ')) || '').slice(6).split(' · ')[0].trim();
+    const shown = ask.length > ASK_SHOWN ? `${ask.slice(0, ASK_SHOWN - 1)}…` : ask;
+    const before = asks[asks.length - 1];
+    if (before && before.ask === shown) continue;   // one turn written twice is one ask
+    asks.push({ time: lines[0].slice(4, 9), ask: shown, ...(card ? { card } : {}) });
+  }
+  return { date: day, entries: entries.length, asked: asks.length, asks: asks.slice(0, ASKS_A_DAY) };
+}
+
+// The days read: yesterday, or every day from `since` to today, the latest seven at most. A day
+// with no log is left out.
+function asked(brain, now, since) {
+  const today = isoDay(now);
+  const back = (n) => isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - n));
+  let days = [back(1)];
+  if (since !== undefined && since !== null && since !== '') {
+    if (!DAY_RE.test(String(since)) || isNaN(Date.parse(`${since}T00:00:00Z`))) throw new BrainError('BAD_DATE', `"${since}" is not a day.`, 'Give it as YYYY-MM-DD.');
+    days = [];
+    for (let n = DAYS_MOST - 1; n >= 0; n--) if (back(n) >= since && back(n) <= today) days.push(back(n));
+  }
+  return days.map((day) => askedOn(brain, day)).filter(Boolean);
+}
+
 function dream(brain, options = {}) {
   const now = options.now ? new Date(options.now) : new Date();
   const today = isoDay(now);
+  const days = asked(brain, now, options.since);   // a bad --since stops here, before anything is read
   const state = readState(brain);
   const last = state.dream && typeof state.dream.last === 'string' ? state.dream.last : null;
   const since = last || new Date(now.getTime() - STALE_DAYS * DAY_MS).toISOString();
@@ -143,7 +191,7 @@ function dream(brain, options = {}) {
       routines = require('./routines.cjs').ran(brain, 'dream', { source: 'cogby dream', result, date: today, ifAny: true, env: options.env }).recorded.map((entry) => entry.name);
     } catch { /* the pass is what matters */ }
   }
-  return { brain, ran_at: now.toISOString(), since, sync, ...report, repos, routines_recorded: routines };
+  return { brain, ran_at: now.toISOString(), since, sync, ...report, repos, days, routines_recorded: routines };
 }
 
-module.exports = { dream, staleness, newestEvidence, rewriteTruth, STALE_DAYS, isoDay };
+module.exports = { dream, staleness, newestEvidence, rewriteTruth, asked, askedOn, STALE_DAYS, isoDay };

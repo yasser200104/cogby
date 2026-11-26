@@ -1,6 +1,6 @@
 {
   "name": "cogby",
-  "version": "0.3.11",
+  "version": "0.4.0",
   "description": "Cogby, a personal brain for Claude Code: skills, the session hooks that load a brain's memory and wrap up its sessions, and the brain's own tools. Works on its own.",
   "author": {
     "name": "Yasser Mouhajir"
@@ -42,7 +42,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/plugin-hook.cjs\" session-wrapup"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/plugin-hook.cjs\" session-wrapup",
+            "timeout": 30
           }
         ]
       }

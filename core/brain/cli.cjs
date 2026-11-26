@@ -8,19 +8,22 @@ const path = require('path');
 const brainLib = require('./brain.cjs');
 const { BrainError } = brainLib;
 
-const COMMANDS = new Set(['init', 'sync', 'search', 'get', 'log', 'remember', 'context', 'sources', 'serve', 'link', 'places', 'dream', 'index', 'view', 'map', 'notify', 'todo', 'note', 'wrapup', 'card', 'decisions', 'routines', 'proactive', 'unconfirmed', 'confirm', 'retract', 'meetings']);
+const COMMANDS = new Set(['init', 'sync', 'search', 'get', 'log', 'remember', 'context', 'sources', 'serve', 'link', 'places', 'dream', 'index', 'view', 'map', 'notify', 'todo', 'note', 'wrapup', 'card', 'decisions', 'routines', 'project', 'proactive', 'unconfirmed', 'confirm', 'retract', 'meetings']);
 const VALUE_FLAGS = new Set(['--brain', '--source', '--date', '--kind', '--replaces', '--author', '--limit', '--id',
   '--valid-from', '--valid-until', '--expected-revision', '--title', '--repo', '--artifact',
-  '--body', '--context', '--priority', '--meetings', '--data', '--recommend', '--if-ignored', '--status', '--undo', '--reason', '--due', '--project', '--text', '--who', '--expect', '--review', '--since', '--outcome', '--note', '--run', '--rhythm', '--why', '--scheduled', '--result', '--page', '--role', '--about', '--name']);
+  '--body', '--context', '--priority', '--meetings', '--data', '--recommend', '--if-ignored', '--status', '--undo', '--reason', '--due', '--project', '--text', '--who', '--expect', '--review', '--since', '--outcome', '--note', '--run', '--rhythm', '--why', '--scheduled', '--result', '--where', '--instructions', '--page', '--role', '--about', '--name', '--runs', '--sessions', '--tasks', '--by', '--plan']);
 // May be given more than once; collected in order.
 const MULTI_FLAGS = new Set(['--option']);
 const BOOL_FLAGS = new Set(['--json', '--no-sources', '--default', '--create', '--agent', '--human', '--no-default-search', '--no-plugin', '--mcp', '--all', '--html', '--md', '--quick', '--background', '--decision', '--if-any', '--confirmed-by-owner', '--none', '--help', '-h', '--version']);
 
 const HELP = `Brain commands:
-  init [--brain PATH] [--default] [--no-plugin] [--no-sources]
+  init [--brain PATH] [--default] [--private] [--no-plugin] [--no-sources]
                                               Lay out a brain here (or at PATH) as its own git repository,
                                               register Cogby's skills and hooks for it in Claude Code, and
-                                              ask which folders of notes or files to add as sources
+                                              ask which folders of notes or files to add as sources.
+                                              --private marks the brain (a new one or one that exists)
+                                              private: used only from its own folder, never the default,
+                                              never read by another brain
   sync [--source ID] [--quick]                Read changed files into the index; rebuilds it when it is missing.
                                               Searches answer from the index as it is; a background sync
                                               (--quick --background, started for you) keeps it up to date
@@ -28,9 +31,14 @@ const HELP = `Brain commands:
   view [--json]                               What you need to see: projects and where each stopped, the last lines
                                               written, stale pages, mounted sources (--artifact URL records where
                                               the page made from it was published)
-  view --html [--meetings FILE]               Build the command center page from that snapshot: output/brain-view.html
-                                              to open, and the same page ready to publish (FILE: today's meetings, a
-                                              JSON list read from a calendar by a session)
+  view --html [--meetings FILE] [--runs FILE] [--sessions FILE] [--tasks FILE]
+                                              Build the command center page from that snapshot: output/brain-view.html
+                                              to open, and the same page ready to publish. Each FILE is JSON a session
+                                              read for this page: today's meetings, a list from a calendar; --runs, each
+                                              scheduled task's last run, { "<task id>": { link, at, summary } };
+                                              --sessions, the open chats, a list of { id, title, state, needs, where,
+                                              project, at, link }; --tasks, the to-dos kept in a tool of your own, a
+                                              list of { id, text, due, done, tool, link, project }
   view --html --project NAME                  Build one project's own dashboard page: output/dashboard-NAME.html
                                               (--artifact URL --project NAME records where it was published)
   view auto on | off | status                 Keep the view page up to date on its own, after onboarding and at each
@@ -83,16 +91,27 @@ const HELP = `Brain commands:
                                               One page each under areas/routines. Reads the index as it is
   routines due                                Only the ones due or overdue now
   routines add "<name>" --run "<skill or prompt>" --rhythm "<rhythm>" [--why "…"] [--scheduled "<pointer>"]
+               [--where "<plain words>"] [--instructions "<text>"]
                                               A rhythm is daily, weekdays, "weekly on friday" or "monthly on 1"
                                               (or "monthly on last"), each with an optional "at 16:00"
   routines edit <name> [--run "…"] [--rhythm "…"] [--why "…"] [--scheduled "<pointer>"|none] [--title "…"]
-                                              --scheduled is where it is scheduled in Claude: the task's name or id
+                [--where "<plain words>"|none] [--instructions "<text>"|none]
+                                              --scheduled is the pointer: the task's name or id in the scheduler.
+                                              --where says in plain words where it runs (the tool, this computer or
+                                              the cloud, what must be open). --instructions keeps the full
+                                              instructions on the page when they are more than the --run line, so
+                                              the routine can be set up again in any tool (also on add)
   routines pause | resume <name> [--reason "…"]
   routines ran <name> --source "<evidence>" [--result "<one line>"] [--date YYYY-MM-DD] [--if-any]
                                               Record a run on the routine's page. <name> may be what it runs
                                               ("check-in, weekly"): every routine that runs it gets the line.
                                               --if-any: <name> is what ran (a skill recording its own run), matched
                                               against what each routine runs; none is not an error
+  routines offered "<the routine, or the ask>" --source "<evidence>"
+                                              Record, BEFORE making it, an offer or an ask about routines that
+                                              nobody asked for (a new routine from what the brain shows, a first
+                                              routine). Refused under proactive quiet, when one was made in the
+                                              last 7 days, and when the same one was ever made: then say nothing
   proactive quiet | suggest | act | status    How far Cogby goes on its own about routines: say nothing unless
                                               asked (quiet), list what is due when a session starts and offer to
                                               run it (suggest, the default), or run the due ones that only read or
@@ -125,24 +144,53 @@ const HELP = `Brain commands:
                                               the mark
   places [<page>] [--all]                     The places of every page, or of one, each with its role, its one line and
                                               its folder on this machine (--all with the unlinked ones)
-  dream                                       The nightly pass: sync, check facts, read linked repos, flag stale pages
-                                              (recorded as a run on a routine that runs it)
+  dream [--since YYYY-MM-DD]                  The nightly pass: sync, check facts, read linked repos, flag stale pages
+                                              (recorded as a run on a routine that runs it). It also lists what you
+                                              asked the day before, cut from the day's log, for the look-back to read
+                                              (--since: every day from that one to today, seven at most)
   notify                                      What Cogby left for you: the notifications still waiting (--all for every one)
   notify add --title "…" [--body "…"] [--source NAME] [--context KEY] [--priority high]
              [--option "…" … --recommend "…"] [--if-ignored "…"]
-                                              Leave one. The same source and context refreshes the one waiting.
-                                              --status acted [--reason "…"] [--undo "…"] records something done without asking
+                                              Leave one. A notification carries a question and its answers (--option, and
+                                              --recommend for the one you suggest), or one thing to go ahead with
+                                              (--recommend alone, in a sentence), or it is not a notification.
+                                              --if-ignored says what happens if nothing is done.
+                                              The same source and context refreshes the one waiting.
+                                              --status acted [--reason "…"] [--undo "…"] is for what needs nothing from the
+                                              owner: something done without asking, shown under "Done without you"
   notify read | dismiss | later <id>          Mark one seen, clear it, or put it off (counted)
   notify answer <id> "<option>"               Answer one that asks a question
   notify comment <id> "<words>"               Add your words to one
+  project status <name> <status>              A project's status, on its card: planning, active, on-hold or done.
+                                              The old one stays in the card's timeline
   todo                                        Your own to-dos still open (--all for every one, --md as a checklist)
-  todo add "<text>" [--project NAME] [--due YYYY-MM-DD]
-                                              In a linked folder the project is that folder's page (--project none: no project)
+  todo add "<text>" [--project NAME] [--due YYYY-MM-DD] [--body "…"] [--by cogby]
+                                              In a linked folder the project is that folder's page (--project none: no project).
+                                              --by cogby hands it to Cogby, who proposes a plan before doing anything
   todo done | reopen | drop <id>              Tick one, untick it, or let it go (kept in the file)
-  todo edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none]
+  todo edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none] [--body "…"|none]
+                                              [--by cogby|me] [--plan "…"|none] (the plan is Cogby's, for a to-do handed to it)
   note                                        Your quick notes, newest first (--all with the dismissed ones)
   note add "<text>" [--body "…"] [--project NAME]
   note dismiss | reopen <id>
+  mirror                                      The Notion mirror, an extra that is off until you turn it on: a copy of
+                                              your projects, areas, people, open to-dos and decisions under one Notion
+                                              page. Shows whether it is on, where it lives and what an update would write
+  mirror on --parent <notion page link> | off Turn it on, under the Notion page you chose, or off. Off sends nothing
+                                              more; what is in Notion stays. The brain stays the one home: a mirrored
+                                              page says it is a copy, and an edit made in Notion is overwritten
+  mirror push [--limit N] [--dry-run] [--if-on]
+                                              Update Notion through Notion's own command-line tool (ntn): first take in
+                                              what was ticked or added on the To-dos page, then write every page that
+                                              is new or changed. Nothing is ever deleted in Notion. --if-on: does
+                                              nothing and prints nothing while the mirror is off (what a wrap-up runs)
+  mirror plan                                 What an update would write, page by page, without sending anything
+  mirror page <key>                           One page as it goes to Notion, for a session that writes it through its
+                                              own Notion connection; then: mirror done <key> --id <notion page link>
+                                              (--id none forgets a page removed in Notion)
+  mirror pull [--data FILE] [--dry-run]       Take in what was done on the To-dos page in Notion: a to-do ticked there
+                                              is done here, a line added there is a new to-do (FILE: the page as Notion
+                                              gives it back, "-" for stdin; without it the page is read with ntn)
   sources                                     The mounted sources: where each is, files indexed, last read, missing or not
   sources add <path> [--id ID] | remove <id>  Register a folder as a read-only source, indexed where it is, or drop one
   serve --mcp                                 The same operations as tools, over stdio
@@ -157,11 +205,11 @@ marks it an agent's). Run inside a Claude session it is always an agent's and un
 COGBY_ACTOR=human are not honoured there. Such a line becomes confirmed only through \`cogby confirm\`.
 An agent's line also says which agent when Cogby knows: "agent claude-code" from Claude Code's shell,
 the client's name through the tool server, or COGBY_AGENT=<name> set by another agent's shell.
-The line a link or a routine command leaves ends in "record": it says what was run, claims nothing, and
-needs no confirming.`;
+The line left by a link, a routine command or a change of a project's status
+ends in "record": it says what was run, claims nothing, and needs no confirming.`;
 
 // The commands whose write carries who wrote it.
-const SIGNED = new Set(['log', 'remember', 'decisions', 'confirm', 'retract', 'routines', 'link', 'meetings']);
+const SIGNED = new Set(['log', 'remember', 'decisions', 'confirm', 'retract', 'routines', 'project', 'link', 'meetings']);
 const NOT_HUMAN = 'cogby: --human (or COGBY_ACTOR=human) is not honoured inside a Claude session: this was written as an agent\'s, unconfirmed. '
   + 'The owner confirms it with `cogby confirm`.';
 
@@ -197,18 +245,31 @@ function parse(argv) {
 
 // ---- init -------------------------------------------------------------------------------------
 
+// `--private` is a yes/no flag that only `init` reads, so it is named here, beside it.
+BOOL_FLAGS.add('--private');
+
 function init(target, options = {}) {
   const starter = require('../lib/starter-brain.cjs');
   const { ensureRepository } = require('../lib/brain-repo.cjs');
   const { ensureIgnored } = require('./db.cjs');
   const brain = path.resolve(target);
   const already = brainLib.isBrain(brain);
+  const env = options.env || process.env;
+  // The default brain is the one used from any folder; a private one is used only from its own.
+  if (options.default === true && (options.private === true || (already && brainLib.isPrivate(brain)))) {
+    throw new BrainError('PRIVATE_BRAIN', 'A private brain cannot be the default brain.', 'Leave out --default, or leave out --private.');
+  }
+  // Asked before the mark is written: a brain marked private stops being the default.
+  const usual = options.private === true ? brainLib.defaultBrain(env) : null;
   if (!already) {
     try { starter.createBrain(brain, { createdBy: 'init', version: options.version }); }
     catch (error) { throw new BrainError('INIT', error.message, 'Pick an empty folder: cogby init --brain <path>.'); }
   }
   // Before the first commit, so the index never enters the brain's history.
   ensureIgnored(brain);
+  // Typed on purpose (`--private`), on a new brain or one that exists; written before the first
+  // commit of a new one, and committed on its own in one that has a history.
+  const marked = options.private === true && brainLib.setPrivate(brain);
   // Cogby's skills and hooks, for sessions opened in this brain. The program is the package this
   // command runs from: no `cogby setup`, no service. Registered before the first commit, like setup.
   let plugin = { ok: false, skipped: true };
@@ -224,13 +285,18 @@ function init(target, options = {}) {
   const stats = brainLib.sync(brain);
   // The first brain a person makes is their default, the one reached from any folder. A later one
   // becomes the default only when asked (`--default`, or onboarding, on the person's yes).
-  const env = options.env || process.env;
+  if (marked && already) require('./write.cjs').commitFile(brain, '.cogby/brain.json', 'Cogby: this brain is private');
+  const isPrivate = brainLib.isPrivate(brain);
   const before = brainLib.defaultBrain(env);
   // `default: false` is a caller that must never choose the default (the tool server, for a folder it
   // did not make).
-  const choose = options.default === true || (options.default !== false && !before);
+  const choose = !isPrivate && (options.default === true || (options.default !== false && !before));
   const isDefault = choose ? !!brainLib.setDefaultBrain(brain, env) : !!before && brainLib.fold(before) === brainLib.fold(brain);
-  return { brain, created: !already, repository, plugin, index: stats.index, default: isDefault, sync: stats };
+  return {
+    brain, created: !already, repository, plugin, index: stats.index, default: isDefault,
+    ...(isPrivate ? { private: true, marked, lost_default: !!usual && brainLib.fold(usual) === brainLib.fold(brain) } : {}),
+    sync: stats,
+  };
 }
 
 // ---- the guided step: which folders to mount ---------------------------------------------------
@@ -291,6 +357,8 @@ function human(command, result) {
         : [`Claude Code: skills and hooks not registered (${result.plugin.why === 'claude-not-found' ? 'Claude Code was not found' : `${result.plugin.why}${result.plugin.detail ? `: ${result.plugin.detail}` : ''}`}). In this folder, run:`,
           ...(result.plugin.commands || []).map((line) => `  ${line}`)]),
       ...(result.default ? ['This is your default brain: its tools and its session-start line work from any folder.'] : []),
+      ...(result.private ? [`Private${result.marked ? '' : ' already'}: this brain is used only from a chat or a command started in its own folder. It is never the default brain, and no other brain searches or imports it.`] : []),
+      ...(result.lost_default ? ['It was your default brain: you have no default brain now. `cogby init --brain <another> --default` picks one.'] : []),
       result.index === 'on' ? `Indexed ${result.sync.pages} pages. Try: cogby search "<words>"` : 'Index off: commands read the files directly. Try: cogby search "<words>"',
     ].join('\n');
   }
@@ -373,6 +441,10 @@ function human(command, result) {
       ...done.map((item) => `  ${item.ref.padEnd(6)}  ${item.text}`), ...(were ? [were] : [])].join('\n');
   }
   if (command === 'routines') return routinesText(result);
+  if (command === 'project') {
+    return result.status === 'unchanged' ? `${result.project} is already ${result.now}; nothing written.`
+      : `Project ${result.project}: ${result.was} → ${result.now} (revision ${result.revision}, ${commitLine(result.commit)})`;
+  }
   if (command === 'proactive') {
     const what = {
       quiet: 'nothing is said about your routines unless you ask',
@@ -492,9 +564,14 @@ function human(command, result) {
     lines.push('', result.stale.length ? `No new evidence in 14 days (${result.stale.length}):` : 'No page is stale.');
     for (const entry of result.stale) lines.push(`  ${entry.slug}: ${entry.newest ? `last evidence ${entry.newest}, ${entry.days} days ago` : 'no dated evidence yet'}`);
     if (result.rewrite.candidates.length) lines.push('', `New evidence since the last pass, so the summary at the top may need a look: ${result.rewrite.candidates.join(', ')}.`);
+    for (const day of result.days || []) {
+      lines.push('', `${day.date}: ${day.entries} turn${day.entries === 1 ? '' : 's'} in the log, ${day.asked} asked by you${day.asked > day.asks.length ? ` (the first ${day.asks.length} shown)` : ''}`);
+      for (const one of day.asks) lines.push(`  ${one.time} ${one.ask}${one.card ? ` [${one.card}]` : ''}`);
+    }
     if (result.routines_recorded && result.routines_recorded.length) lines.push('', `Recorded as a run of: ${result.routines_recorded.join(', ')}.`);
     return lines.join('\n');
   }
+  if (command === 'mirror') return require('./mirror.cjs').text(result.did, result);
   if (command === 'sources') {
     if (result.added) {
       const unread = [...(result.sync.skipped.unreadable || [])];
@@ -521,11 +598,15 @@ function routinesText(result) {
     if (!result.recorded.length) return `No routine is named "${result.asked}" or runs it; nothing recorded.`;
     return result.recorded.map((entry) => (entry.status === 'duplicate' ? `Already recorded on ${entry.name}; nothing written.` : `Run recorded on ${entry.name}: ${commitLine(entry.commit)}\n${entry.line}`)).join('\n');
   }
+  if (result.action === 'offered') return `Offer recorded (${commitLine(result.commit)}): ${result.what}\nMake the offer now, once, and build the routine only on a yes. The next offer can be made from ${result.next_offer_from}.`;
   const due = (r) => (r.state === 'paused' ? 'paused' : r.state === 'unknown' ? 'rhythm not understood (fix it with `cogby routines edit`)'
     : r.state === 'overdue' ? `OVERDUE since ${r.next_due} (${r.days_overdue} day${r.days_overdue === 1 ? '' : 's'})`
       : r.state === 'due' ? 'DUE today' : `next due ${r.next_due}${r.due_time ? ` at ${r.due_time}` : ''}`);
   const one = (r) => [`${r.name}  ${r.title} · runs "${r.runs}" · ${r.rhythm} · ${due(r)}`,
-    `    last run: ${r.last_run ? `${r.last_run.date}${r.last_run.result ? `, ${r.last_run.result}` : ''} (${r.last_run.source || 'no source'})` : 'never'} · scheduled in Claude: ${r.scheduled}${r.why ? ` · why: ${r.why}` : ''}`];
+    `    last run: ${r.last_run ? `${r.last_run.date}${r.last_run.result ? `, ${r.last_run.result}` : ''} (${r.last_run.source || 'no source'})` : 'never'} · scheduled in Claude: ${r.scheduled}${r.why ? ` · why: ${r.why}` : ''}`,
+    ...(r.where || r.instructions ? [`    ${[r.where ? `where it runs: ${r.where}` : '', r.instructions ? `full instructions kept (${r.instructions.length} characters; \`cogby get ${r.slug}\`)` : ''].filter(Boolean).join(' · ')}`] : []),
+    ...(r.gaps && r.gaps.length ? [`    not on its page yet: ${r.gaps.map((gap) => (gap === 'why' ? 'why it exists' : 'where it runs')).join(', ')}`] : []),
+    ...(r.problem ? [`    problem: ${r.problem.text}`] : [])];
   if (result.action) {
     if (result.status === 'unchanged') return `Nothing changed on ${result.routine.name}.`;
     const done = { add: 'added', added: 'added', edit: 'edited', pause: 'paused', resume: 'resumed' }[result.action];
@@ -552,11 +633,11 @@ function todoCommand(brain, args, flags, cwd) {
   const one = (shape) => { if (args.length !== 2) throw usage(`cogby todo ${shape}`); return args[1]; };
   if (action === 'list') { if (args.length > 1) throw usage('cogby todo [--all] [--md]'); return { ...todo.listTodos(brain, { all: !!flags.all }), md: !!flags.md }; }
   if (action === 'add') {
-    if (args.length !== 2) throw usage('cogby todo add "<text>" [--project NAME] [--due YYYY-MM-DD] [--body "…"]');
-    return todo.addTodo(brain, { text: args[1], project: projectIn(brain, flags, cwd), due: flags.due, body: flags.body, source: flags.source });
+    if (args.length !== 2) throw usage('cogby todo add "<text>" [--project NAME] [--due YYYY-MM-DD] [--body "…"] [--by cogby]');
+    return todo.addTodo(brain, { text: args[1], project: projectIn(brain, flags, cwd), due: flags.due, body: flags.body, source: flags.source, by: flags.by });
   }
   if (action === 'done' || action === 'reopen' || action === 'drop') return todo.setTodo(brain, one(`${action} <id>`), action);
-  if (action === 'edit') return todo.editTodo(brain, one('edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none] [--body "…"|none]'), { text: flags.text, due: flags.due, project: flags.project, body: flags.body });
+  if (action === 'edit') return todo.editTodo(brain, one('edit <id> [--text "…"] [--due YYYY-MM-DD|none] [--project NAME|none] [--body "…"|none] [--by cogby|me] [--plan "…"|none]'), { text: flags.text, due: flags.due, project: flags.project, body: flags.body, by: flags.by, plan: flags.plan });
   throw usage(`todo ${action}: use add, list, done, reopen, drop or edit.`);
 }
 
@@ -592,6 +673,29 @@ function notifyCommand(brain, args, flags, env) {
   throw usage(`notify ${action}: use add, list, read, dismiss, later, answer or comment.`);
 }
 
+// The Notion mirror: a copy of the brain under one Notion page, off until the owner turns it on (core/brain/mirror.cjs).
+// Its command and flags are named here, apart from the lists at the top that every other command shares.
+COMMANDS.add('mirror'); VALUE_FLAGS.add('--parent'); for (const flag of ['--dry-run', '--if-on']) BOOL_FLAGS.add(flag);
+function mirrorCommand(brain, args, flags, env, cwd) {
+  const mirror = require('./mirror.cjs');
+  const action = args[0] || 'status';
+  const shape = 'cogby mirror [status] | on --parent <notion page link> | off | plan | page <key> | done <key> --id <notion page link>|none | pull [--data FILE] [--dry-run] | push [--limit N] [--dry-run] [--if-on]';
+  const alone = () => { if (args.length > 1) throw usage(shape); };
+  const key = () => { if (args.length !== 2) throw usage(shape); return args[1]; };
+  let result;
+  if (action === 'status') { alone(); result = mirror.status(brain, { env }); }
+  else if (action === 'on') { alone(); result = mirror.setOn(brain, flags.parent, { env }); }
+  else if (action === 'off') { alone(); result = mirror.setOff(brain, { env }); }
+  else if (action === 'plan') { alone(); result = mirror.plan(brain); }
+  else if (action === 'page') result = mirror.onePage(brain, key());
+  else if (action === 'done') { if (flags.id === undefined) throw usage('cogby mirror done <key> --id <notion page link>|none'); result = mirror.done(brain, key(), flags.id); }
+  else if (action === 'pull') { alone(); result = mirror.pull(brain, { env, dryRun: !!flags.dryRun, data: flags.data === undefined ? undefined : mirror.readData(flags.data, cwd) }); }
+  else if (action === 'push') { alone(); result = mirror.push(brain, { env, limit: flags.limit, dryRun: !!flags.dryRun, ifOn: !!flags.ifOn }); }
+  else throw usage(`mirror ${action}: use status, on, off, plan, page, done, pull or push.`);
+  // `did`, not `action`: a page of the plan has an action of its own (create, update, unchanged).
+  return { ...result, did: action };
+}
+
 // Routines: what the owner does on a rhythm with Claude (core/brain/routines.cjs).
 function routinesCommand(brain, args, flags, who) {
   const routines = require('./routines.cjs');
@@ -602,11 +706,12 @@ function routinesCommand(brain, args, flags, who) {
     if (args.length > 1) throw usage('cogby routines [--all] | cogby routines due');
     return { ...routines.list(brain, { due: action === 'due' }), all: !!flags.all };
   }
-  if (action === 'add') return routines.add(brain, name('add "<name>" --run "<skill or prompt>" --rhythm "<rhythm>" [--why "…"] [--scheduled "<pointer>"]'), { ...by, run: flags.run, rhythm: flags.rhythm, why: flags.why, scheduled: flags.scheduled, date: flags.date });
-  if (action === 'edit') return routines.edit(brain, name('edit <name> [--run "…"] [--rhythm "…"] [--why "…"] [--scheduled "<pointer>"|none] [--title "…"]'), { ...by, run: flags.run, rhythm: flags.rhythm, why: flags.why, scheduled: flags.scheduled, title: flags.title });
+  if (action === 'add') return routines.add(brain, name('add "<name>" --run "<skill or prompt>" --rhythm "<rhythm>" [--why "…"] [--scheduled "<pointer>"]'), { ...by, run: flags.run, rhythm: flags.rhythm, why: flags.why, scheduled: flags.scheduled, date: flags.date, where: flags.where, instructions: flags.instructions });
+  if (action === 'edit') return routines.edit(brain, name('edit <name> [--run "…"] [--rhythm "…"] [--why "…"] [--scheduled "<pointer>"|none] [--title "…"]'), { ...by, run: flags.run, rhythm: flags.rhythm, why: flags.why, scheduled: flags.scheduled, title: flags.title, where: flags.where, instructions: flags.instructions });
   if (action === 'pause' || action === 'resume') return routines.setStatus(brain, name(`${action} <name> [--reason "…"]`), action === 'pause' ? 'paused' : 'active', { ...by, reason: flags.reason });
   if (action === 'ran') return routines.ran(brain, name('ran <name> --source "<evidence>" [--result "<one line>"] [--if-any]'), { ...by, result: flags.result, date: flags.date, ifAny: !!flags.ifAny });
-  throw usage(`routines ${action}: use list, due, add, edit, pause, resume or ran.`);
+  if (action === 'offered') return routines.offered(brain, name('offered "<the routine, in one line>" --source "<what in the brain shows the need>"'), { ...by, date: flags.date });
+  throw usage(`routines ${action}: use list, due, add, edit, pause, resume, ran or offered.`);
 }
 
 // ---- dispatch ---------------------------------------------------------------------------------
@@ -617,7 +722,7 @@ function run(parsed, io) {
   const cwd = io.cwd || process.cwd();
   if (command === 'init') {
     if (args.length) throw usage('init takes no argument; name the folder with --brain PATH.');
-    return init(flags.brain ? path.resolve(cwd, flags.brain) : cwd, { version: io.version, env, plugin: !flags.noPlugin && !env.COGBY_NO_PLUGIN, run: io.run, default: flags.default ? true : undefined });
+    return init(flags.brain ? path.resolve(cwd, flags.brain) : cwd, { version: io.version, env, plugin: !flags.noPlugin && !env.COGBY_NO_PLUGIN, run: io.run, default: flags.default ? true : undefined, private: !!flags.private });
   }
   // Found only once the command is known to be well formed: a mistyped command is a usage error
   // wherever it is typed, brain or no brain.
@@ -672,6 +777,10 @@ function run(parsed, io) {
     });
   }
   if (command === 'routines') return routinesCommand(where(), args, flags, { env, actor });
+  if (command === 'project') {
+    if (args[0] !== 'status' || args.length !== 3) throw usage('cogby project status <name> <planning|active|on-hold|done>');
+    return require('./project.cjs').setStatus(where(), args[1], args[2], { env, actor, author: flags.author, source: flags.source });
+  }
   if (command === 'proactive') {
     const routines = require('./routines.cjs');
     const action = args[0] || 'status';
@@ -713,14 +822,26 @@ function run(parsed, io) {
       if (args.length > 2 || !['on', 'off', 'status'].includes(action)) throw usage('cogby view auto on | off | status');
       return action === 'status' ? require('./view.cjs').autoStatus(where()) : require('./view.cjs').setAuto(where(), action === 'on');
     }
-    if (args.length) throw usage('cogby view [--json] [--html [--meetings FILE]] [--artifact URL|none] [--project NAME] | cogby view auto on|off|status');
+    if (args.length) throw usage('cogby view [--json] [--html [--meetings FILE] [--runs FILE] [--sessions FILE] [--tasks FILE]] [--artifact URL|none] [--project NAME] | cogby view auto on|off|status');
     if (flags.html) {
-      let meetings;
+      let meetings; let runs; let sessions; let tasks;
+      if (flags.tasks !== undefined) {
+        try { tasks = JSON.parse(require('fs').readFileSync(require('path').resolve(cwd, flags.tasks), 'utf8').replace(/^\uFEFF/, '')); }
+        catch (error) { throw new BrainError('BAD_TASKS', `Could not read the tasks from ${flags.tasks}: ${error.message}`, 'Pass a JSON file holding a list.'); }
+      }
+      if (flags.sessions !== undefined) {
+        try { sessions = JSON.parse(require('fs').readFileSync(require('path').resolve(cwd, flags.sessions), 'utf8').replace(/^\uFEFF/, '')); }
+        catch (error) { throw new BrainError('BAD_SESSIONS', `Could not read the sessions from ${flags.sessions}: ${error.message}`, 'Pass a JSON file holding a list.'); }
+      }
       if (flags.meetings !== undefined) {
         try { meetings = JSON.parse(require('fs').readFileSync(require('path').resolve(cwd, flags.meetings), 'utf8').replace(/^\uFEFF/, '')); }
         catch (error) { throw new BrainError('BAD_MEETINGS', `Could not read the meetings from ${flags.meetings}: ${error.message}`, 'Pass a JSON file holding a list.'); }
       }
-      return require('./center.cjs').build(where(), { meetings, meetingsReadAt: new Date().toTimeString().slice(0, 5), project: flags.project });
+      if (flags.runs !== undefined) {
+        try { runs = JSON.parse(require('fs').readFileSync(require('path').resolve(cwd, flags.runs), 'utf8').replace(/^\uFEFF/, '')); }
+        catch (error) { throw new BrainError('BAD_RUNS', `Could not read the scheduled runs from ${flags.runs}: ${error.message}`, 'Pass a JSON file holding one object.'); }
+      }
+      return require('./center.cjs').build(where(), { meetings, runs, sessions, tasks, meetingsReadAt: new Date().toTimeString().slice(0, 5), project: flags.project });
     }
     return flags.artifact !== undefined ? require('./view.cjs').setArtifact(where(), flags.artifact, flags.project) : require('./view.cjs').view(where());
   }
@@ -740,6 +861,7 @@ function run(parsed, io) {
     if (args.length) throw usage('cogby meetings [--page SLUG] [--limit N] | cogby meetings add --data FILE');
     return meetings.list(where(), { page: flags.page, limit: flags.limit });
   }
+  if (command === 'mirror') return mirrorCommand(where(), args, flags, env, cwd);
   if (command === 'notify') return notifyCommand(where(), args, flags, env);
   if (command === 'todo') return todoCommand(where(), args, flags, cwd);
   if (command === 'note') return noteCommand(where(), args, flags, cwd);
@@ -779,7 +901,7 @@ function run(parsed, io) {
     if (args.length > 1) throw usage('cogby places [<page>] [--all]');
     return require('./link.cjs').places(where(), { page: args[0], all: !!flags.all });
   }
-  if (command === 'dream') return require('./dream.cjs').dream(where(), { env });
+  if (command === 'dream') return require('./dream.cjs').dream(where(), { env, since: flags.since });
   if (command === 'sources') {
     const action = args[0] || 'list';
     if (action === 'list') return brainLib.sourceStatus(where());
@@ -838,4 +960,5 @@ async function main(argv, io = {}) {
 
 module.exports = { COMMANDS, HELP, parse, init, guideSources, human, run, main };
 
-if (require.main === module) main(process.argv.slice(2), { version: require('../../package.json').version }).then((code) => { process.exitCode = code; });
+// The version is the plugin manifest's, the one a person is shown (core/lib/version.cjs).
+if (require.main === module) main(process.argv.slice(2), { version: require('../lib/version.cjs').pluginVersion() || require('../../package.json').version }).then((code) => { process.exitCode = code; });

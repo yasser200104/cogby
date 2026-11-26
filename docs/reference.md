@@ -5,10 +5,11 @@ and every command, and how the skills are built.
 
 ## Cards in the chat
 
-In the desktop and web apps, five skills show a small card inside the chat where a click is worth
+In the desktop and web apps, four skills show a small card inside the chat where a click is worth
 more than text: the session wrap, the meeting debrief and the digest each show what they would save
-for you to tick, the quiz runs in one card, and the picture is one. A click sends an ordinary chat
-message, and Claude does the work from there. In a terminal the same skills answer in text.
+for you to tick, and the quiz runs in one card. A click sends an ordinary chat message, and Claude
+does the work from there. In a terminal the same skills answer in text. A picture is not a card:
+Claude draws it with the chat's own visual tool.
 
 Everything else is said in the chat. The check-in, the meeting brief and the end of a session wrap
 are text; the wrap ends with one signed line, such as "Cogby · 3 lines saved to acme".
@@ -19,11 +20,12 @@ each takes; the skill that shows a card gives that data in full.
 
 Onboarding needs none of Cogby's tools or cards. In the chat where you have just installed the
 plugin, the tool server is not running yet, so onboarding runs on commands Claude runs for you
-(`node "<plugin>/bin/cogby" …`) from its first step to its last. Its screens are fixed files beside
-the skill, `screens.html` (Cogby's colours and mark, a five-step bar on each) and its plain-text
-twin `screens-text.md`: Claude copies a screen into its own inline visual and fills in your names,
-and says the plain-text one where a chat cannot show visuals. A click on a screen sends an ordinary
-reply.
+(`node "<plugin>/bin/cogby" …`) from its first step to its last. Its steps are said in the chat,
+from `screens-text.md` beside the skill: the same meaning, in the same order, in the language you
+write in. One step is a screen, Check it, kept in `screens.html` (Cogby's colours and mark): Claude
+copies it into its own inline visual and fills in your names and a short list of what it found, one
+line per item; the screen draws the rows itself. It says its plain-text version where a chat cannot
+show visuals. A click on the screen sends an ordinary reply.
 
 ## What runs on its own
 
@@ -32,7 +34,7 @@ reply.
 - **Routines, as far as you allow:** `cogby proactive quiet` says nothing about routines unless you
   ask. `cogby proactive suggest`, the default, lists what is due and Claude offers to run it.
   `cogby proactive act` lets Claude run a due routine that only reads or reports (a check-in, the
-  nightly `dream`), record the run and leave you a notification saying what it did. A routine that
+  daily look-back, the nightly `dream`), record the run and leave you a notification saying what it did. A routine that
   writes to a page's summary, sends anything or touches anything outside the brain asks first,
   whatever the setting, and so does any routine whose prompt is free text: which ones may run
   unasked is a list in the code, not something a page can say about itself. There is no daemon: a
@@ -87,6 +89,30 @@ A decision is written with `log`; the decision log and the routines are commands
 The same operations, and a few setup ones, are a command in Claude's shell: `cogby help`. Useful
 ones to ask for: `cogby sources add <folder>` (search a folder where it is, read-only; `digest` is what reads one into pages),
 `cogby dream` (check for stale pages), `cogby map` (what the brain holds).
+
+The Notion mirror, an extra for people who want to see their brain in Notion. It is off until you turn
+it on, and the brain stays the one home: every mirrored page says it is a copy, and an edit made in
+Notion is overwritten. Only a to-do ticked or added on the mirrored To-dos page comes back.
+
+```
+cogby mirror                            # on or off, where it lives, what an update would write
+cogby mirror on --parent <notion page link>
+cogby mirror push                       # update Notion through Notion's own command-line tool (ntn)
+cogby mirror plan                       # what an update would write, without sending anything
+cogby mirror off                        # nothing more is sent; what is in Notion stays
+```
+
+Mirrored: every project and area card, every page under people, organizations and threads, the open
+to-dos and the decisions. Never mirrored: `resources/`, the archive, the day log, meeting records,
+notes, notifications, routines and `.cogby/self/`. A card with `mirror: false` in its frontmatter
+stays out, and what looks like a secret is blanked before it leaves. Nothing is ever deleted in
+Notion. Without Notion's command-line tool, a session writes the pages through its own Notion
+connection (`cogby mirror page <key>`, then `cogby mirror done <key> --id <notion page link>`). Which
+Notion page is which is remembered on the machine that made the mirror (`.cogby/local.json`), so a
+mirror is kept from one machine. Nothing here runs in the background: a session updates it, on
+request or at its wrap-up (`cogby mirror push --if-on`, which does and says nothing while the mirror is off).
+Until you turn it on, nothing mentions it: not the session start, not My view, not the onboarding, and the
+skill is left out of the list Claude reads, so you start it yourself by typing `/cogby:notion-mirror`.
 
 The map of the brain:
 
@@ -169,7 +195,7 @@ Cogby knows it (`[yasser · agent claude-code · unconfirmed]`): from the tool s
 from the shell the command ran in (Claude Code's, or `COGBY_AGENT=<name>` for another agent).
 A session is told how many unconfirmed lines there are and sees `(agent, unconfirmed)` after each one it reads; the wrap-up confirms what you ticked, and the
 weekly check-in reports how many are left. A line Cogby writes for a command you ran or
-approved (a folder linked, a routine added, paused or run) ends in `record`: it claims nothing, so
+approved (a folder linked, a routine added, paused or run, a project's status changed) ends in `record`: it claims nothing, so
 it is never listed as unconfirmed and never shown as where you stopped.
 
 ```
@@ -208,7 +234,7 @@ A rhythm is `daily`, `weekdays`, `weekly on <day>` or `monthly on <1-31|last>`, 
 optional `at HH:MM`. Due dates are worked out from the rhythm and the last run, in local time: a
 weekly review done two days late is due again on its own day. `ran` also takes what a routine runs
 in place of its name (`cogby routines ran "check-in, weekly" --if-any …`), which is how the
-check-in and the wrap-up record their own runs; `cogby dream` records its own. `cogby routines`
+check-in, the wrap-up and the look-back record their own runs; `cogby dream` records its own. `cogby routines`
 reads the index as it is and takes `--json`.
 
 A brain made before projects had one card keeps working as it is. To bring an old project to the
@@ -216,9 +242,9 @@ new layout, ask Claude to fold its `progress.md` into its `card.md`.
 
 ## How the skills are built
 
-Three layers: **Brain** (`onboarding`, `capture`, `wrap-up`, `my-view`, `routines`), **Work**
-(`meeting-prep`, `meeting-notes`, `digest`, `check-in`), **Output** (`plan-page`, `design`,
-`clean-writing`), and two cards you ask for by name (`quiz-me`, `picture`): fourteen skills. Every
+Three layers: **Brain** (`onboarding`, `capture`, `wrap-up`, `my-view`, `routines`, `look-back`, and the extra `notion-mirror`),
+**Work** (`meeting-prep`, `meeting-notes`, `digest`, `check-in`), **Output** (`plan-page`, `design`,
+`clean-writing`), and two you ask for by name (`quiz-me`, `picture`): sixteen skills. Every
 skill has one job, reads the brain first, writes only through the tools, hands off to another
 skill instead of repeating it, and says what it is not for.
 

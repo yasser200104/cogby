@@ -14,7 +14,7 @@ Split what you were given into items. One item is one sentence that can stand al
 
 | The item is… | It goes to | How |
 |---|---|---|
-| something the owner must do | a to-do | `todo` tool, `add`, with `due` and `project` when known |
+| something the owner must do | a to-do, in the owner's own tool when they have one | Step 1b |
 | a thought to keep as it was said | a note | `note` tool, `add` |
 | something that happened | the timeline of the page it is about | `log` tool, with a `source` |
 | something now known to be true | a fact on the page it is about | `remember` tool, with a `source` |
@@ -27,6 +27,21 @@ Split what you were given into items. One item is one sentence that can stand al
 When an item could be two things, pick by what the owner will do with it: act on it (to-do), look
 it up (fact), or read it again (note). Ask only when you truly cannot tell, and ask once for the
 whole batch, not per item.
+
+## Step 1b: Where a to-do goes
+
+A fact on `areas/work/card` may say where the owner keeps their to-dos (Notion, Google Tasks, Asana,
+another tool), with the list's name and link.
+
+- **It names a tool, and this session can reach it** (search the session's tools before deciding it
+  cannot): add the to-do there, in that list, with its due date, and the project in its text. Say
+  where it went. Do not also add it to Cogby's list.
+- **It names a tool this session cannot reach:** `todo` tool, `add`, and say in one line that it is
+  in Cogby's list because the tool is not connected here.
+- **No such fact, or it says none:** `todo` tool, `add`, with `due` and `project` when known.
+- **"Connect my to-dos":** ask which tool and which list, check this session can reach it, and keep
+  the answer as that fact (`remember`, the owner as its source). Offer once to move the open to-dos
+  of Cogby's list there; on a yes, add each one there and close it here with `todo`, `done`.
 
 ## Step 2: Find the page
 

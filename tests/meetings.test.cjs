@@ -214,3 +214,33 @@ test('the skills find the transcript, keep the record, and no template sends mee
     assert.match(text, /resources\/meetings\//, template);
   }
 });
+
+test('meetings and to-dos follow the owner\'s own tools: asked once, kept as one fact, used by the skills', () => {
+  // The owner, 2026-11-22 (notes 9 and 14 to 17 of their own run): to-dos must live in the tool the person already uses,
+  // meetings were nowhere in the brain, and both must work for any person's tools, not his.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT_DIR = path.join(__dirname, '..');
+  const flat = (rel) => fs.readFileSync(path.join(ROOT_DIR, rel), 'utf8').replace(/\s+/g, ' ');
+  const notes = flat('.claude/skills/meeting-notes/SKILL.md');
+  assert.match(notes, /"Catch me up on my meetings", or the Meeting catch-up routine: every meeting held since the last record, as `catch-up\.md` beside this file says\./);
+  assert.match(notes, /A fact on `areas\/work\/card` may say where the owner's meetings are recorded: try that tool first/);
+  const catchUp = flat('.claude/skills/meeting-notes/catch-up.md');
+  assert.match(catchUp, /Ask for one yes for everything/);
+  assert.match(catchUp, /## Nobody to ask \(a scheduled run\) Write no record and no item\./);
+  assert.match(catchUp, /Never guess what was said in it\./);
+  // A routine that runs it asks first: it writes to pages.
+  const routines = require(path.join(ROOT_DIR, 'core', 'brain', 'routines.cjs'));
+  assert.equal(routines.unattended('meeting-notes, catch-up'), 'ask');
+  assert.match(flat('.claude/skills/routines/SKILL.md'), /a daily meeting catch-up that runs `meeting-notes, catch-up`: it lists the meetings held and not yet written down, and writes nothing before the owner's yes/);
+  // To-dos: the owner's tool first, Cogby's list only without one, never both.
+  const capture = flat('.claude/skills/capture/SKILL.md');
+  assert.match(capture, /add the to-do there, in that list, with its due date, and the project in its text\. Say where it went\. Do not also add it to Cogby's list\./);
+  assert.match(capture, /\*\*"Connect my to-dos":\*\* ask which tool and which list, check this session can reach it, and keep the answer as that fact/);
+  assert.match(flat('.claude/skills/check-in/SKILL.md'), /read the open ones there too: that list comes first, and a to-do is ticked, dropped or added where it lives\./);
+  const rules = flat('AGENTS.md');
+  assert.match(rules, /\*\*To-dos live where the owner keeps them\.\*\*/);
+  assert.match(rules, /Never the same to-do in both\./);
+  assert.match(rules, /\*\*Meetings: what is coming is read from the calendar, what was held from the brain's meeting records\*\* \(`cogby meetings`\)\./);
+  assert.match(rules, /a link to the recording or transcript, never its text/);
+});
